@@ -1,0 +1,86 @@
+[
+    {
+        "merged": "/home/arman/Desktop/adjust_react_native_sample/AwesomeProject/node_modules/react-native-adjust/android/build/intermediates/res/merged/release/color/switch_thumb_material_light.xml",
+        "source": "/home/arman/.gradle/caches/transforms-1/files-1.1/appcompat-v7-28.0.0.aar/cd3c4e646146afe632fdde77ec3ca380/res/color/switch_thumb_material_light.xml"
+    },
+    {
+        "merged": "/home/arman/Desktop/adjust_react_native_sample/AwesomeProject/node_modules/react-native-adjust/android/build/intermediates/res/merged/release/color/abc_hint_foreground_material_dark.xml",
+        "source": "/home/arman/.gradle/caches/transforms-1/files-1.1/appcompat-v7-28.0.0.aar/cd3c4e646146afe632fdde77ec3ca380/res/color/abc_hint_foreground_material_dark.xml"
+    },
+    {
+        "merged": "/home/arman/Desktop/adjust_react_native_sample/AwesomeProject/node_modules/react-native-adjust/android/build/intermediates/res/merged/release/color/abc_tint_switch_track.xml",
+        "source": "/home/arman/.gradle/caches/transforms-1/files-1.1/appcompat-v7-28.0.0.aar/cd3c4e646146afe632fdde77ec3ca380/res/color/abc_tint_switch_track.xml"
+    },
+    {
+        "merged": "/home/arman/Desktop/adjust_react_native_sample/AwesomeProject/node_modules/react-native-adjust/android/build/intermediates/res/merged/release/color/abc_primary_text_material_light.xml",
+        "source": "/home/arman/.gradle/caches/transforms-1/files-1.1/appcompat-v7-28.0.0.aar/cd3c4e646146afe632fdde77ec3ca380/res/color/abc_primary_text_material_light.xml"
+    },
+    {
+        "merged": "/home/arman/Desktop/adjust_react_native_sample/AwesomeProject/node_modules/react-native-adjust/android/build/intermediates/res/merged/release/color/abc_primary_text_material_dark.xml",
+        "source": "/home/arman/.gradle/caches/transforms-1/files-1.1/appcompat-v7-28.0.0.aar/cd3c4e646146afe632fdde77ec3ca380/res/color/abc_primary_text_material_dark.xml"
+    },
+    {
+        "merged": "/home/arman/Desktop/adjust_react_native_sample/AwesomeProject/node_modules/react-native-adjust/android/build/intermediates/res/merged/release/color/abc_tint_btn_checkable.xml",
+        "source": "/home/arman/.gradle/caches/transforms-1/files-1.1/appcompat-v7-28.0.0.aar/cd3c4e646146afe632fdde77ec3ca380/res/color/abc_tint_btn_checkable.xml"
+    },
+    {
+        "merged": "/home/arman/Desktop/adjust_react_native_sample/AwesomeProject/node_modules/react-native-adjust/android/build/intermediates/res/merged/release/color/abc_tint_spinner.xml",
+        "source": "/home/arman/.gradle/caches/transforms-1/files-1.1/appcompat-v7-28.0.0.aar/cd3c4e646146afe632fdde77ec3ca380/res/color/abc_tint_spinner.xml"
+    },
+    {
+        "merged": "/home/arman/Desktop/adjust_react_native_sample/AwesomeProject/node_modules/react-native-adjust/android/build/intermediates/res/merged/release/color/abc_background_cache_hint_selector_material_dark.xml",
+        "source": "/home/arman/.gradle/caches/transforms-1/files-1.1/appcompat-v7-28.0.0.aar/cd3c4e646146afe632fdde77ec3ca380/res/color/abc_background_cache_hint_selector_material_dark.xml"
+    },
+    {
+        "merged": "/home/arman/Desktop/adjust_react_native_sample/AwesomeProject/node_modules/react-native-adjust/android/build/intermediates/res/merged/release/color/abc_btn_colored_text_material.xml",
+        "source": "/home/arman/.gradle/caches/transforms-1/files-1.1/appcompat-v7-28.0.0.aar/cd3c4e646146afe632fdde77ec3ca380/res/color/abc_btn_colored_text_material.xml"
+    },
+    {
+        "merged": "/home/arman/Desktop/adjust_react_native_sample/AwesomeProject/node_modules/react-native-adjust/android/build/intermediates/res/merged/release/color/abc_secondary_text_material_light.xml",
+        "source": "/home/arman/.gradle/caches/transforms-1/files-1.1/appcompat-v7-28.0.0.aar/cd3c4e646146afe632fdde77ec3ca380/res/color/abc_secondary_text_material_light.xml"
+    },
+    {
+        "merged": "/home/arman/Desktop/adjust_react_native_sample/AwesomeProject/node_modules/react-native-adjust/android/build/intermediates/res/merged/release/color/abc_secondary_text_material_dark.xml",
+        "source": "/home/arman/.gradle/caches/transforms-1/files-1.1/appcompat-v7-28.0.0.aar/cd3c4e646146afe632fdde77ec3ca380/res/color/abc_secondary_text_material_dark.xml"
+    },
+    {
+        "merged": "/home/arman/Desktop/adjust_react_native_sample/AwesomeProject/node_modules/react-native-adjust/android/build/intermediates/res/merged/release/color/abc_primary_text_disable_only_material_light.xml",
+        "source": "/home/arman/.gradle/caches/transforms-1/files-1.1/appcompat-v7-28.0.0.aar/cd3c4e646146afe632fdde77ec3ca380/res/color/abc_primary_text_disable_only_material_light.xml"
+    },
+    {
+        "merged": "/home/arman/Desktop/adjust_react_native_sample/AwesomeProject/node_modules/react-native-adjust/android/build/intermediates/res/merged/release/color/abc_tint_edittext.xml",
+        "source": "/home/arman/.gradle/caches/transforms-1/files-1.1/appcompat-v7-28.0.0.aar/cd3c4e646146afe632fdde77ec3ca380/res/color/abc_tint_edittext.xml"
+    },
+    {
+        "merged": "/home/arman/Desktop/adjust_react_native_sample/AwesomeProject/node_modules/react-native-adjust/android/build/intermediates/res/merged/release/color/abc_hint_foreground_material_light.xml",
+        "source": "/home/arman/.gradle/caches/transforms-1/files-1.1/appcompat-v7-28.0.0.aar/cd3c4e646146afe632fdde77ec3ca380/res/color/abc_hint_foreground_material_light.xml"
+    },
+    {
+        "merged": "/home/arman/Desktop/adjust_react_native_sample/AwesomeProject/node_modules/react-native-adjust/android/build/intermediates/res/merged/release/color/switch_thumb_material_dark.xml",
+        "source": "/home/arman/.gradle/caches/transforms-1/files-1.1/appcompat-v7-28.0.0.aar/cd3c4e646146afe632fdde77ec3ca380/res/color/switch_thumb_material_dark.xml"
+    },
+    {
+        "merged": "/home/arman/Desktop/adjust_react_native_sample/AwesomeProject/node_modules/react-native-adjust/android/build/intermediates/res/merged/release/color/abc_primary_text_disable_only_material_dark.xml",
+        "source": "/home/arman/.gradle/caches/transforms-1/files-1.1/appcompat-v7-28.0.0.aar/cd3c4e646146afe632fdde77ec3ca380/res/color/abc_primary_text_disable_only_material_dark.xml"
+    },
+    {
+        "merged": "/home/arman/Desktop/adjust_react_native_sample/AwesomeProject/node_modules/react-native-adjust/android/build/intermediates/res/merged/release/color/abc_tint_seek_thumb.xml",
+        "source": "/home/arman/.gradle/caches/transforms-1/files-1.1/appcompat-v7-28.0.0.aar/cd3c4e646146afe632fdde77ec3ca380/res/color/abc_tint_seek_thumb.xml"
+    },
+    {
+        "merged": "/home/arman/Desktop/adjust_react_native_sample/AwesomeProject/node_modules/react-native-adjust/android/build/intermediates/res/merged/release/color/abc_search_url_text.xml",
+        "source": "/home/arman/.gradle/caches/transforms-1/files-1.1/appcompat-v7-28.0.0.aar/cd3c4e646146afe632fdde77ec3ca380/res/color/abc_search_url_text.xml"
+    },
+    {
+        "merged": "/home/arman/Desktop/adjust_react_native_sample/AwesomeProject/node_modules/react-native-adjust/android/build/intermediates/res/merged/release/color/abc_tint_default.xml",
+        "source": "/home/arman/.gradle/caches/transforms-1/files-1.1/appcompat-v7-28.0.0.aar/cd3c4e646146afe632fdde77ec3ca380/res/color/abc_tint_default.xml"
+    },
+    {
+        "merged": "/home/arman/Desktop/adjust_react_native_sample/AwesomeProject/node_modules/react-native-adjust/android/build/intermediates/res/merged/release/color/abc_btn_colored_borderless_text_material.xml",
+        "source": "/home/arman/.gradle/caches/transforms-1/files-1.1/appcompat-v7-28.0.0.aar/cd3c4e646146afe632fdde77ec3ca380/res/color/abc_btn_colored_borderless_text_material.xml"
+    },
+    {
+        "merged": "/home/arman/Desktop/adjust_react_native_sample/AwesomeProject/node_modules/react-native-adjust/android/build/intermediates/res/merged/release/color/abc_background_cache_hint_selector_material_light.xml",
+        "source": "/home/arman/.gradle/caches/transforms-1/files-1.1/appcompat-v7-28.0.0.aar/cd3c4e646146afe632fdde77ec3ca380/res/color/abc_background_cache_hint_selector_material_light.xml"
+    }
+]
