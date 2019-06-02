@@ -1,0 +1,11 @@
+{
+  "name": "react-native-adtrace",
+  "version": "1.0.1",
+  "description": "adtrace package for react native",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "AdTrace",
+  "license": "ISC"
+}
