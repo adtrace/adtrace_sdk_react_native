@@ -1,6 +1,6 @@
 {
   "name": "react-native-adtrace",
-  "version": "1.0.4",
+  "version": "1.0.41",
   "description": "adtrace package for react native",
   "main": "index.js",
   "scripts": {
