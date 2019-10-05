@@ -4,7 +4,6 @@ This is the React Native SDK of AdTrace™. You can read more about AdTrace™ a
 
 ## Table of contents
 
-* [Example app](#example-app)
 * [Basic integration](#basic-integration)
    * [Get the SDK](#sdk-get)
    * [Integrate the SDK into your app](#sdk-integrate)
