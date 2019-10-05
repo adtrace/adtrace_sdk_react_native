@@ -51,10 +51,6 @@ This is the React Native SDK of AdTrace™. You can read more about AdTrace™ a
       * [Reattribution via deep links](#deeplinking-reattribution)
 * [License](#license)
 
-## <a id="example-app"></a>Example app
-
-There is an example app inside the [`example` directory][example].
-
 ## <a id="basic-integration"></a>Basic integration
 
 We will describe the steps to integrate the AdTrace SDK into your React Native project. You can use any text editor or IDE for React Native development. There are no assumptions made regarding development environment.
