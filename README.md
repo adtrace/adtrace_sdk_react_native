@@ -344,7 +344,7 @@ AdTrace.trackEvent(adtraceEvent);
 In that case we would track the event and send a request to:
 
 ```
-http://www.adtrace.com/callback?key=value&foo=bar
+http://www.adtrace.io/callback?key=value&foo=bar
 ```
 
 It should be mentioned that we support a variety of placeholders like `{idfa}` for iOS or `{gps_adid}` for Android that can be used as parameter values. In the resulting callback the `{idfa}` placeholder would be replaced with the ID for Advertisers of the current device for iOS and the `{gps_adid}` would be replaced with the Google Advertising ID of the current device for Android. Also note that we don't store any of your custom parameters, but only append them to your callbacks. If you haven't registered a callback for an event, these parameters won't even be read.

@@ -18,6 +18,6 @@ Pod::Spec.new do |s|
   s.preserve_paths = 'LICENSE', 'README.md', 'package.json', 'index.js'
   s.source_files   = 'ios/*.{h,m}'
 
-  s.dependency 'AdTrace', '~> 1.0.2'
+  s.dependency 'AdTrace', '~> 1.0.3'
   s.dependency 'React'
 end

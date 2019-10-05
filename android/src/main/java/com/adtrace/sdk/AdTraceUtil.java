@@ -13,7 +13,7 @@ import android.net.Uri;
 import javax.annotation.Nullable;
 import com.facebook.react.bridge.*;
 import com.facebook.react.modules.core.*;
-import com.adtrace.sdk.*;
+import io.adtrace.sdk.*;
 
 final class AdTraceUtil {
     private static final String ATTRIBUTION_TRACKER_TOKEN = "trackerToken";
