@@ -340,6 +340,7 @@ var AdTraceEvent = function(eventToken) {
     this.currency = null;
     this.transactionId = null;
     this.callbackId = null;
+    this.eventValue = null;
     this.callbackParameters = {};
     this.partnerParameters = {};
 };
@@ -371,6 +372,10 @@ AdTraceEvent.prototype.setTransactionId = function(transactionId) {
 
 AdTraceEvent.prototype.setCallbackId = function(callbackId) {
     this.callbackId = callbackId;
+};
+
+AdTraceEvent.prototype.setEventValue = function(value) {
+    this.eventValue = value;
 };
 
 module.exports = { AdTrace, AdTraceEvent, AdTraceConfig }

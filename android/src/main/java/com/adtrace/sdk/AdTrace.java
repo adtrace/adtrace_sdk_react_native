@@ -282,6 +282,7 @@ public class AdTrace extends ReactContextBaseJavaModule implements LifecycleEven
         String currency = null;
         String transactionId = null;
         String callbackId = null;
+        String eventValue = null;
         Map<String, Object> callbackParameters = null;
         Map<String, Object> partnerParameters = null;
 
@@ -337,6 +338,14 @@ public class AdTrace extends ReactContextBaseJavaModule implements LifecycleEven
             callbackId = mapEvent.getString("callbackId");
             if (null != callbackId) {
                 event.setCallbackId(callbackId);
+            }
+        }
+
+        // Event value.
+        if (checkKey(mapEvent, "eventValue")) {
+            eventValue = mapEvent.getString("eventValue");
+            if (null != eventValue) {
+                event.setEventValue(eventValue);
             }
         }
 
