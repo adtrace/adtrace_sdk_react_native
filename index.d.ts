@@ -79,6 +79,8 @@ declare module "react-native-adtrace" {
 
         public setSendInBackground(sendInBackground: boolean): void { }
 
+        public setEnableInstalledApps(enableInstalledApps: boolean): void { }
+
         public setDeviceKnown(isDeviceKnown: boolean): void { }
 
         public setSdkPrefix(sdkPrefix: string): void { }
@@ -143,7 +145,7 @@ declare module "react-native-adtrace" {
 
         public addPartnerParameter(key: string, value: string): void { }
 
-        public setTransactionId(transactionId: string): void { }
+        public setEventValue(eventValue: string): void { }
 
         public setCallbackId(callbackId: string): void { }
     }

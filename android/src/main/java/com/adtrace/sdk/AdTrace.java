@@ -110,6 +110,7 @@ public class AdTrace extends ReactContextBaseJavaModule implements LifecycleEven
         double delayStart = 0.0;
         boolean isDeviceKnown = false;
         boolean sendInBackground = false;
+        boolean enableInstalledApps = false;
         boolean isLogLevelSuppress = false;
         boolean shouldLaunchDeeplink = false;
         boolean eventBufferingEnabled = false;
@@ -210,6 +211,12 @@ public class AdTrace extends ReactContextBaseJavaModule implements LifecycleEven
         if (checkKey(mapConfig, "sendInBackground")) {
             sendInBackground = mapConfig.getBoolean("sendInBackground");
             adtraceConfig.setSendInBackground(sendInBackground);
+        }
+
+        // Send installed apps.
+        if (checkKey(mapConfig, "enableInstalledApps")) {
+            enableInstalledApps = mapConfig.getBoolean("enableInstalledApps");
+            adtraceConfig.enableSendInstalledApps(enableInstalledApps);
         }
 
         // Set device known.

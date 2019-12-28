@@ -106,7 +106,7 @@ AdTrace.getAmazonAdId = function(callback) {
 };
 
 AdTrace.getSdkVersion = function(callback) {
-    module_AdTrace.getSdkVersion("react-native4.17.2", callback);
+    module_AdTrace.getSdkVersion("react-native1.0.6", callback);
 }
 
 AdTrace.setReferrer = function(referrer) {
@@ -179,13 +179,14 @@ AdTrace.onPause = function(testParam) {
 // AdTraceConfig
 
 var AdTraceConfig = function(appToken, environment) {
-    this.sdkPrefix = "react-native1.0.0";
+    this.sdkPrefix = "react-native1.0.6";
     this.appToken = appToken;
     this.environment = environment;
     this.logLevel = null;
     this.eventBufferingEnabled = null;
     this.shouldLaunchDeeplink = null;
     this.sendInBackground = null;
+    this.enableInstalledApps = null;
     this.delayStart = null;
     this.userAgent = null;
     this.isDeviceKnown = null;
@@ -260,6 +261,10 @@ AdTraceConfig.prototype.setDelayStart = function(delayStart) {
 
 AdTraceConfig.prototype.setSendInBackground = function(sendInBackground) {
     this.sendInBackground = sendInBackground;
+};
+
+AdTraceConfig.prototype.setEnableInstalledApps = function(enableInstalledApps) {
+    this.enableInstalledApps = enableInstalledApps;
 };
 
 AdTraceConfig.prototype.setDeviceKnown = function(isDeviceKnown) {
@@ -338,7 +343,6 @@ var AdTraceEvent = function(eventToken) {
     this.eventToken = eventToken;
     this.revenue = null;
     this.currency = null;
-    this.transactionId = null;
     this.callbackId = null;
     this.eventValue = null;
     this.callbackParameters = {};
@@ -364,10 +368,6 @@ AdTraceEvent.prototype.addPartnerParameter = function(key, value) {
         return;
     }
     this.partnerParameters[key] = value;
-};
-
-AdTraceEvent.prototype.setTransactionId = function(transactionId) {
-    this.transactionId = transactionId;
 };
 
 AdTraceEvent.prototype.setCallbackId = function(callbackId) {

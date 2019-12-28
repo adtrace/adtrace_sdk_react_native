@@ -65,7 +65,7 @@ $ npm install react-native-adtrace --save
 Then you must install the native dependencies. You can use `react-native` cli tool to add native dependencies automatically and then continue the directions below depending on your target OS.
 
 ```
-$ react-native link
+$ react-native link react-native-adtrace
 ```
 
 **Or** if you use CocoaPods for **iOS**, add the following to your `Podfile` and run `pod install` afterwards:
@@ -185,7 +185,7 @@ Since August 1, 2014, apps in the Google Play Store must use the [Google Adverti
 In order to do this, open your app's `build.gradle` file and find the `dependencies` block. Add the following line:
 
 ```gradle
-compile 'com.google.android.gms:play-services-analytics:10.0.1'
+implementation 'com.google.android.gms:play-services-analytics:16.0.4'
 ```
     
 **Note**: The version of the Google Play Services library that you're using is not relevant to the AdTrace SDK, as long as the analytics part of the library is present in your app. In the example above, we just used the most recent version of the library at the time of writing.
@@ -224,7 +224,7 @@ In order to correctly attribute an install of your Android app to its source, Ad
 In order to support this, add the following line to your app's `build.gradle` file:
 
 ```gradle
-compile 'com.android.installreferrer:installreferrer:1.0'
+implementation 'com.android.installreferrer:installreferrer:1.0'
 ```
 
 `installreferrer` library is part of Google Maven repository, so in order to be able to build your app, you need to add Google Maven repository to your app's `build.gradle` file if you haven't added it already:
@@ -245,8 +245,6 @@ Also, make sure that you have paid attention to the [Proguard settings](#android
 ```
 -keep public class com.android.installreferrer.** { *; }
 ```
-
-This feature is supported if you are using the **AdTrace SDK v4.12.0 or above**.
 
 #### <a id="android-referrer-gps-intent"></a>Google Play Store intent
 
