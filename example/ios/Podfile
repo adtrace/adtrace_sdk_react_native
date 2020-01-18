@@ -35,6 +35,7 @@ target 'example' do
   pod 'Folly', :podspec => '../node_modules/react-native/third-party-podspecs/Folly.podspec'
 
 
+
   pod 'react-native-adtrace', :path => '../node_modules/react-native-adtrace'
 
   target 'exampleTests' do

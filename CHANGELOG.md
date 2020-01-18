@@ -1,3 +1,11 @@
+## 1.0.8
+
+* Fix SDK prefix.
+
+## 1.0.7
+
+* Fix iOS packaging issue.
+
 ## 1.0.6
 
 * Add enable installed apps to config.
