@@ -1,3 +1,7 @@
+## 1.1.0
+
+* Fix iOS bridge bug.
+
 ## 1.0.9
 
 * Fix ios SDK workspace.
