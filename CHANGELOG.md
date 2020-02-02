@@ -1,3 +1,7 @@
+## 1.0.9
+
+* Fix ios SDK workspace.
+
 ## 1.0.8
 
 * Fix SDK prefix.
