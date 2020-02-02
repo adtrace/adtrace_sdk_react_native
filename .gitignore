@@ -1,9 +1,5 @@
 # Xcode
-!**/*.xcodeproj
-!**/*.pbxproj
-!**/*.xcworkspacedata
-!**/*.xcsettings
-!**/*.xcscheme
+build/
 *.pbxuser
 !default.pbxuser
 *.mode1v3
@@ -14,12 +10,11 @@
 !default.perspectivev3
 xcuserdata
 *.xccheckout
+profile
 *.moved-aside
 DerivedData
 *.hmap
 *.ipa
-*.xcuserstate
-project.xcworkspace
 
 # Gradle
 /build/
