@@ -16,9 +16,9 @@
 		9D9741B51E49E2DF0016F8D4 /* ADJActivityKind.m in Sources */ = {isa = PBXBuildFile; fileRef = 9D9741771E49E2DF0016F8D4 /* ADJActivityKind.m */; };
 		9D9741B61E49E2DF0016F8D4 /* ADJActivityPackage.m in Sources */ = {isa = PBXBuildFile; fileRef = 9D9741791E49E2DF0016F8D4 /* ADJActivityPackage.m */; };
 		9D9741B71E49E2DF0016F8D4 /* ADJActivityState.m in Sources */ = {isa = PBXBuildFile; fileRef = 9D97417B1E49E2DF0016F8D4 /* ADJActivityState.m */; };
-		9D9741B81E49E2DF0016F8D4 /* NSData+ADJAdditions.m in Sources */ = {isa = PBXBuildFile; fileRef = 9D97417E1E49E2DF0016F8D4 /* NSData+ADJAdditions.m */; };
-		9D9741B91E49E2DF0016F8D4 /* NSString+ADJAdditions.m in Sources */ = {isa = PBXBuildFile; fileRef = 9D9741801E49E2DF0016F8D4 /* NSString+ADJAdditions.m */; };
-		9D9741BA1E49E2DF0016F8D4 /* UIDevice+ADJAdditions.m in Sources */ = {isa = PBXBuildFile; fileRef = 9D9741821E49E2DF0016F8D4 /* UIDevice+ADJAdditions.m */; };
+		9D9741B81E49E2DF0016F8D4 /* NSData+ADTAdditions.m in Sources */ = {isa = PBXBuildFile; fileRef = 9D97417E1E49E2DF0016F8D4 /* NSData+ADTAdditions.m */; };
+		9D9741B91E49E2DF0016F8D4 /* NSString+ADTAdditions.m in Sources */ = {isa = PBXBuildFile; fileRef = 9D9741801E49E2DF0016F8D4 /* NSString+ADTAdditions.m */; };
+		9D9741BA1E49E2DF0016F8D4 /* UIDevice+ADTAdditions.m in Sources */ = {isa = PBXBuildFile; fileRef = 9D9741821E49E2DF0016F8D4 /* UIDevice+ADTAdditions.m */; };
 		9D9741BB1E49E2DF0016F8D4 /* ADJAdtraceFactory.m in Sources */ = {isa = PBXBuildFile; fileRef = 9D9741841E49E2DF0016F8D4 /* ADJAdtraceFactory.m */; };
 		9D9741BC1E49E2DF0016F8D4 /* ADJAttribution.m in Sources */ = {isa = PBXBuildFile; fileRef = 9D9741861E49E2DF0016F8D4 /* ADJAttribution.m */; };
 		9D9741BD1E49E2DF0016F8D4 /* ADJAttributionHandler.m in Sources */ = {isa = PBXBuildFile; fileRef = 9D9741881E49E2DF0016F8D4 /* ADJAttributionHandler.m */; };
@@ -77,12 +77,12 @@
 		9D9741791E49E2DF0016F8D4 /* ADJActivityPackage.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = ADJActivityPackage.m; sourceTree = "<group>"; };
 		9D97417A1E49E2DF0016F8D4 /* ADJActivityState.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ADJActivityState.h; sourceTree = "<group>"; };
 		9D97417B1E49E2DF0016F8D4 /* ADJActivityState.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = ADJActivityState.m; sourceTree = "<group>"; };
-		9D97417D1E49E2DF0016F8D4 /* NSData+ADJAdditions.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "NSData+ADJAdditions.h"; sourceTree = "<group>"; };
-		9D97417E1E49E2DF0016F8D4 /* NSData+ADJAdditions.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = "NSData+ADJAdditions.m"; sourceTree = "<group>"; };
-		9D97417F1E49E2DF0016F8D4 /* NSString+ADJAdditions.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "NSString+ADJAdditions.h"; sourceTree = "<group>"; };
-		9D9741801E49E2DF0016F8D4 /* NSString+ADJAdditions.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = "NSString+ADJAdditions.m"; sourceTree = "<group>"; };
-		9D9741811E49E2DF0016F8D4 /* UIDevice+ADJAdditions.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "UIDevice+ADJAdditions.h"; sourceTree = "<group>"; };
-		9D9741821E49E2DF0016F8D4 /* UIDevice+ADJAdditions.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = "UIDevice+ADJAdditions.m"; sourceTree = "<group>"; };
+		9D97417D1E49E2DF0016F8D4 /* NSData+ADTAdditions.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "NSData+ADTAdditions.h"; sourceTree = "<group>"; };
+		9D97417E1E49E2DF0016F8D4 /* NSData+ADTAdditions.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = "NSData+ADTAdditions.m"; sourceTree = "<group>"; };
+		9D97417F1E49E2DF0016F8D4 /* NSString+ADTAdditions.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "NSString+ADTAdditions.h"; sourceTree = "<group>"; };
+		9D9741801E49E2DF0016F8D4 /* NSString+ADTAdditions.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = "NSString+ADTAdditions.m"; sourceTree = "<group>"; };
+		9D9741811E49E2DF0016F8D4 /* UIDevice+ADTAdditions.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "UIDevice+ADTAdditions.h"; sourceTree = "<group>"; };
+		9D9741821E49E2DF0016F8D4 /* UIDevice+ADTAdditions.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = "UIDevice+ADTAdditions.m"; sourceTree = "<group>"; };
 		9D9741831E49E2DF0016F8D4 /* ADJAdtraceFactory.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ADJAdtraceFactory.h; sourceTree = "<group>"; };
 		9D9741841E49E2DF0016F8D4 /* ADJAdtraceFactory.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = ADJAdtraceFactory.m; sourceTree = "<group>"; };
 		9D9741851E49E2DF0016F8D4 /* ADJAttribution.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ADJAttribution.h; sourceTree = "<group>"; };
@@ -190,7 +190,7 @@
 				9D9741791E49E2DF0016F8D4 /* ADJActivityPackage.m */,
 				9D97417A1E49E2DF0016F8D4 /* ADJActivityState.h */,
 				9D97417B1E49E2DF0016F8D4 /* ADJActivityState.m */,
-				9D97417C1E49E2DF0016F8D4 /* ADJAdditions */,
+				9D97417C1E49E2DF0016F8D4 /* ADTAdditions */,
 				9D9741831E49E2DF0016F8D4 /* ADJAdtraceFactory.h */,
 				9D9741841E49E2DF0016F8D4 /* ADJAdtraceFactory.m */,
 				9D9741851E49E2DF0016F8D4 /* ADJAttribution.h */,
@@ -244,17 +244,17 @@
 			path = Adtrace;
 			sourceTree = "<group>";
 		};
-		9D97417C1E49E2DF0016F8D4 /* ADJAdditions */ = {
+		9D97417C1E49E2DF0016F8D4 /* ADTAdditions */ = {
 			isa = PBXGroup;
 			children = (
-				9D97417D1E49E2DF0016F8D4 /* NSData+ADJAdditions.h */,
-				9D97417E1E49E2DF0016F8D4 /* NSData+ADJAdditions.m */,
-				9D97417F1E49E2DF0016F8D4 /* NSString+ADJAdditions.h */,
-				9D9741801E49E2DF0016F8D4 /* NSString+ADJAdditions.m */,
-				9D9741811E49E2DF0016F8D4 /* UIDevice+ADJAdditions.h */,
-				9D9741821E49E2DF0016F8D4 /* UIDevice+ADJAdditions.m */,
+				9D97417D1E49E2DF0016F8D4 /* NSData+ADTAdditions.h */,
+				9D97417E1E49E2DF0016F8D4 /* NSData+ADTAdditions.m */,
+				9D97417F1E49E2DF0016F8D4 /* NSString+ADTAdditions.h */,
+				9D9741801E49E2DF0016F8D4 /* NSString+ADTAdditions.m */,
+				9D9741811E49E2DF0016F8D4 /* UIDevice+ADTAdditions.h */,
+				9D9741821E49E2DF0016F8D4 /* UIDevice+ADTAdditions.m */,
 			);
-			path = ADJAdditions;
+			path = ADTAdditions;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -326,13 +326,13 @@
 				9D9741BD1E49E2DF0016F8D4 /* ADJAttributionHandler.m in Sources */,
 				9D9741C71E49E2DF0016F8D4 /* ADJPackageHandler.m in Sources */,
 				9D9741C11E49E2DF0016F8D4 /* ADJEvent.m in Sources */,
-				9D9741BA1E49E2DF0016F8D4 /* UIDevice+ADJAdditions.m in Sources */,
+				9D9741BA1E49E2DF0016F8D4 /* UIDevice+ADTAdditions.m in Sources */,
 				9D9741C31E49E2DF0016F8D4 /* ADJEventSuccess.m in Sources */,
 				2037FA5D1FE7CB9C00C86593 /* ADJReachability.m in Sources */,
 				9D9741D11E49E2DF0016F8D4 /* Adtrace.m in Sources */,
 				9D9741C51E49E2DF0016F8D4 /* ADJLogger.m in Sources */,
 				20804D801FF5461F003FF483 /* AdtraceEventEmitter.m in Sources */,
-				9D9741B91E49E2DF0016F8D4 /* NSString+ADJAdditions.m in Sources */,
+				9D9741B91E49E2DF0016F8D4 /* NSString+ADTAdditions.m in Sources */,
 				9D9741C21E49E2DF0016F8D4 /* ADJEventFailure.m in Sources */,
 				9D9741BB1E49E2DF0016F8D4 /* ADJAdtraceFactory.m in Sources */,
 				9D9741CC1E49E2DF0016F8D4 /* ADJSessionParameters.m in Sources */,
@@ -340,7 +340,7 @@
 				9D9741D01E49E2DF0016F8D4 /* ADJTimerOnce.m in Sources */,
 				9D9741BF1E49E2DF0016F8D4 /* ADJConfig.m in Sources */,
 				9D9741B51E49E2DF0016F8D4 /* ADJActivityKind.m in Sources */,
-				9D9741B81E49E2DF0016F8D4 /* NSData+ADJAdditions.m in Sources */,
+				9D9741B81E49E2DF0016F8D4 /* NSData+ADTAdditions.m in Sources */,
 				13BE3DEE1AC21097009241FE /* AdtraceSdk.m in Sources */,
 				9D9741CF1E49E2DF0016F8D4 /* ADJTimerCycle.m in Sources */,
 				9D9741C81E49E2DF0016F8D4 /* ADJRequestHandler.m in Sources */,
