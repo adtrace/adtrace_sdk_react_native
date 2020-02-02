@@ -45,14 +45,14 @@ RCT_EXPORT_METHOD(create:(NSDictionary *)dict) {
         }
     }
 
-    ADJConfig *adtraceConfig = [ADJConfig configWithAppToken:appToken environment:environment allowSuppressLogLevel:allowSuppressLogLevel];
+    ADTConfig *adtraceConfig = [ADTConfig configWithAppToken:appToken environment:environment allowSuppressLogLevel:allowSuppressLogLevel];
     if (![adtraceConfig isValid]) {
         return;
     }
 
     // Log level.
     if ([self isFieldValid:logLevel]) {
-        [adtraceConfig setLogLevel:[ADJLogger logLevelFromString:[logLevel lowercaseString]]];
+        [adtraceConfig setLogLevel:[ADTLogger logLevelFromString:[logLevel lowercaseString]]];
     }
 
     // Event buffering.
@@ -135,7 +135,7 @@ RCT_EXPORT_METHOD(trackEvent:(NSDictionary *)dict) {
     NSDictionary *callbackParameters = dict[@"callbackParameters"];
     NSDictionary *partnerParameters = dict[@"partnerParameters"];
 
-    ADJEvent *adtraceEvent = [ADJEvent eventWithEventToken:eventToken];
+    ADTEvent *adtraceEvent = [ADTEvent eventWithEventToken:eventToken];
     if (![adtraceEvent isValid]) {
         return;
     }
@@ -296,7 +296,7 @@ RCT_EXPORT_METHOD(getSdkVersion:(NSString *)sdkPrefix callback:(RCTResponseSende
 RCT_EXPORT_METHOD(setReferrer:(NSString *)referrer) {}
 
 RCT_EXPORT_METHOD(getAttribution:(RCTResponseSenderBlock)callback) {
-    ADJAttribution *attribution = [Adtrace attribution];
+    ADTAttribution *attribution = [Adtrace attribution];
     NSMutableDictionary *dictionary = [NSMutableDictionary dictionary];
     if (attribution == nil) {
         callback(@[dictionary]);

@@ -77,7 +77,7 @@ static AdtraceSdkDelegate *defaultInstance = nil;
 
 #pragma mark - Private & helper methods
 
-- (void)adtraceAttributionChangedWannabe:(ADJAttribution *)attribution {
+- (void)adtraceAttributionChangedWannabe:(ADTAttribution *)attribution {
     if (attribution == nil) {
         return;
     }
@@ -94,7 +94,7 @@ static AdtraceSdkDelegate *defaultInstance = nil;
     [AdtraceEventEmitter dispatchEvent:@"adtrace_attribution" withDictionary:dictionary];
 }
 
-- (void)adtraceEventTrackingSucceededWannabe:(ADJEventSuccess *)eventSuccessResponseData {
+- (void)adtraceEventTrackingSucceededWannabe:(ADTEventSuccess *)eventSuccessResponseData {
     if (nil == eventSuccessResponseData) {
         return;
     }
@@ -115,7 +115,7 @@ static AdtraceSdkDelegate *defaultInstance = nil;
     [AdtraceEventEmitter dispatchEvent:@"adtrace_eventTrackingSucceeded" withDictionary:dictionary];
 }
 
-- (void)adtraceEventTrackingFailedWannabe:(ADJEventFailure *)eventFailureResponseData {
+- (void)adtraceEventTrackingFailedWannabe:(ADTEventFailure *)eventFailureResponseData {
     if (nil == eventFailureResponseData) {
         return;
     }
@@ -138,7 +138,7 @@ static AdtraceSdkDelegate *defaultInstance = nil;
 }
 
 
-- (void)adtraceSessionTrackingSucceededWannabe:(ADJSessionSuccess *)sessionSuccessResponseData {
+- (void)adtraceSessionTrackingSucceededWannabe:(ADTSessionSuccess *)sessionSuccessResponseData {
     if (nil == sessionSuccessResponseData) {
         return;
     }
@@ -157,7 +157,7 @@ static AdtraceSdkDelegate *defaultInstance = nil;
     [AdtraceEventEmitter dispatchEvent:@"adtrace_sessionTrackingSucceeded" withDictionary:dictionary];
 }
 
-- (void)adtraceSessionTrackingFailedWananbe:(ADJSessionFailure *)sessionFailureResponseData {
+- (void)adtraceSessionTrackingFailedWananbe:(ADTSessionFailure *)sessionFailureResponseData {
     if (nil == sessionFailureResponseData) {
         return;
     }
