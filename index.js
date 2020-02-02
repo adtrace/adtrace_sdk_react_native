@@ -6,13 +6,13 @@ import {
     Platform,
 } from 'react-native';
 
-const module_AdTrace = NativeModules.AdTrace;
+const module_adtrace = NativeModules.AdTrace;
 
-let module_AdTrace_emitter = null;
+let module_adtrace_emitter = null;
 if (Platform.OS === "android") {
-    module_AdTrace_emitter = new NativeEventEmitter(NativeModules.AdTrace);
+    module_adtrace_emitter = new NativeEventEmitter(NativeModules.AdTrace);
 } else if (Platform.OS === "ios") {
-    module_AdTrace_emitter = new NativeEventEmitter(NativeModules.AdTraceEventEmitter);
+    module_adtrace_emitter = new NativeEventEmitter(NativeModules.AdtraceEventEmitter);
 }
 
 // AdTrace
@@ -20,97 +20,97 @@ if (Platform.OS === "android") {
 var AdTrace = {};
 
 AdTrace.create = function(AdTraceConfig) {
-    module_AdTrace.create(AdTraceConfig);
+    module_adtrace.create(AdTraceConfig);
 };
 
 AdTrace.trackEvent = function(AdTraceEvent) {
-    module_AdTrace.trackEvent(AdTraceEvent);
+    module_adtrace.trackEvent(AdTraceEvent);
 };
 
 AdTrace.setEnabled = function(enabled) {
-    module_AdTrace.setEnabled(enabled);
+    module_adtrace.setEnabled(enabled);
 };
 
 AdTrace.isEnabled = function(callback) {
-    module_AdTrace.isEnabled(callback);
+    module_adtrace.isEnabled(callback);
 };
 
 AdTrace.setOfflineMode = function(enabled) {
-    module_AdTrace.setOfflineMode(enabled);
+    module_adtrace.setOfflineMode(enabled);
 };
 
 AdTrace.setPushToken = function(token) {
-    module_AdTrace.setPushToken(token);
+    module_adtrace.setPushToken(token);
 };
 
 AdTrace.appWillOpenUrl = function(uri) {
-    module_AdTrace.appWillOpenUrl(uri);
+    module_adtrace.appWillOpenUrl(uri);
 };
 
 AdTrace.sendFirstPackages = function() {
-    module_AdTrace.sendFirstPackages();
+    module_adtrace.sendFirstPackages();
 };
 
 AdTrace.addSessionCallbackParameter = function(key, value) {
     if (typeof key !== 'string' || typeof value !== 'string') {
         return;
     }
-    module_AdTrace.addSessionCallbackParameter(key, value);
+    module_adtrace.addSessionCallbackParameter(key, value);
 };
 
 AdTrace.addSessionPartnerParameter = function(key, value) {
     if (typeof key !== 'string' || typeof value !== 'string') {
         return;
     }
-    module_AdTrace.addSessionPartnerParameter(key, value);
+    module_adtrace.addSessionPartnerParameter(key, value);
 };
 
 AdTrace.removeSessionCallbackParameter = function(key) {
-    module_AdTrace.removeSessionCallbackParameter(key);
+    module_adtrace.removeSessionCallbackParameter(key);
 };
 
 AdTrace.removeSessionPartnerParameter = function(key) {
-    module_AdTrace.removeSessionPartnerParameter(key);
+    module_adtrace.removeSessionPartnerParameter(key);
 };
 
 AdTrace.resetSessionCallbackParameters = function() {
-    module_AdTrace.resetSessionCallbackParameters();
+    module_adtrace.resetSessionCallbackParameters();
 };
 
 AdTrace.resetSessionPartnerParameters = function() {
-    module_AdTrace.resetSessionPartnerParameters();
+    module_adtrace.resetSessionPartnerParameters();
 };
 
 AdTrace.gdprForgetMe = function() {
-    module_AdTrace.gdprForgetMe();
+    module_adtrace.gdprForgetMe();
 }
 
 AdTrace.getIdfa = function(callback) {
-    module_AdTrace.getIdfa(callback);
+    module_adtrace.getIdfa(callback);
 };
 
 AdTrace.getGoogleAdId = function(callback) {
-    module_AdTrace.getGoogleAdId(callback);
+    module_adtrace.getGoogleAdId(callback);
 };
 
 AdTrace.getAdid = function(callback) {
-    module_AdTrace.getAdid(callback);
+    module_adtrace.getAdid(callback);
 };
 
 AdTrace.getAttribution = function(callback) {
-    module_AdTrace.getAttribution(callback);
+    module_adtrace.getAttribution(callback);
 };
 
 AdTrace.getAmazonAdId = function(callback) {
-    module_AdTrace.getAmazonAdId(callback);
+    module_adtrace.getAmazonAdId(callback);
 };
 
 AdTrace.getSdkVersion = function(callback) {
-    module_AdTrace.getSdkVersion("react-native1.0.8", callback);
+    module_adtrace.getSdkVersion("react-native1.0.8", callback);
 }
 
 AdTrace.setReferrer = function(referrer) {
-    module_AdTrace.setReferrer(referrer);
+    module_adtrace.setReferrer(referrer);
 };
 
 AdTrace.componentWillUnmount = function() {
@@ -155,25 +155,25 @@ AdTrace.teardown = function(testParam) {
         return;
     }
     AdTrace.componentWillUnmount();
-    module_AdTrace.teardown();
+    module_adtrace.teardown();
 };
 
 AdTrace.setTestOptions = function(testOptions) {
-    module_AdTrace.setTestOptions(testOptions);
+    module_adtrace.setTestOptions(testOptions);
 };
 
 AdTrace.onResume = function(testParam) {
     if (testParam === null || testParam === undefined || testParam !== 'test') {
         return;
     }
-    module_AdTrace.onResume();
+    module_adtrace.onResume();
 };
 
 AdTrace.onPause = function(testParam) {
     if (testParam === null || testParam === undefined || testParam !== 'test') {
         return;
     }
-    module_AdTrace.onPause();
+    module_adtrace.onPause();
 };
 
 // AdTraceConfig
@@ -285,54 +285,54 @@ AdTraceConfig.prototype.setShouldLaunchDeeplink = function(shouldLaunchDeeplink)
 
 AdTraceConfig.prototype.setAttributionCallbackListener = function(attributionCallbackListener) {
     if (null == AdTraceConfig.AttributionSubscription) {
-        module_AdTrace.setAttributionCallbackListener();
-        AdTraceConfig.AttributionSubscription = module_AdTrace_emitter.addListener(
-            'AdTrace_attribution', attributionCallbackListener
+        module_adtrace.setAttributionCallbackListener();
+        AdTraceConfig.AttributionSubscription = module_adtrace_emitter.addListener(
+            'adtrace_attribution', attributionCallbackListener
         );
     }
 };
 
 AdTraceConfig.prototype.setEventTrackingSucceededCallbackListener = function(eventTrackingSucceededCallbackListener) {
     if (null == AdTraceConfig.EventTrackingSucceededSubscription) {
-        module_AdTrace.setEventTrackingSucceededCallbackListener();
-        AdTraceConfig.EventTrackingSucceededSubscription = module_AdTrace_emitter.addListener(
-            'AdTrace_eventTrackingSucceeded', eventTrackingSucceededCallbackListener
+        module_adtrace.setEventTrackingSucceededCallbackListener();
+        AdTraceConfig.EventTrackingSucceededSubscription = module_adtrace_emitter.addListener(
+            'adtrace_eventTrackingSucceeded', eventTrackingSucceededCallbackListener
         );
     }
 };
 
 AdTraceConfig.prototype.setEventTrackingFailedCallbackListener = function(eventTrackingFailedCallbackListener) {
     if (null == AdTraceConfig.EventTrackingFailedSubscription) {
-        module_AdTrace.setEventTrackingFailedCallbackListener();
-        AdTraceConfig.EventTrackingFailedSubscription = module_AdTrace_emitter.addListener(
-            'AdTrace_eventTrackingFailed', eventTrackingFailedCallbackListener
+        module_adtrace.setEventTrackingFailedCallbackListener();
+        AdTraceConfig.EventTrackingFailedSubscription = module_adtrace_emitter.addListener(
+            'adtrace_eventTrackingFailed', eventTrackingFailedCallbackListener
         );
     }
 };
 
 AdTraceConfig.prototype.setSessionTrackingSucceededCallbackListener = function(sessionTrackingSucceededCallbackListener) {
     if (null == AdTraceConfig.SessionTrackingSucceededSubscription) {
-        module_AdTrace.setSessionTrackingSucceededCallbackListener();
-        AdTraceConfig.SessionTrackingSucceededSubscription = module_AdTrace_emitter.addListener(
-            'AdTrace_sessionTrackingSucceeded', sessionTrackingSucceededCallbackListener
+        module_adtrace.setSessionTrackingSucceededCallbackListener();
+        AdTraceConfig.SessionTrackingSucceededSubscription = module_adtrace_emitter.addListener(
+            'adtrace_sessionTrackingSucceeded', sessionTrackingSucceededCallbackListener
         );
     }
 };
 
 AdTraceConfig.prototype.setSessionTrackingFailedCallbackListener = function(sessionTrackingFailedCallbackListener) {
     if (null == AdTraceConfig.SessionTrackingFailedSubscription) {
-        module_AdTrace.setSessionTrackingFailedCallbackListener();
-        AdTraceConfig.SessionTrackingFailedSubscription = module_AdTrace_emitter.addListener(
-            'AdTrace_sessionTrackingFailed', sessionTrackingFailedCallbackListener
+        module_adtrace.setSessionTrackingFailedCallbackListener();
+        AdTraceConfig.SessionTrackingFailedSubscription = module_adtrace_emitter.addListener(
+            'adtrace_sessionTrackingFailed', sessionTrackingFailedCallbackListener
         );
     }
 };
 
 AdTraceConfig.prototype.setDeferredDeeplinkCallbackListener = function(deferredDeeplinkCallbackListener) {
     if (null == AdTraceConfig.DeferredDeeplinkSubscription) {
-        module_AdTrace.setDeferredDeeplinkCallbackListener();
-        AdTraceConfig.DeferredDeeplinkSubscription = module_AdTrace_emitter.addListener(
-            'AdTrace_deferredDeeplink', deferredDeeplinkCallbackListener
+        module_adtrace.setDeferredDeeplinkCallbackListener();
+        AdTraceConfig.DeferredDeeplinkSubscription = module_adtrace_emitter.addListener(
+            'adtrace_deferredDeeplink', deferredDeeplinkCallbackListener
         );
     }
 };
