@@ -8,7 +8,7 @@
 
 @implementation AdtraceSdk
 
-RCT_EXPORT_MODULE(Adtrace);
+RCT_EXPORT_MODULE(AdTrace);
 
 BOOL _isAttributionCallbackImplemented;
 BOOL _isEventTrackingSucceededCallbackImplemented;

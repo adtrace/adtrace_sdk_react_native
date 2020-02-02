@@ -1,3 +1,7 @@
+## 1.2.0
+
+* Fix iOS prefix naming.
+
 ## 1.1.0
 
 * Fix iOS bridge bug.
