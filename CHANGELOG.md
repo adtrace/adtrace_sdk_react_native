@@ -1,3 +1,7 @@
+## 1.2.1
+
+* Remove extra gradle implementation.
+
 ## 1.2.0
 
 * Fix iOS prefix naming.
