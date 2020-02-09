@@ -106,7 +106,7 @@ AdTrace.getAmazonAdId = function(callback) {
 };
 
 AdTrace.getSdkVersion = function(callback) {
-    module_adtrace.getSdkVersion("react-native1.2.1", callback);
+    module_adtrace.getSdkVersion("react-native1.2.2", callback);
 }
 
 AdTrace.setReferrer = function(referrer) {
@@ -179,7 +179,7 @@ AdTrace.onPause = function(testParam) {
 // AdTraceConfig
 
 var AdTraceConfig = function(appToken, environment) {
-    this.sdkPrefix = "react-native1.2.1";
+    this.sdkPrefix = "react-native1.2.2";
     this.appToken = appToken;
     this.environment = environment;
     this.logLevel = null;

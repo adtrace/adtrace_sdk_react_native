@@ -1,3 +1,7 @@
+## 1.2.2
+
+* Update android library jar
+
 ## 1.2.1
 
 * Remove extra gradle implementation.
