@@ -36,6 +36,8 @@ target 'example' do
 
 
 
+
+
   pod 'react-native-adtrace', :path => '../node_modules/react-native-adtrace'
 
   target 'exampleTests' do
