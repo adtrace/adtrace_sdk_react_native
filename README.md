@@ -1,3 +1,5 @@
+[![NPM](https://img.shields.io/npm/v/react-native-adtrace.svg)](https://www.npmjs.com/package/react-native-adtrace) 
+
 ## Summary
 
 This is the React Native SDK of AdTrace™. You can read more about AdTrace™ at [adtrace.io].
