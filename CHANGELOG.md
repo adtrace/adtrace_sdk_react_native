@@ -1,3 +1,7 @@
+## 1.2.3
+
+* Update Android library
+
 ## 1.2.2
 
 * Update android library jar

@@ -1,6 +1,6 @@
 {
   "name": "example",
-  "version": "1.2.2",
+  "version": "1.2.3",
   "private": true,
   "scripts": {
     "android": "react-native run-android",
@@ -10,9 +10,9 @@
     "lint": "eslint ."
   },
   "dependencies": {
-    "react": "16.12.0",
-    "react-native": "0.61.5",
-    "react-native-adtrace": "^1.2.2"
+    "react": "16.11.0",
+    "react-native": "0.62.2",
+    "react-native-adtrace": "^1.2.3"
   },
   "devDependencies": {
     "@babel/core": "^7.8.4",
