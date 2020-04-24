@@ -187,7 +187,7 @@ Since August 1, 2014, apps in the Google Play Store must use the [Google Adverti
 In order to do this, open your app's `build.gradle` file and find the `dependencies` block. Add the following line:
 
 ```gradle
-implementation 'com.google.android.gms:play-services-analytics:16.0.4'
+implementation 'com.google.android.gms:play-services-ads-identifier:17.0.0'
 ```
     
 **Note**: The version of the Google Play Services library that you're using is not relevant to the AdTrace SDK, as long as the analytics part of the library is present in your app. In the example above, we just used the most recent version of the library at the time of writing.
@@ -226,7 +226,7 @@ In order to correctly attribute an install of your Android app to its source, Ad
 In order to support this, add the following line to your app's `build.gradle` file:
 
 ```gradle
-implementation 'com.android.installreferrer:installreferrer:1.0'
+implementation 'com.android.installreferrer:installreferrer:1.1.2'
 ```
 
 `installreferrer` library is part of Google Maven repository, so in order to be able to build your app, you need to add Google Maven repository to your app's `build.gradle` file if you haven't added it already:
