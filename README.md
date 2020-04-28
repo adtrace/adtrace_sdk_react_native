@@ -1,3 +1,4 @@
+
 [![NPM](https://img.shields.io/npm/v/react-native-adtrace.svg)](https://www.npmjs.com/package/react-native-adtrace) 
 
 ## Summary
@@ -8,6 +9,7 @@ This is the React Native SDK of AdTrace™. You can read more about AdTrace™ a
 
 ### Quick start   
 
+* [Example app](#qs-example-app)
 * [Getting started](#qs-getting-started)
   * [Get the SDK](#qs-sdk-get) 
   * [AdTrace project settings](#qs-adtrace-project-settings)
@@ -68,8 +70,13 @@ This is the React Native SDK of AdTrace™. You can read more about AdTrace™ a
 * [Track additional device identifiers](#af-track-additional-ids)
 * [GDPR right to be forgotten](#af-gdpr-forget-me)
 
+## Quick start
 
-## <a id="qs-getting-started"></a>Getting started
+### <a id="qs-example-app"></a>Example app
+
+There are example React native app inside the  [`example`  directory][example-app]. In there you can check how the AdTrace SDK can be integrated.
+
+### <a id="qs-getting-started"></a>Getting started
 
 We will describe the steps to integrate the AdTrace SDK into your React Native project. You can use any text editor or IDE for React Native development. There are no assumptions made regarding development environment.
 
@@ -260,7 +267,7 @@ componentWillUnmount() {
 }
 ```
 
-Replace `{YourAppToken}` with your app token. You can find this in your AdTrace dashboard.
+Replace `{YourAppToken}` with your app token. You can find this in your AdTrace panel.
 
 Depending on whether you build your app for testing or for production, you must set the environment with one of these values:
 
@@ -289,7 +296,7 @@ adtraceConfig.setLogLevel(AdTraceConfig.LogLevelSuppress);  // disable all loggi
 
 ### <a id="qs-sdk-signature"></a>SDK signature
 
-If the SDK signature has already been enabled on your account and you have access to App Secrets in your AdTrace Dashboard, please use the method below to integrate the SDK signature into your app.
+If the SDK signature has already been enabled on your account and you have access to App Secrets in your AdTrace panel, please use the method below to integrate the SDK signature into your app.
 
 An App Secret is set by passing all secret parameters (`secretId`, `info1`, `info2`, `info3`, `info4`) to `setAppSecret` method of `AdTraceConfig` instance:
 
@@ -381,7 +388,7 @@ handleDeepLink(event) {
 
 ### <a id="et-track-event"></a>Track event
 
-You can use AdTrace to track all kinds of events. Let's say you want to track every tap on a button. Simply create a new event token in your [dashboard]. Let's say that event token is `abc123`. You can add the following line in your button’s click handler method to track the click:
+You can use AdTrace to track all kinds of events. Let's say you want to track every tap on a button. Simply create a new event token in your [panel]. Let's say that event token is `abc123`. You can add the following line in your button’s click handler method to track the click:
 
 ```js
 var adtraceEvent = new AdTraceEvent("abc123");
@@ -423,7 +430,7 @@ AdTrace.trackEvent(adtraceEvent);
 
 ### <a id="cp-overview"></a>Custom parameters overview
 
-In addition to the data points the AdTrace SDK collects by default, you can use the AdTrace SDK to track and add as many custom values as you need (user IDs, product IDs, etc.) to the event or session. Custom parameters are only available as raw data and will  **not**  appear in your AdTrace dashboard.
+In addition to the data points the AdTrace SDK collects by default, you can use the AdTrace SDK to track and add as many custom values as you need (user IDs, product IDs, etc.) to the event or session. Custom parameters are only available as raw data and will  **not**  appear in your AdTrace panel.
 
 Use callback parameters for the values you collect for your own internal use, and partner parameters for those you share with external partners. If a value (e.g. product ID) is tracked both for internal use and external partner use, we recommend using both callback and partner parameters.
 
@@ -431,7 +438,7 @@ Use callback parameters for the values you collect for your own internal use, an
 
 ### <a id="cp-event-callback"></a>Event callback parameters
 
-If you register a callback URL for events in your [dashboard], we will send a GET request to that URL whenever the event is tracked. You can also put key-value pairs in an object and pass it to the `trackEvent` method. We will then append these parameters to your callback URL.
+If you register a callback URL for events in your [panel], we will send a GET request to that URL whenever the event is tracked. You can also put key-value pairs in an object and pass it to the `trackEvent` method. We will then append these parameters to your callback URL.
 
 For example, suppose you have registered the URL `http://www.adtrace.io/callback` for your event with event token `abc123` and execute the following lines:
 
@@ -452,7 +459,7 @@ http://www.adtrace.io/callback?key=value&foo=bar
 
 ### <a id="cp-event-partner"></a>Event partner parameters
 
-Once your parameters are activated in the dashboard, you can send them to your network partners.
+Once your parameters are activated in the panel, you can send them to your network partners.
 
 This works the same way as callback parameters; add them by calling the  `addPartnerParameter`  method on your  `AdTraceEvent`  instance.
 
@@ -523,7 +530,7 @@ AdTrace.resetSessionCallbackParameters();
 
 In the same way that  [session callback parameters](#cp-session-callback)  are sent with every event or session that triggers our SDK, there are also session partner parameters.
 
-These are transmitted to network partners for all of the integrations activated in your  [dashboard][dashboard].
+These are transmitted to network partners for all of the integrations activated in your  [panel].
 
 The session partner parameters interface is similar to the event partner parameters interface, however instead of adding the key and its value to an event, add it by calling the  `addSessionPartnerParameter`  method of the  `AdTrace`  instance.
 
@@ -782,7 +789,7 @@ AdTrace.getAdid((adid) => {
 
 If you want to use the AdTrace SDK to recognize users whose devices came with your app pre-installed, follow these steps:
 
-1. Create a new tracker in your [dashboard].
+1. Create a new tracker in your [panel].
 2. Open your app delegate and add set the default tracker of your `AdTraceConfig` instance:
 
     ```js
@@ -794,7 +801,7 @@ If you want to use the AdTrace SDK to recognize users whose devices came with yo
     ```
 
     Replace  `{TrackerToken}`  with the tracker token you created in step 2. E.g.  `{abc123}`
-  Although the dashboard displays a tracker URL (including `http://app.adtrace.io/`), in your source code you should only enter the six or seven-character token and not the entire URL.
+  Although the panel displays a tracker URL (including `http://app.adtrace.io/`), in your source code you should only enter the six or seven-character token and not the entire URL.
 
 3. Build and run your app. You should see a line like the following in the app's log output:
 
@@ -882,20 +889,17 @@ AdTrace.gdprForgetMe();
 
 Upon receiving this information, AdTrace will erase the user's data and the AdTrace SDK will stop tracking the user. No requests from this device will be sent to AdTrace in the future.
 
-[dashboard]:    http://panel.adtrace.io
+[panel]:    http://panel.adtrace.io
 [adtrace.io]:   http://adtrace.io
 
-[example]:      ./example
+[example-app]:  ./example
+
 [npm-repo]:     https://www.npmjs.com/package/react-native-adtrace
 
 [rn-linking]:           https://facebook.github.io/react-native/docs/linking.html
 [google-ad-id]:         https://support.google.com/googleplay/android-developer/answer/6048248?hl=en
-[enable-ulinks]:        https://github.com/adtrace/ios_sdk#deeplinking-setup-new
-[event-tracking]:       https://docs.adtrace.com/en/event-tracking
-[callbacks-guide]:      https://docs.adtrace.com/en/callbacks
-[attribution-data]:     https://github.com/adtrace/sdks/blob/master/doc/attribution-data.md
-[special-partners]:     https://docs.adtrace.com/en/special-partners
-[broadcast-receiver]:   https://github.com/adtrace/android_sdk#gps-intent
+[enable-ulinks]:        https://github.com/adtrace/adtrace_sdk_ios#deeplinking-setup-new
+[broadcast-receiver]:   https://github.com/adtrace/adtrace_sdk_android#gps-intent
 
 [google-launch-modes]:        http://developer.android.com/guide/topics/manifest/activity-element.html#lmode
 [google-play-services]:       http://developer.android.com/google/play-services/index.html
