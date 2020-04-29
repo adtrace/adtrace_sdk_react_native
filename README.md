@@ -1,5 +1,9 @@
+<p align="center"><a href="https://adtrace.io" target="_blank" rel="noopener noreferrer"><img width="100" src="http://adtrace.io/fa/wp-content/uploads/2019/02/logo.png" alt="Adtrace logo"></a></p>
 
-[![NPM](https://img.shields.io/npm/v/react-native-adtrace.svg)](https://www.npmjs.com/package/react-native-adtrace) 
+<p align="center">
+  <a href='https://www.npmjs.com/package/react-native-adtrace'><img src='https://img.shields.io/npm/v/react-native-adtrace.svg'></a>
+  <a href='https://opensource.org/licenses/MIT'><img src='https://img.shields.io/badge/License-MIT-green.svg'></a>
+</p>
 
 ## Summary
 
