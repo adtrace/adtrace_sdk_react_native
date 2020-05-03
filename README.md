@@ -895,7 +895,7 @@ Upon receiving this information, AdTrace will erase the user's data and the AdTr
 
 [google-launch-modes]:        http://developer.android.com/guide/topics/manifest/activity-element.html#lmode
 [google-play-services]:       http://developer.android.com/google/play-services/index.html
-[android-sdk-deeplink]:       https://github.com/adtrace/adtrace_sdk_android#deeplinking-standard
+[android-sdk-deeplink]:       https://github.com/adtrace/adtrace_sdk_android#dl-standard
 [google-play-services]:       http://developer.android.com/google/play-services/setup.html
 [ios-sdk-deeplink-late]:      https://github.com/adtrace/adtrace_sdk_io#-deep-linking-on-ios-9-and-later
 [ios-sdk-deeplink-early]:     https://github.com/adtrace/adtrace_sdk_ios#-deep-linking-on-ios-8-and-earlier
