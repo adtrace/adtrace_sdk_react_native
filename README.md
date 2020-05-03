@@ -207,17 +207,6 @@ In order to support this, add the following line to your app's `build.gradle` fi
 implementation 'com.android.installreferrer:installreferrer:1.1.2'
 ```
 
-`installreferrer` library is part of Google Maven repository, so in order to be able to build your app, you need to add Google Maven repository to your app's `build.gradle` file if you haven't added it already:
-
-```gradle
-allprojects {
-    repositories {
-        google()
-        jcenter()
-    }
-}
-```
-
 Also, make sure that you have paid attention to the [Proguard settings](#qs-android-proguard) chapter and that you have added all the rules mentioned in it, especially the one needed for this feature:
 
 ```
