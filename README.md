@@ -25,8 +25,8 @@ This is the React Native SDK of AdTrace™. You can read more about AdTrace™ a
       * [Google Play Store intent](#qs-android-referrer-gps-intent)
     * [iOS frameworks](#qs-ios-frameworks)
 * [Integrate the SDK into your app](#qs-sdk-integrate)
-  * [AdTrace logging](#qs-sdk-logging)
   * [SDK signature](#qs-sdk-signature)
+  * [AdTrace logging](#qs-sdk-logging)
 
 ### Deep linking
 
@@ -284,20 +284,6 @@ AdTraceConfig.EnvironmentProduction
 
 We use this environment to distinguish between real traffic and test traffic from test devices. It is very important that you keep this value meaningful at all times!
 
-### <a id="qs-sdk-logging"></a>AdTrace logging
-
-You can increase or decrease the amount of logs you see in tests by calling `setLogLevel` on your `AdTraceConfig` instance with one of the following parameters:
-
-```js
-adtraceConfig.setLogLevel(AdTraceConfig.LogLevelVerbose);   // enable all logging
-adtraceConfig.setLogLevel(AdTraceConfig.LogLevelDebug);     // enable more logging
-adtraceConfig.setLogLevel(AdTraceConfig.LogLevelInfo);      // the default
-adtraceConfig.setLogLevel(AdTraceConfig.LogLevelWarn);      // disable info logging
-adtraceConfig.setLogLevel(AdTraceConfig.LogLevelError);     // disable warnings as well
-adtraceConfig.setLogLevel(AdTraceConfig.LogLevelAssert);    // disable errors as well
-adtraceConfig.setLogLevel(AdTraceConfig.LogLevelSuppress);  // disable all logging
-```
-
 ### <a id="qs-sdk-signature"></a>SDK signature
 
 If the SDK signature has already been enabled on your account and you have access to App Secrets in your AdTrace panel, please use the method below to integrate the SDK signature into your app.
@@ -312,6 +298,19 @@ adtraceConfig.setAppSecret(secretId, info1, info2, info3, info4);
 AdTrace.create(adtraceConfig);
 ```
 
+### <a id="qs-sdk-logging"></a>AdTrace logging
+
+You can increase or decrease the amount of logs you see in tests by calling `setLogLevel` on your `AdTraceConfig` instance with one of the following parameters:
+
+```js
+adtraceConfig.setLogLevel(AdTraceConfig.LogLevelVerbose);   // enable all logging
+adtraceConfig.setLogLevel(AdTraceConfig.LogLevelDebug);     // enable more logging
+adtraceConfig.setLogLevel(AdTraceConfig.LogLevelInfo);      // the default
+adtraceConfig.setLogLevel(AdTraceConfig.LogLevelWarn);      // disable info logging
+adtraceConfig.setLogLevel(AdTraceConfig.LogLevelError);     // disable warnings as well
+adtraceConfig.setLogLevel(AdTraceConfig.LogLevelAssert);    // disable errors as well
+adtraceConfig.setLogLevel(AdTraceConfig.LogLevelSuppress);  // disable all logging
+```
 
 ## Deep linking
 
