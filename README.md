@@ -25,8 +25,8 @@ This is the React Native SDK of AdTrace™. You can read more about AdTrace™ a
       * [Google Play Store intent](#qs-android-referrer-gps-intent)
     * [iOS frameworks](#qs-ios-frameworks)
 * [Integrate the SDK into your app](#qs-sdk-integrate)
-  * [AdTrace logging](#qs-sdk-logging)
   * [SDK signature](#qs-sdk-signature)
+  * [AdTrace logging](#qs-sdk-logging)
 
 ### Deep linking
 
@@ -207,17 +207,6 @@ In order to support this, add the following line to your app's `build.gradle` fi
 implementation 'com.android.installreferrer:installreferrer:1.1.2'
 ```
 
-`installreferrer` library is part of Google Maven repository, so in order to be able to build your app, you need to add Google Maven repository to your app's `build.gradle` file if you haven't added it already:
-
-```gradle
-allprojects {
-    repositories {
-        google()
-        jcenter()
-    }
-}
-```
-
 Also, make sure that you have paid attention to the [Proguard settings](#qs-android-proguard) chapter and that you have added all the rules mentioned in it, especially the one needed for this feature:
 
 ```
@@ -284,20 +273,6 @@ AdTraceConfig.EnvironmentProduction
 
 We use this environment to distinguish between real traffic and test traffic from test devices. It is very important that you keep this value meaningful at all times!
 
-### <a id="qs-sdk-logging"></a>AdTrace logging
-
-You can increase or decrease the amount of logs you see in tests by calling `setLogLevel` on your `AdTraceConfig` instance with one of the following parameters:
-
-```js
-adtraceConfig.setLogLevel(AdTraceConfig.LogLevelVerbose);   // enable all logging
-adtraceConfig.setLogLevel(AdTraceConfig.LogLevelDebug);     // enable more logging
-adtraceConfig.setLogLevel(AdTraceConfig.LogLevelInfo);      // the default
-adtraceConfig.setLogLevel(AdTraceConfig.LogLevelWarn);      // disable info logging
-adtraceConfig.setLogLevel(AdTraceConfig.LogLevelError);     // disable warnings as well
-adtraceConfig.setLogLevel(AdTraceConfig.LogLevelAssert);    // disable errors as well
-adtraceConfig.setLogLevel(AdTraceConfig.LogLevelSuppress);  // disable all logging
-```
-
 ### <a id="qs-sdk-signature"></a>SDK signature
 
 If the SDK signature has already been enabled on your account and you have access to App Secrets in your AdTrace panel, please use the method below to integrate the SDK signature into your app.
@@ -312,6 +287,19 @@ adtraceConfig.setAppSecret(secretId, info1, info2, info3, info4);
 AdTrace.create(adtraceConfig);
 ```
 
+### <a id="qs-sdk-logging"></a>AdTrace logging
+
+You can increase or decrease the amount of logs you see in tests by calling `setLogLevel` on your `AdTraceConfig` instance with one of the following parameters:
+
+```js
+adtraceConfig.setLogLevel(AdTraceConfig.LogLevelVerbose);   // enable all logging
+adtraceConfig.setLogLevel(AdTraceConfig.LogLevelDebug);     // enable more logging
+adtraceConfig.setLogLevel(AdTraceConfig.LogLevelInfo);      // the default
+adtraceConfig.setLogLevel(AdTraceConfig.LogLevelWarn);      // disable info logging
+adtraceConfig.setLogLevel(AdTraceConfig.LogLevelError);     // disable warnings as well
+adtraceConfig.setLogLevel(AdTraceConfig.LogLevelAssert);    // disable errors as well
+adtraceConfig.setLogLevel(AdTraceConfig.LogLevelSuppress);  // disable all logging
+```
 
 ## Deep linking
 
@@ -574,11 +562,11 @@ In this case this will make the AdTrace SDK not send the initial install session
 
 Once you integrate the AdTrace SDK into your project, you can take advantage of the following features:
 
-### <a id="af-push-token"></a>Push token
+### <a id="af-push-token"></a>Push token (uninstall tracking)
 
 Push tokens are used for Audience Builder and client callbacks; they are also required for uninstall and reinstall tracking.
 
-To send us a push notification token, call the  `setDeviceToken`  method on the  `AdTrace`  instance when you obtain your app's push notification token (or whenever its value changes):
+To send us a push notification token, call the  `setPushToken`  method on the  `AdTrace`  instance when you obtain your app's push notification token (or whenever its value changes):
 
 ```js
 AdTrace.setPushToken("YourPushNotificationToken");
@@ -651,13 +639,13 @@ var adtraceConfig = new AdTraceConfig(appToken, environment);
 adtraceConfig.setEventTrackingFailedCallbackListener(function(eventFailure) {
     // Printing all event failure properties.
     console.log("Event tracking failed!");
-    console.log(eventSuccess.message);
-    console.log(eventSuccess.timestamp);
-    console.log(eventSuccess.eventToken);
-    console.log(eventSuccess.callbackId);
-    console.log(eventSuccess.adid);
-    console.log(eventSuccess.willRetry);
-    console.log(eventSuccess.jsonResponse);
+    console.log(eventFailure.message);
+    console.log(eventFailure.timestamp);
+    console.log(eventFailure.eventToken);
+    console.log(eventFailure.callbackId);
+    console.log(eventFailure.adid);
+    console.log(eventFailure.willRetry);
+    console.log(eventFailure.jsonResponse);
 });
 
 AdTrace.create(adtraceConfig);
@@ -688,11 +676,11 @@ var adtraceConfig = new AdTraceConfig(appToken, environment);
 adtraceConfig.setSessionTrackingFailedCallbackListener(function(sessionFailure) {
     // Printing all session failure properties.
     console.log("Session tracking failed!");
-    console.log(sessionSuccess.message);
-    console.log(sessionSuccess.timestamp);
-    console.log(sessionSuccess.adid);
-    console.log(sessionSuccess.willRetry);
-    console.log(sessionSuccess.jsonResponse);
+    console.log(sessionFailure.message);
+    console.log(sessionFailure.timestamp);
+    console.log(sessionFailure.adid);
+    console.log(sessionFailure.willRetry);
+    console.log(sessionFailure.jsonResponse);
 });
 
 AdTrace.create(adtraceConfig);
@@ -737,7 +725,9 @@ AdTrace.getAttribution((attribution) => {
 
 To increase the accuracy and security in fraud detection, you can enable the sending of installed applications on user's device as follows:
 
+```js
 adtraceConfig.setEnableSendInstalledApps(true);
+```
 
 **Note**: This option is  **disabled**  by default.
 
@@ -907,8 +897,8 @@ Upon receiving this information, AdTrace will erase the user's data and the AdTr
 
 [google-launch-modes]:        http://developer.android.com/guide/topics/manifest/activity-element.html#lmode
 [google-play-services]:       http://developer.android.com/google/play-services/index.html
-[android-sdk-deeplink]:       https://github.com/adtrace/adtrace_sdk_android#deeplinking-standard
+[android-sdk-deeplink]:       https://github.com/adtrace/adtrace_sdk_android#dl-standard
 [google-play-services]:       http://developer.android.com/google/play-services/setup.html
-[ios-sdk-deeplink-late]:      https://github.com/adtrace/adtrace_sdk_io#-deep-linking-on-ios-9-and-later
-[ios-sdk-deeplink-early]:     https://github.com/adtrace/adtrace_sdk_ios#-deep-linking-on-ios-8-and-earlier
+[ios-sdk-deeplink-late]:      https://github.com/adtrace/adtrace_sdk_ios#deep-linking-on-ios-9-and-later
+[ios-sdk-deeplink-early]:     https://github.com/adtrace/adtrace_sdk_ios#deep-linking-on-ios-8-and-earlier
 [broadcast-receiver-custom]:  https://github.com/adtrace/adtrace_sdk_android/blob/master/doc/english/multiple-receivers.md
