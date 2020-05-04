@@ -135,41 +135,48 @@ SDK ریکت نیتیو ادتریس. شما برای اطلاعات بیشتر 
 <div dir="rtl" align='right'>
 ابتدا کتابخانه را از طریق <code>npm</code> یا <code>yarn</code> دریافت کنید:
 </div>
+<br/>
  
 ```
 $ npm install react-native-adtrace --save
 ```
 
+<br/>
 <div dir="rtl" align='right'>
 بعد از دریافت، نیاز به نصب نیازمندی های مورد نظرمیباشید. برای این کار از توابع دستوری <code>react-native</code> استفاده میکنیم:
 </div>
+<br/>
 
 ```
 $ react-native link react-native-adtrace
 ```
 
+<br/>
 <div dir="rtl" align='right'>
 یا اگر شما برای <strong>iOS</strong> از CocoaPods استفاده میکنید، خط زیر را درون <code>Podfile</code> خود قرار داده و دستور <code>pod install</code> را اجرا نمایید.
 </div>
+<br/>
 
 ```
 pod 'react-native-adtrace', :path => '../node_modules/react-native-adtrace'
 ```
 
+<br/>
 <div dir="rtl" align='right'>
 برای <strong>iOS</strong> نیاز به تنظیمات دیگری نیست.
 </div>
-
+<br/>
 <div dir="rtl" align='right'>
 برای <strong>اندروید</strong> شما نیاز دارید که بررسی کنید موارد زیر به پروژه شما اضافه شده است یا خیر.
 </div>
-
+<br/>
 <div dir="rtl" align='right'>
 <ul>
 	<li>درون کلاس <code>MainApplication.java</code> که در مسیر <code>./android/app/src/main/java/[your app]/MainApplication.java</code> قرار دارد بروید.</li>
 	<li>داخل متد <code>()getpackages</code> به صورت پیشفرض باید به صورت زیر باشد:</li>
 </ul>
 </div>
+<br/>
 
 ```js
 @Override
@@ -180,6 +187,7 @@ protected List<ReactPackage> getPackages() {
 }
 ```
 
+<br/>
 <div dir="rtl" align='right'>
 <ul>
 	<li>
@@ -187,6 +195,7 @@ protected List<ReactPackage> getPackages() {
 	</li>
 </ul>
 </div>
+<br/>
 
 ```js
 import com.adtrace.nativemodule.AdTracePackage;
@@ -202,11 +211,13 @@ protected List<ReactPackage> getPackages() {
 }
 ```
 
+<br/>
 <div dir="rtl" align='right'>
 <ul>
 <li>در صورتی خط  <code>()new AdTracePackage</code> باید به صورت دستی به صورت بالا وارد نمایید در ضمن فراموش نکنید که درون فایل <code>MainApplication.java</code> خط به صورت زیر پکیج را ایمپورت کنید:</li>
 </ul>
 </div>
+<br/>
 
 ```js
 import com.adtrace.nativemodule.AdTracePackage;
@@ -223,6 +234,7 @@ import com.adtrace.nativemodule.AdTracePackage;
 <div dir="rtl" align='right'>
 در ادامه دسترسی های زیر را در فایل <code>AndroidManifest.xml</code> خود اضافه کنید:
 </div>
+<br/>
 
 ```xml
 <uses-permission android:name="android.permission.INTERNET" />
@@ -230,6 +242,7 @@ import com.adtrace.nativemodule.AdTracePackage;
 <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 ```
 
+<br/>
 <div dir="rtl" align='right'>
 مجوز <code>INTERNET</code> برای ارسال داده های ادتریس استفاده میشود. مجوز <code>ACCESS_WIFI_STATE</code> برای استورهایی به جز گوگل پلی استفاده میشود و اگر برنامه شما فقط درون گوگل پلی بخواهد بکار برده شود، به این مجوز نیازی ندارید.
 </div>
@@ -340,7 +353,7 @@ implementation 'com.android.installreferrer:installreferrer:1.1.2'
 <div dir="rtl" align='right'>
 داخل قسمت Project Navigator، در قسمت چپ ویو اصلی، هدف خود را انتخاب کنید. در تب <code>Build Phases</code>، گروه <code>Link Binary with Libraries</code> را باز کنید. در قسمت انتهایی دکمه <code>+</code> را کلیک کنید. قسمت <code>AdSupport.framework</code> را انتخاب کنید و گزینه <code>Add</code> را کلیک کنید. اگر در صورتی که برای <code>tvOS</code> استفاده نمیکنید، مراحل بالا را برای <code>iAd.framework</code> و <code>CoreTelephony.framework</code> را اضافه نمایید. مقدار <code>Status</code> هر دو فریم ورک را به <code>Optional</code> تغییر دهید. SDK ادتریس این فریم ورک ها را برای اهداف زیر استفاده میکند:
 </div>
-
+<br/>
 <div dir="rtl" align='right'>
 <ul>
 	<li><code>iAd.framework</code> برای هنگامی که  کمپین iAd اجرا میکنید.</li>
@@ -348,7 +361,7 @@ implementation 'com.android.installreferrer:installreferrer:1.1.2'
 	<li><code>CoreTelephony.framework</code> برای خواندن اطلاعات MNC و MCC</li>
 </ul>
 </div>
-
+<br/>
 <div dir="rtl" align='right'>
 اگر شما مایل به اجرای کمپین iAd نیستید، میتوانید <code>iAd.framework</code> را پاک کنید.
 </div>
@@ -358,14 +371,17 @@ implementation 'com.android.installreferrer:installreferrer:1.1.2'
 <div dir="rtl" align='right'>
 ابتدا در بالای فایل <code>.js</code> خود به صورت زیر ادتریس را ایمپورت کنید:
 </div>
+<br/>
 
 ```js
 import { AdTrace, AdTraceEvent, AdTraceConfig } from 'react-native-adtrace';
 ```
 
+<br/>
 <div dir="rtl" align='right'>
 برای راه اندازی SDK داخل فایل <code>App.js</code> خطهای زیر را وارد نمایید:
 </div>
+<br/>
 
 ```js
 constructor(props) {
@@ -379,19 +395,22 @@ componentWillUnmount() {
 }
 ```
 
+<br/>
 <div dir="rtl" align='right'>
 مقدار <code>{YourAppToken}</code> را با توکن اپ خود جایگزین نمایید. این مقدار را درون پنل ادتریس خود میتوانید مشاهده کنید.
 </div>
-
+<br/>
 <div dir="rtl" align='right'>
 وابسته به نوع خروجی اپ شما که درحالت تست یا تجاری میباشد، بایستی مقدار environment را یکی از مقادیر ریز انتخاب نمایید:
 </div>
+<br/>
 
 ```js
 AdTraceConfig.EnvironmentSandbox
 AdTraceConfig.EnvironmentProduction
 ```
 
+<br/>
 <div dir="rtl" align='right'>
 <strong>نکته:</strong> این مقدار تنها در زمان تست برنامه شما بایستی مقدار <code> AdTraceConfig.EnvironmentSandbox</code> قرار بگیرد. این پارامتر را به <code>AdTraceConfig.EnvironmentProduction</code> قبل از انتشار برنامه خود تغییر دهید.
 </div>
@@ -449,15 +468,15 @@ adtraceConfig.setLogLevel(AdTraceConfig.LogLevelSuppress);  // disable all loggi
 <div dir="rtl" align='right'>
 برای پشتیبانی لینک دهی عمیق درون پلتفرم اندروید،  فایل <code>AndroidManifest.xml</code> بایستی تغییر پیدا کند. برای اطلاعات بیشتر مربوط به تغییر <code>AndroidManifest.xml</code> به قسمت <a href="https://github.com/adtrace/adtrace_sdk_android/blob/master/doc/persian/README-PER.md#dl-overview">SDK اندروید</a> مراجعه کنید.
 </div>
-
+<br/>
 <div dir="rtl" align='right'>
 برای پشتیبانی لینک دهی عمیق برای پلتفرم iOS و نسخه 8 به قبل، فایل <code>Info.plist</code> بایستی تغییر پیدا کند. برای اطلاعات بیشتر مربوط به این تغییر به قسمت <a href="https://github.com/adtrace/adtrace_sdk_ios#deep-linking-on-ios-8-and-earlier">SDK iOS</a> مراجعه کنید.
 </div>
-
+<br/>
 <div dir="rtl" align='right'>
 برای پشتیبانی لینک دهی عمیق برای پلتفرم iOS و نسخه 9 به بعد، برنامه شما بایستی از لینک های Universal پشتیبانی کند. برای اطلاعات بیشتر مربوط به قسمت <a href="https://github.com/adtrace/adtrace_sdk_ios#deep-linking-on-ios-9-and-later">SDK iOS</a> مراجعه کنید.
 </div>
-
+<br/>
 <div dir="rtl" align='right'>
 بعد از آن، به <a href="https://facebook.github.io/react-native/docs/linking.html">داکیومنت اصلی ریکت نیتیو</a> برای اجرای لینک دهی عمیق در زبان جاوااسکریپت مراجعه کنید.
 </div>
@@ -467,10 +486,11 @@ adtraceConfig.setLogLevel(AdTraceConfig.LogLevelSuppress);  // disable all loggi
 <div dir="rtl" align='right'>
 درحالیکه لینک دهی عمیق به تعویق افتاده به خودی خود در پلتفرم های اندروید و  iOS قابل پشتیبانی نیست، با استفاده از SDK ادتریس شما قابلیت پیاده سازی این سناریو را خواهید داشت.
 </div>
-
+<br/>
 <div dir="rtl" align='right'>
 برای آنکه در این سناریو اطلاعات محتوای آدرس را بدست آورید نیاز به ایجاد یک متد به صورت callback در <code>AdTraceConfig</code> دارید که اطلاعات URL به دست شما خواهد رسید. شما از طریق متد <code>setDeeplinkCallbackListener</code> میتوانید متد خودتان را فراخوانی کنید:
 </div>
+<br/>
 
 ```js
 var adtraceConfig = new AdTraceConfig(appToken, environment);
@@ -482,9 +502,11 @@ adtraceConfig.setDeferredDeeplinkCallbackListener(function(deeplink) {
 AdTrace.create(adtraceConfig);
 ```
 
+<br/>
 <div dir="rtl" align='right'>
 در این سناریو به تعویق افتاده، یک مورد اضافی بایستی به تنظیمات اضافه شود. هنگامی که SDK ادتریس اطاعات دیپ لینک را دریافت کرد، شما امکان این را دارید که SDK، با استفاده از این اطلاعات باز شود یا خیر که از طریق  متد <code>setOpenDeferredDeeplink</code> قابل استفاده است:
 </div>
+<br/>
 
 ```js
 var adtraceConfig = new AdTraceConfig(appToken, environment);
@@ -499,6 +521,7 @@ adtraceConfig.setDeeplinkCallbackListener(function(deeplink) {
 AdTrace.create(adtraceConfig);
 ```
 
+<br/>
 <div dir="rtl" align='right'>
 توجه فرمایید که اگر کالبکی تنظیم نشود، <strong>SDK ادتدریس در حالت پیشفرض تلاش میکند تا URL را اجرا کند</strong>.
 </div>
@@ -544,6 +567,7 @@ handleDeepLink(event) {
 <div dir="rtl" align='right'>
 شما برای یک رویداد میتوانید از انواع رویدادها درون برنامه خود استفاده کنید. فرض کنید که میخواهید لمس یک دکمه را رصد کنید. بایستی ابتدا یک رویداد درون پنل خود ایجاد کنید. اگر فرض کنیم که توکن رویداد شما <code>abc123</code> باشد، سپس در متد <code>onClick</code> دکمه مربوطه کد زیر را برای ردیابی لمس دکمه اضافه کنید:
 </div>
+<br/>
 
 ```js
 var adtraceEvent = new AdTraceEvent("abc123");
@@ -565,6 +589,7 @@ adtraceEvent.setRevenue(0.01, "EUR");
 AdTrace.trackEvent(adtraceEvent);
 ```
 
+<br/>
 <div dir="rtl" align='right'>
 این ویژگی میتواند با پارامترهای callback نیز ترکیب شود.
 </div>
@@ -593,6 +618,7 @@ adtraceEvent.setTransactionId("{YourTransactionId}");
 AdTrace.trackEvent(adtraceEvent);
 ```
 
+<br/>
 <div dir="rtl" align='right'>
 <strong>نکته</strong>: شناسه خرید یا همان <code>TransactionId</code> یک واژه در حوزه iOS میباشد. این شناسه یکتا در خرید درون حوزه اندروید به اسم <strong>Order ID</strong> شناخته میشود.
 </div>
@@ -678,6 +704,7 @@ AdTrace.trackEvent(adtraceEvent);
 <div dir="rtl" align='right'>
 شما همچنین یک رشته دلخواه به رویداد خود میتوانید اضافه کنید. این مقدار از طریق <code>setEventValue</code> قابل استفاده است:
 </div>
+<br/>
 
 ```js
 var adtraceEvent = new AdTraceEvent("abc123");
@@ -871,6 +898,7 @@ AdTrace.create(adtraceConfig);
 <div dir="rtl" align='right'>
 ردیابی موفق رویدادها
 </div>
+<br/>
 
 ```js
 var adtraceConfig = new AdTraceConfig(appToken, environment);
@@ -882,9 +910,11 @@ adtraceConfig.setEventTrackingSucceededCallbackListener(function(eventSuccess) {
 AdTrace.create(adtraceConfig);
 ```
 
+<br/>
 <div dir="rtl" align='right'>
 ردیابی ناموفق رویدادها
 </div>
+<br/>
 
 ```js
 var adtraceConfig = new AdTraceConfig(appToken, environment);
@@ -896,9 +926,11 @@ adtraceConfig.setEventTrackingFailedCallbackListener(function(eventFailure) {
 AdTrace.create(adtraceConfig);
 ```
 
+<br/>
 <div dir="rtl" align='right'>
 ردیابی موفق نشست
 </div>
+<br/>
 
 ```js
 var adtraceConfig = new AdTraceConfig(appToken, environment);
@@ -910,9 +942,11 @@ adtraceConfig.setSessionTrackingSucceededCallbackListener(function(sessionSucces
 AdTrace.create(adtraceConfig);
 ```
 
+<br/>
 <div dir="rtl" align='right'>
 ردیابی ناموفق نشست
 </div>
+<br/>
 
 ```js
 var adtraceConfig = new AdTraceConfig(appToken, environment);
@@ -928,6 +962,7 @@ AdTrace.create(adtraceConfig);
 <div dir="rtl" align='right'>
 listener ها هنگامی فراخوانده میشوند که SDK تلاش به ارسال داده سمت سرور کند. با این listener شما دسترسی به  داده های دریافتی دارید. موارد زیر یک خلاصه ای از داده های دریافتی هنگام نشست موفق میباشد:
 </div>
+<br/>
 <div dir="rtl" align='right'>
 <ul>
 <li><code>var message</code> پیام از طرف سرور(یا ارور از طرف SDK)</li>
@@ -936,22 +971,22 @@ listener ها هنگامی فراخوانده میشوند که SDK تلاش ب�
 <li><code>var jsonResponse</code> شی JSON دریافتی از سمت سرور</li>
 </ul>
 </div>
-
+<br/>
 <div dir="rtl" align='right'>
 هر دو داده دریافتی رویداد شامل موارد زیر میباشد:
 </div>
-
+<br/>
 <div dir="rtl" align='right'>
 <ul>
 <li><code>var eventToken</code> توکن مربوط به رویداد مورد نظر</li>
 <li><code>var cakkbackId</code> <a href="#cp-ep-id">شناسه callback</a> که برای یک رویداد تنظیم میشود</li>
 </ul>
 </div>
-
+<br/>
 <div dir="rtl" align='right'>
 و هر دو رویداد و نشست ناموفق شامل موارد زیر میشوند:
 </div>
-
+<br/>
 <div dir="rtl" align='right'>
 <ul>
 <li><code>var willRetry</code> یک boolean ای  تلاش مجدد برای ارسال داده را نشان میدهد.</li>
@@ -1003,6 +1038,7 @@ SDK ادتریس انواع شناسه ها رو به شما پیشنهاد می
 <div dir="rtl" align='right'>
 برای دستیابی به شناسه iOS یا همان IDFA میتوانید به صورت زیر عمل کنید:
 </div>
+<br/>
 
 ```js
 AdTrace.getIdfa((idfa) => {
@@ -1020,6 +1056,7 @@ AdTrace.getIdfa((idfa) => {
 <div dir="rtl" align='right'>
 برای دستیابی به شناسه تبلیغاتی گوگل لازم است تا یک تابع callback به متد <code>AdTrace.getGoogleAdId</code> که این شناسه را دریافت میکند به صورت زیر استفاده کنید:
 </div>
+<br/>
 
 ```js
 AdTrace.getGoogleAdId((googleAdId) => {
@@ -1033,6 +1070,7 @@ AdTrace.getGoogleAdId((googleAdId) => {
 <div dir="rtl" align='right'>
 برای دستیابی به شناسه تبلیغاتی آمازون لازم است تا یک تابع callback به متد <code>AdTrace.getAmazonAdId</code> که این شناسه را دریافت میکند به صورت زیر استفاده کنید:
 </div>
+<br/>
 
 ```js
 AdTrace.getAmazonAdId((amazonAdId) => {
@@ -1063,6 +1101,7 @@ AdTrace.getAdid((adid) => {
 <div dir="rtl" align='right'>
 اگر مایل به این هستید که SDK ادتریس تشخیص این را بدهد که کدام کاربرانی از طریق نصب از پیشن تعیین شده وارد برنامه شده اند مراحل زیر را انجام دهید:
 </div>
+<br/>
 <div dir="rtl" align='right'>
 <ul>
 <li>یک ترکر جدید در پنل خود ایجاد نمایید.</li>
@@ -1078,6 +1117,8 @@ adtraceConfig.setDefaultTracker("{TrackerToken}");
 
 AdTrace.create(adtraceConfig);
 ```
+
+<br/>
 <div dir="rtl" align='right'>
 <ul>
 <li>مقدار <code>{TrackerToken}</code> را با مقدار توکن ترکری که در مرحله اول دریافت کرده اید جاگزین کنید.</li>
@@ -1174,9 +1215,11 @@ adtraceConfig.setReadMobileEquipmentIdentity(true);
 AdTrace.create(adtraceConfig);
 ```
 
+<br/>
 <div dir="rtl" align='right'>
 همچنین نیاز است که مجوز <code>READ_PHONE_STATE</code> داخل فایل <code>AndroidManifest.xml</code> اضافه کنید:
 </div>
+<br/>
 
 ```xml
 <uses-permission android:name="android.permission.READ_PHONE_STATE"/>
@@ -1201,5 +1244,3 @@ AdTrace.gdprForgetMe();
 <div dir="rtl" align='right'>
 درنظر داشته باشید که حتی در زمان تست، این تصمیم بدون تغییر خواهد بود و قابل برگشت <strong>نیست</strong>.
 </div>
-
-
