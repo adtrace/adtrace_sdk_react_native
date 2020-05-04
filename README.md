@@ -562,7 +562,7 @@ In this case this will make the AdTrace SDK not send the initial install session
 
 Once you integrate the AdTrace SDK into your project, you can take advantage of the following features:
 
-### <a id="af-push-token"></a>Push token
+### <a id="af-push-token"></a>Push token (uninstall tracking)
 
 Push tokens are used for Audience Builder and client callbacks; they are also required for uninstall and reinstall tracking.
 
