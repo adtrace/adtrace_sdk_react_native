@@ -725,7 +725,9 @@ AdTrace.getAttribution((attribution) => {
 
 To increase the accuracy and security in fraud detection, you can enable the sending of installed applications on user's device as follows:
 
+```js
 adtraceConfig.setEnableSendInstalledApps(true);
+```
 
 **Note**: This option is  **disabled**  by default.
 
