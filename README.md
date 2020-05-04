@@ -566,7 +566,7 @@ Once you integrate the AdTrace SDK into your project, you can take advantage of 
 
 Push tokens are used for Audience Builder and client callbacks; they are also required for uninstall and reinstall tracking.
 
-To send us a push notification token, call the  `setDeviceToken`  method on the  `AdTrace`  instance when you obtain your app's push notification token (or whenever its value changes):
+To send us a push notification token, call the  `setPushToken`  method on the  `AdTrace`  instance when you obtain your app's push notification token (or whenever its value changes):
 
 ```js
 AdTrace.setPushToken("YourPushNotificationToken");
