@@ -582,16 +582,7 @@ With the `AdTraceConfig` instance, before starting the SDK, add the anonymous li
 var adtraceConfig = new AdTraceConfig(appToken, environment);
 
 adtraceConfig.setAttributionCallbackListener(function(attribution) {
-    // Printing all attribution properties.
-    console.log("Attribution changed!");
-    console.log(attribution.trackerToken);
-    console.log(attribution.trackerName);
-    console.log(attribution.network);
-    console.log(attribution.campaign);
-    console.log(attribution.adgroup);
-    console.log(attribution.creative);
-    console.log(attribution.clickLabel);
-    console.log(attribution.adid);
+    //
 });
 
 AdTrace.create(adtraceConfig);
@@ -618,14 +609,7 @@ Follow the same steps as for attribution callback to implement the following cal
 var adtraceConfig = new AdTraceConfig(appToken, environment);
 
 adtraceConfig.setEventTrackingSucceededCallbackListener(function(eventSuccess) {
-    // Printing all event success properties.
-    console.log("Event tracking succeeded!");
-    console.log(eventSuccess.message);
-    console.log(eventSuccess.timestamp);
-    console.log(eventSuccess.eventToken);
-    console.log(eventSuccess.callbackId);
-    console.log(eventSuccess.adid);
-    console.log(eventSuccess.jsonResponse);
+    //
 });
 
 AdTrace.create(adtraceConfig);
@@ -637,15 +621,7 @@ The following callback function for failed tracked events:
 var adtraceConfig = new AdTraceConfig(appToken, environment);
 
 adtraceConfig.setEventTrackingFailedCallbackListener(function(eventFailure) {
-    // Printing all event failure properties.
-    console.log("Event tracking failed!");
-    console.log(eventFailure.message);
-    console.log(eventFailure.timestamp);
-    console.log(eventFailure.eventToken);
-    console.log(eventFailure.callbackId);
-    console.log(eventFailure.adid);
-    console.log(eventFailure.willRetry);
-    console.log(eventFailure.jsonResponse);
+    //
 });
 
 AdTrace.create(adtraceConfig);
@@ -657,12 +633,7 @@ For successfully tracked sessions:
 var adtraceConfig = new AdTraceConfig(appToken, environment);
 
 adtraceConfig.setSessionTrackingSucceededCallbackListener(function(sessionSuccess) {
-    // Printing all session success properties.
-    console.log("Session tracking succeeded!");
-    console.log(sessionSuccess.message);
-    console.log(sessionSuccess.timestamp);
-    console.log(sessionSuccess.adid);
-    console.log(sessionSuccess.jsonResponse);
+    //
 });
 
 AdTrace.create(adtraceConfig);
@@ -674,13 +645,7 @@ And for failed tracked sessions:
 var adtraceConfig = new AdTraceConfig(appToken, environment);
 
 adtraceConfig.setSessionTrackingFailedCallbackListener(function(sessionFailure) {
-    // Printing all session failure properties.
-    console.log("Session tracking failed!");
-    console.log(sessionFailure.message);
-    console.log(sessionFailure.timestamp);
-    console.log(sessionFailure.adid);
-    console.log(sessionFailure.willRetry);
-    console.log(sessionFailure.jsonResponse);
+    //
 });
 
 AdTrace.create(adtraceConfig);
@@ -708,14 +673,7 @@ This callback, like an [attribution callback](#af-attribution-callback), is trig
 
 ```javascript
 AdTrace.getAttribution((attribution) => {
-    console.log("Tracker token = " + attribution.trackerToken);
-    console.log("Tracker name = " + attribution.trackerName);
-    console.log("Network = " + attribution.network);
-    console.log("Campaign = " + attribution.campaign);
-    console.log("Adgroup = " + attribution.adgroup);
-    console.log("Creative = " + attribution.creative);
-    console.log("Click label = " + attribution.clickLabel);
-    console.log("Adid = " + attribution.adid);
+    //
 });
 ```
 
@@ -741,7 +699,7 @@ To obtain the IDFA, call the function  `getIdfa`  of the  `AdTrace`  instance:
 
 ```javascript
 AdTrace.getIdfa((idfa) => {
-    console.log("IDFA = " + idfa);
+    //
 });
 ```
 
@@ -753,7 +711,7 @@ To obtain the device Google Advertising identifier, it's necessary to pass a cal
 
 ```javascript
 AdTrace.getGoogleAdId((googleAdId) => {
-    console.log("Google Ad Id = " + googleAdId);
+    //
 });
 ```
 
@@ -763,7 +721,7 @@ If you need to get the Amazon advertising ID, call the  `getAmazonAdId`  method 
 
 ```javascript
 AdTrace.getAmazonAdId((amazonAdId) => {
-    console.log("Amazon Ad Id = " + amazonAdId);
+    //
 });
 ```
 
@@ -773,7 +731,7 @@ For each device with your app installed on it, our backend generates a unique **
 
 ```javascript
 AdTrace.getAdid((adid) => {
-    console.log("Adid = " + adid);
+    //
 });
 ```
 
