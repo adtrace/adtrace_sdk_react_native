@@ -1,3 +1,5 @@
+English | [فارسی][per-readme]
+
 <p align="center"><a href="https://adtrace.io" target="_blank" rel="noopener noreferrer"><img width="100" src="http://adtrace.io/fa/wp-content/uploads/2019/02/logo.png" alt="Adtrace logo"></a></p>
 
 <p align="center">
@@ -843,6 +845,8 @@ Upon receiving this information, AdTrace will erase the user's data and the AdTr
 
 [panel]:    http://panel.adtrace.io
 [adtrace.io]:   http://adtrace.io
+[en-readme]:  README.md
+[per-readme]:  ./doc/persian/README-PER.md
 
 [example-app]:  ./example
 
