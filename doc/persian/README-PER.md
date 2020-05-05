@@ -981,7 +981,7 @@ listener ها هنگامی فراخوانده میشوند که SDK تلاش ب�
 <div dir="rtl" align='right'>
 <ul>
 <li><code>var eventToken</code> توکن مربوط به رویداد مورد نظر</li>
-<li><code>var cakkbackId</code> <a href="#cp-ep-id">شناسه callback</a> که برای یک رویداد تنظیم میشود</li>
+<li><code>var callbackId</code> <a href="#cp-ep-id">شناسه callback</a> که برای یک رویداد تنظیم میشود</li>
 </ul>
 </div>
 <br/>
