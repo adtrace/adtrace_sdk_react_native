@@ -260,7 +260,7 @@ implementation 'com.google.android.gms:play-services-ads-identifier:17.0.0'
 
 <br/>
 <div dir="rtl" align='right'>
-<strong>نکته: </strong> SDK ادتریس محصور به استفاده از ورژن خاصی از <code>play-services-analytics</code> گوگل پلی نیست. بنابراین استفاده از آخرین نسخه این کتابخانه برای ادتریس مشکلی ایجاد نمیکند.
+<strong>نکته: </strong> SDK ادتریس محصور به استفاده از ورژن خاصی از <code>play-services-ads-identifier</code> گوگل پلی نیست. بنابراین استفاده از آخرین نسخه این کتابخانه برای ادتریس مشکلی ایجاد نمیکند.
 </div>
 <br/>
 
