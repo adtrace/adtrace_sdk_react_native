@@ -636,6 +636,8 @@ AdTrace.trackEvent(adtraceEvent);
 
 ### <div id="cp-ep" dir="rtl" align='right'>پارامترهای رویداد</div>
 
+### <div id="cp-ep-callback" dir="rtl" align='right'>پارامترهای callback رویداد</div>
+
 <div dir="rtl" align='right'>
 شما میتوانید یک آدرس callback برای رویداد خود داخل پنل اضافه کنید. ادرتیس یک درخواست GET به آن آدرسی که اضافه نموده اید، ارسال خواهد کرد. همچنین پارامترهای callback برای آن رویداد را از طریق متد <code>addCallbackParameter</code> برای آن رویداد قبل از ترک آن استفاده کنید. ما این پارامترها را به آخر آدرس callback شما اضافه خواهیم کرد.
 </div>
