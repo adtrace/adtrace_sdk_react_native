@@ -170,7 +170,7 @@ Since August 1, 2014, apps in the Google Play Store must use the [Google Adverti
 In order to do this, open your app's `build.gradle` file and find the `dependencies` block. Add the following line:
 
 ```gradle
-compile 'com.google.android.gms:play-services-analytics:10.0.1'
+compile 'com.google.android.gms:play-services-analytics:18.0.1'
 ```
     
 **Note**: The version of the Google Play Services library that you're using is not relevant to the AdTrace SDK, as long as the analytics part of the library is present in your app. In the example above, we just used the most recent version of the library at the time of writing.
@@ -209,7 +209,7 @@ In order to correctly attribute an install of your Android app to its source, Ad
 In order to support this, add the following line to your app's `build.gradle` file:
 
 ```gradle
-compile 'com.android.installreferrer:installreferrer:1.0'
+compile 'com.android.installreferrer:installreferrer:2.2'
 ```
 
 `installreferrer` library is part of Google Maven repository, so in order to be able to build your app, you need to add Google Maven repository to your app's `build.gradle` file if you haven't added it already:
@@ -231,7 +231,7 @@ Also, make sure that you have paid attention to the [Proguard settings](#android
 -keep public class com.android.installreferrer.** { *; }
 ```
 
-This feature is supported if you are using the **AdTrace SDK v4.12.0 or above**.
+This feature is supported if you are using the **AdTrace SDK v2.+ or above**.
 
 #### <a id="android-referrer-gps-intent"></a>Google Play Store intent
 
@@ -250,7 +250,7 @@ Please bear in mind that, if you are using your own broadcast receiver which han
 
 #### <a id="android-huawei-referrer-api"></a>Huawei Referrer API
 
-As of v4.22.0, the AdTrace SDK supports install tracking on Huawei devices with Huawei App Gallery version 10.4 and higher. No additional integration steps are needed to start using the Huawei Referrer API.
+As of v2.+, the AdTrace SDK supports install tracking on Huawei devices with Huawei App Gallery version 10.4 and higher. No additional integration steps are needed to start using the Huawei Referrer API.
 
 ### <a id="ios-frameworks"></a>iOS frameworks
 
@@ -336,7 +336,7 @@ To get the current app tracking authorization status you can call `getAppTrackin
 
 **Note**: This feature exists only in iOS platform.
 
-If you have implemented the Adtrace iOS SDK v4.23.0 or above and your app is running on iOS 14 and above, the communication with SKAdNetwork will be set on by default, although you can choose to turn it off. When set on, Adtrace automatically registers for SKAdNetwork attribution when the SDK is initialized. If events are set up in the [panel] to receive conversion values, the Adtrace backend sends the conversion value data to the SDK. The SDK then sets the conversion value. After Adtrace receives the SKAdNetwork callback data, it is then displayed in the dashboard.
+If you have implemented the Adtrace iOS SDK v2.+ or above and your app is running on iOS 14 and above, the communication with SKAdNetwork will be set on by default, although you can choose to turn it off. When set on, Adtrace automatically registers for SKAdNetwork attribution when the SDK is initialized. If events are set up in the [panel] to receive conversion values, the Adtrace backend sends the conversion value data to the SDK. The SDK then sets the conversion value. After Adtrace receives the SKAdNetwork callback data, it is then displayed in the dashboard.
 
 In case you don't want the Adtrace SDK to automatically communicate with SKAdNetwork, you can disable that by calling the following method on configuration object:
 
@@ -387,29 +387,10 @@ If your users can generate revenue by tapping on advertisements or making In-App
 ```js
 var adtraceEvent = new AdTraceEvent("abc123");
 
-adtraceEvent.setRevenue(0.01, "EUR");
+adtraceEvent.setRevenue(2000, "Toman");
 
 AdTrace.trackEvent(adtraceEvent);
 ```
-
-When you set a currency token, AdTrace will automatically convert the incoming revenues into a reporting revenue of your choice. Read more about [currency conversion here][currency-conversion].
-
-### <a id="revenue-deduplication"></a>Revenue deduplication
-
-You can also add an optional transaction ID to avoid tracking duplicate revenues. The last ten transaction IDs are remembered, and revenue events with duplicate transaction IDs are skipped. This is especially useful for In-App Purchase tracking. You can see an example below.
-
-If you want to track in-app purchases, please make sure to call the `trackEvent` only if the transaction is finished and an item is purchased. That way you can avoid tracking revenue that is not actually being generated.
-
-```js
-var adtraceEvent = new AdTraceEvent("abc123");
-
-adtraceEvent.setRevenue(0.01, "EUR");
-adtraceEvent.setTransactionId("{YourTransactionId}");
-
-AdTrace.trackEvent(adtraceEvent);
-```
-
-**Note**: Transaction ID is the iOS term, unique identifier for successfully finished Android In-App-Purchases is named **Order ID**.
 
 ### <a id="callback-parameters"></a>Callback parameters
 
@@ -470,88 +451,6 @@ adtraceEvent.setCallbackId("Your-Custom-Id");
 AdTrace.trackEvent(adtraceEvent);
 ```
 
-### <a id="subscription-tracking"></a>Subscription tracking
-
-**Note**: This feature is only available in the SDK v4.22.0 and above.
-
-You can track App Store and Play Store subscriptions and verify their validity with the AdTrace SDK. After a subscription has been successfully purchased, make the following call to the AdTrace SDK:
-
-**For App Store subscription:**
-
-```js
-var subscription = new AdTraceAppStoreSubscription(price, currency, transactionId, receipt);
-subscription.setTransactionDate(transactionDate);
-subscription.setSalesRegion(salesRegion);
-
-AdTrace.trackAppStoreSubscription(subscription);
-```
-
-**For Play Store subscription:**
-
-```js
-var subscription = new AdTracePlayStoreSubscription(price, currency, sku, orderId, signature, purchaseToken);
-subscription.setPurchaseTime(purchaseTime);
-
-AdTrace.trackPlayStoreSubscription(subscription);
-```
-
-Subscription tracking parameters for App Store subscription:
-
-- [price](https://developer.apple.com/documentation/storekit/skproduct/1506094-price?language=objc)
-- currency (you need to pass [currencyCode](https://developer.apple.com/documentation/foundation/nslocale/1642836-currencycode?language=objc) of the [priceLocale](https://developer.apple.com/documentation/storekit/skproduct/1506145-pricelocale?language=objc) object)
-- [transactionId](https://developer.apple.com/documentation/storekit/skpaymenttransaction/1411288-transactionidentifier?language=objc)
-- [receipt](https://developer.apple.com/documentation/foundation/nsbundle/1407276-appstorereceipturl)
-- [transactionDate](https://developer.apple.com/documentation/storekit/skpaymenttransaction/1411273-transactiondate?language=objc)
-- salesRegion (you need to pass [countryCode](https://developer.apple.com/documentation/foundation/nslocale/1643060-countrycode?language=objc) of the [priceLocale](https://developer.apple.com/documentation/storekit/skproduct/1506145-pricelocale?language=objc) object)
-
-Subscription tracking parameters for Play Store subscription:
-
-- [price](https://developer.android.com/reference/com/android/billingclient/api/SkuDetails#getpriceamountmicros)
-- [currency](https://developer.android.com/reference/com/android/billingclient/api/SkuDetails#getpricecurrencycode)
-- [sku](https://developer.android.com/reference/com/android/billingclient/api/Purchase#getsku)
-- [orderId](https://developer.android.com/reference/com/android/billingclient/api/Purchase#getorderid)
-- [signature](https://developer.android.com/reference/com/android/billingclient/api/Purchase#getsignature)
-- [purchaseToken](https://developer.android.com/reference/com/android/billingclient/api/Purchase#getpurchasetoken)
-- [purchaseTime](https://developer.android.com/reference/com/android/billingclient/api/Purchase#getpurchasetime)
-
-**Note:** Subscription tracking API offered by AdTrace SDK expects all parameters to be passed as `string` values. Parameters described above are the ones which API exects you to pass to subscription object prior to tracking subscription. There are various libraries which are handling in app purchases in React Native and each one of them should return information described above in some form upon successfully completed subscription purchase. You should locate where these parameters are placed in response you are getting from library you are using for in app purchases, extract those values and pass them to AdTrace API as string values.
-
-Just like with event tracking, you can attach callback and partner parameters to the subscription object as well:
-
-**For App Store subscription:**
-
-```js
-var subscription = new AdTraceAppStoreSubscription(price, currency, transactionId, receipt);
-subscription.setTransactionDate(transactionDate);
-subscription.setSalesRegion(salesRegion);
-
-// add callback parameters
-subscription.addCallbackParameter("key", "value");
-subscription.addCallbackParameter("foo", "bar");
-
-// add partner parameters
-subscription.addPartnerParameter("key", "value");
-subscription.addPartnerParameter("foo", "bar");
-
-AdTrace.trackAppStoreSubscription(subscription);
-```
-
-**For Play Store subscription:**
-
-```js
-var subscription = new AdTracePlayStoreSubscription(price, currency, sku, orderId, signature, purchaseToken);
-subscription.setPurchaseTime(purchaseTime);
-
-// add callback parameters
-subscription.addCallbackParameter("key", "value");
-subscription.addCallbackParameter("foo", "bar");
-
-// add partner parameters
-subscription.addPartnerParameter("key", "value");
-subscription.addPartnerParameter("foo", "bar");
-
-AdTrace.trackPlayStoreSubscription(subscription);
-```
 
 ### <a id="session-parameters"></a>Session parameters
 
@@ -669,9 +568,7 @@ Within the listener function you have access to the `attribution` parameters. He
 - `costAmount`      the cost amount.
 - `costCurrency`    the cost currency.
 
-Please make sure to consider our [applicable attribution data policies][attribution-data].
 
-**Note**: The cost data - `costType`, `costAmount` & `costCurrency` are only available when configured in `AdTraceConfig` by calling `setNeedsCost` method. If not configured or configured, but not being part of the attribution, these fields will have value `null`. This feature is available in SDK v4.26.0 and above.
 
 ### <a id="session-event-callbacks"></a>Session and event callbacks
 
@@ -803,62 +700,6 @@ adtraceConfig.setEventBufferingEnabled(true);
 AdTrace.create(adtraceConfig);
 ```
 
-### <a id="gdpr-forget-me"></a>GDPR right to be forgotten
-
-In accordance with article 17 of the EU's General Data Protection Regulation (GDPR), you can notify AdTrace when a user has exercised their right to be forgotten. Calling the following method will instruct the AdTrace SDK to communicate the user's choice to be forgotten to the AdTrace backend:
-
-```js
-AdTrace.gdprForgetMe();
-```
-
-Upon receiving this information, AdTrace will erase the user's data and the AdTrace SDK will stop tracking the user. No requests from this device will be sent to AdTrace in the future.
-
-## <a id="third-party-sharing"></a>Third-party sharing for specific users
-
-You can notify AdTrace when a user disables, enables, and re-enables data sharing with third-party partners.
-
-### <a id="disable-third-party-sharing"></a>Disable third-party sharing for specific users
-
-Call the following method to instruct the AdTrace SDK to communicate the user's choice to disable data sharing to the AdTrace backend:
-
-```js
-var adtraceThirdPartySharing = new AdTraceThirdPartySharing(false);
-AdTrace.trackThirdPartySharing(adtraceThirdPartySharing);
-```
-
-Upon receiving this information, AdTrace will block the sharing of that specific user's data to partners and the AdTrace SDK will continue to work as usual.
-
-### <a id="enable-third-party-sharing">Enable or re-enable third-party sharing for specific users</a>
-
-Call the following method to instruct the AdTrace SDK to communicate the user's choice to share data or change data sharing, to the AdTrace backend:
-
-```js
-var adtraceThirdPartySharing = new AdTraceThirdPartySharing(false);
-AdTrace.trackThirdPartySharing(adtraceThirdPartySharing);
-```
-
-Upon receiving this information, AdTrace changes sharing the specific user's data to partners. The AdTrace SDK will continue to work as expected.
-
-Call the following method to instruct the AdTrace SDK to send the granular options to the AdTrace backend:
-
-```js
-var adtraceThirdPartySharing = new AdTraceThirdPartySharing(null);
-adtraceThirdPartySharing.addGranularOption("PartnerA", "foo", "bar");
-AdTrace.trackThirdPartySharing(adtraceThirdPartySharing);
-```
-
-### <a id="measurement-consent"></a>Consent measurement for specific users
-
-You can notify AdTrace when a user exercises their right to change data sharing with partners for marketing purposes, but they allow data sharing for statistical purposes. 
-
-Call the following method to instruct the AdTrace SDK to communicate the user's choice to change data sharing, to the AdTrace backend:
-
-```js
-AdTrace.trackMeasurementConsent(true);
-```
-
-Upon receiving this information, AdTrace changes sharing the specific user's data to partners. The AdTrace SDK will continue to work as expected.
-
 ### <a id="sdk-signature"></a>SDK signature
 
 An account manager must activate the AdTrace SDK signature. Contact AdTrace support  if you are interested in using this feature.
@@ -918,16 +759,6 @@ AdTrace.getGoogleAdId((googleAdId) => {
 ```
 
 
-### <a id="di-fire-adid"></a>Amazon advertising identifier
-
-If you need to obtain the Amazon advertising ID, you can call the `getAmazonAdId` method of the `AdTrace` instance and pass your callback as a parameter to which the Amazon advertising ID value will be sent once obtained:
-
-```javascript
-AdTrace.getAmazonAdId((amazonAdId) => {
-    console.log("Amazon Ad Id = " + amazonAdId);
-});
-```
-
 ### <a id="di-adid"></a>AdTrace device identifier
 
 For every device with your app installed on it, the AdTrace backend generates a unique **AdTrace device identifier** (**adid**). In order to obtain this identifier, call the `getAdid` method of the `AdTrace` instance and pass your callback as a parameter to which the **adid** value will be sent once obtained:
@@ -940,29 +771,6 @@ AdTrace.getAdid((adid) => {
 
 **Note**: Information about the **adid** is only available after an app installation has been tracked by the AdTrace backend. From that moment on, the AdTrace SDK has information about the device **adid** and you can access it with this method. So, **it is not possible** to access the **adid** value before the SDK has been initialized and installation of your app has been successfully tracked.
 
-### <a id="set-external-device-id"></a>Set external device ID
-
-> **Note** If you want to use external device IDs, please contact your AdTrace representative. They will talk you through the best approach for your use case.
-
-An external device identifier is a custom value that you can assign to a device or user. They can help you to recognize users across sessions and platforms. They can also help you to deduplicate installs by user so that a user isn't counted as multiple new installs.
-
-You can also use an external device ID as a custom identifier for a device. This can be useful if you use these identifiers elsewhere and want to keep continuity.
-
-
-
-> **Note** This setting requires AdTrace SDK v4.21.0 or later.
-
-To set an external device ID, assign the identifier to the `externalDeviceId` property of your config instance. Do this before you initialize the AdTrace SDK.
-
-```js
-adtraceConfig.setExternalDeviceId("{Your-External-Device-Id}");
-```
-
-> **Important**: You need to make sure this ID is **unique to the user or device** depending on your use-case. Using the same ID across different users or devices could lead to duplicated data. Talk to your AdTrace representative for more information.
-
-If you want to use the external device ID in your business analytics, you can pass it as a session callback parameter. See the section on [session callback parameters](#session-callback-parameters) for more information.
-
-You can import existing external device IDs into AdTrace. This ensures that the backend matches future data to your existing device records. If you want to do this, please contact your AdTrace representative.
 
 ### <a id="user-attribution"></a>User attribution
 
