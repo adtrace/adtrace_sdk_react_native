@@ -1,28 +1,43 @@
+/*
+ * Copyright 2008-2014, Torsten Curdt
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+// original at https://github.com/tcurdt/feedbackreporter/blob/master/Sources/Main/FRSystemProfile.m
+
 #import "ADTSystemProfile.h"
 #import <sys/sysctl.h>
 #import <sys/types.h>
 #import <mach/machine.h>
 #import "ADTAdtraceFactory.h"
 #import "ADTLogger.h"
+#import "UIDevice+ADTAdditions.h"
+#import "ADTUtil.h"
 
 @implementation ADTSystemProfile
 
-+ (BOOL) is64bit
-{
++ (BOOL)is64bit {
     int error = 0;
     int value = 0;
     size_t length = sizeof(value);
 
     error = sysctlbyname("hw.cpu64bit_capable", &value, &length, NULL, 0);
-    
-    if(error != 0) {
+    if (error != 0) {
         error = sysctlbyname("hw.optional.x86_64", &value, &length, NULL, 0); //x86 specific
     }
-    
-    if(error != 0) {
+    if (error != 0) {
         error = sysctlbyname("hw.optional.64bitops", &value, &length, NULL, 0); //PPC specific
     }
-
     if (error != 0) {
         return NO;
     }
@@ -30,16 +45,15 @@
     return value == 1;
 }
 
-+ (NSString*) cpuFamily
-{
++ (NSString *)cpuFamily {
     int cpufamily = -1;
     size_t length = sizeof(cpufamily);
     int error = sysctlbyname("hw.cpufamily", &cpufamily, &length, NULL, 0);
-
     if (error != 0) {
         [ADTAdtraceFactory.logger error:@"Failed to obtain CPU family (%d)", error];
         return nil;
     }
+
     switch (cpufamily)
     {
 #ifdef CPUFAMILY_UNKNOWN
@@ -151,22 +165,21 @@
             return @"CPUFAMILY_ARM_HURRICANE";
 #endif
     }
-    NSString * unknowCpuFamily = [NSString stringWithFormat:@"Unknown CPU family %d", cpufamily];
+    NSString *unknowCpuFamily = [NSString stringWithFormat:@"Unknown CPU family %d", cpufamily];
     [ADTAdtraceFactory.logger warn:@"%@", unknowCpuFamily];
     return unknowCpuFamily;
 }
 /*
  original function
  operatingSystemVersionString should not be parsed
-  https://developer.apple.com/reference/foundation/nsprocessinfo/1408730-operatingsystemversionstring?language=objc
-+ (NSString*) osVersion
-{
+ https://developer.apple.com/reference/foundation/nsprocessinfo/1408730-operatingsystemversionstring?language=objc
++ (NSString*) osVersion {
     NSProcessInfo *info = [NSProcessInfo processInfo];
     if (info == nil) {
         return nil;
     }
+
     NSString *version = [info operatingSystemVersionString];
-    
     if ([version hasPrefix:@"Version "]) {
         version = [version substringFromIndex:8];
     }
@@ -174,13 +187,13 @@
     return version;
 }
 */
-+ (int) cpuCount
-{
+
++ (int)cpuCount {
     int error = 0;
     int value = 0;
     size_t length = sizeof(value);
     error = sysctlbyname("hw.ncpu", &value, &length, NULL, 0);
-    
+
     if (error != 0) {
         [ADTAdtraceFactory.logger error:@"Failed to obtain CPU count (%d)", error];
         return 1;
@@ -189,39 +202,32 @@
     return value;
 }
 
-+ (NSString*) machineArch
-{
++ (NSString *)machineArch {
     return [ADTSystemProfile readSysctlbByNameString:"hw.machinearch" errorLog:@"Failed to obtain machine arch"];
 }
 
-+ (NSString*) machineModel
-{
++ (NSString *)machineModel {
     return [ADTSystemProfile readSysctlbByNameString:"hw.model" errorLog:@"Failed to obtain machine model"];
 }
 
-+ (NSString*) cpuBrand
-{
++ (NSString *)cpuBrand {
     return [ADTSystemProfile readSysctlbByNameString:"machdep.cpu.brand_string" errorLog:@"Failed to obtain CPU brand"];
 }
 
-+ (NSString*) cpuFeatures
-{
++ (NSString *)cpuFeatures {
     return [ADTSystemProfile readSysctlbByNameString:"machdep.cpu.features" errorLog:@"Failed to obtain CPU features"];
 }
 
-+ (NSString*) cpuVendor
-{
++ (NSString *)cpuVendor {
     return [ADTSystemProfile readSysctlbByNameString:"machdep.cpu.vendor" errorLog:@"Failed to obtain CPU vendor"];
 }
 
-+ (NSString*) osVersion
-{
++ (NSString *)osVersion {
     return [ADTSystemProfile readSysctlbByNameString:"kern.osversion" errorLog:@"Failed to obtain OS version"];
 }
 
-+ (NSString*) readSysctlbByNameString:(const char *)name
-                             errorLog:(NSString*)errorLog
-{
++ (NSString *)readSysctlbByNameString:(const char*)name
+                             errorLog:(NSString *)errorLog {
     int error = 0;
     size_t length = 0;
     error = sysctlbyname(name, NULL, &length, NULL, 0);
@@ -231,7 +237,7 @@
         return nil;
     }
 
-    char *p = malloc(sizeof(char) * length);
+    char *p = calloc(1, sizeof(char) * length);
     if (p) {
         error = sysctlbyname(name, p, &length, NULL, 0);
     }
@@ -242,16 +248,12 @@
         return nil;
     }
 
-    NSString * result = [NSString stringWithUTF8String:p];
-
+    NSString *result = [NSString stringWithUTF8String:p];
     free(p);
-
     return result;
-
 }
 
-+ (NSString*) appleLanguage
-{
++ (NSString *)appleLanguage {
     NSUserDefaults *defs = [NSUserDefaults standardUserDefaults];
     NSArray *languages = [defs objectForKey:@"AppleLanguages"];
 
@@ -259,84 +261,72 @@
         [ADTAdtraceFactory.logger error:@"Failed to obtain preferred language"];
         return nil;
     }
-    
+
     return [languages objectAtIndex:0];
 }
 
-+ (long long) cpuSpeed
-{
++ (long long)cpuSpeed {
     long long result = 0;
-
 	int error = 0;
-
     int64_t hertz = 0;
 	size_t size = sizeof(hertz);
 	int mib[2] = {CTL_HW, HW_CPU_FREQ};
 	
 	error = sysctl(mib, 2, &hertz, &size, NULL, 0);
-	
     if (error) {
         [ADTAdtraceFactory.logger error:@"Failed to obtain CPU speed (%d)", error];
         return -1;
     }
-	
-	result = (long long)(hertz/1000000); // Convert to MHz
-    
+
+	result = (long long)(hertz/1000000); // convert to MHz
     return result;
 }
 
-+ (long long) ramsize
-{
++ (long long)ramsize {
     long long result = 0;
-
 	int error = 0;
     int64_t value = 0;
     size_t length = sizeof(value);
-	
+
     error = sysctlbyname("hw.memsize", &value, &length, NULL, 0);
 	if (error) {
         [ADTAdtraceFactory.logger error:@"Failed to obtain RAM size (%d)", error];
         return -1;
 	}
+
 	const int64_t kBytesPerMebibyte = 1024*1024;
 	result = (long long)(value/kBytesPerMebibyte);
-    
     return result;
 }
 
 
-+ (NSString*) cpuType
-{
++ (NSString *)cpuType {
     int error = 0;
-
     int cputype = -1;
     size_t length = sizeof(cputype);
-    error = sysctlbyname("hw.cputype", &cputype, &length, NULL, 0);
 
+    error = sysctlbyname("hw.cputype", &cputype, &length, NULL, 0);
     if (error != 0) {
         [ADTAdtraceFactory.logger error:@"Failed to obtain CPU type (%d)", error];
         return nil;
     }
 
-    NSString * cpuTypeString = [ADTSystemProfile readCpuTypeSubtype:cputype readSubType:NO cpusubtype:0];
-
+    NSString *cpuTypeString = [ADTSystemProfile readCpuTypeSubtype:cputype readSubType:NO cpusubtype:0];
     if (cpuTypeString != nil) {
         return cpuTypeString;
     }
 
-    NSString * unknowCpuType = [NSString stringWithFormat:@"Unknown CPU type %d", cputype];
+    NSString *unknowCpuType = [NSString stringWithFormat:@"Unknown CPU type %d", cputype];
     [ADTAdtraceFactory.logger warn:@"%@", unknowCpuType];
     return unknowCpuType;
 }
 
-+ (NSString*) cpuSubtype
-{
++ (NSString *)cpuSubtype {
     int error = 0;
-
     int cputype = -1;
     size_t length = sizeof(cputype);
-    error = sysctlbyname("hw.cputype", &cputype, &length, NULL, 0);
 
+    error = sysctlbyname("hw.cputype", &cputype, &length, NULL, 0);
     if (error != 0) {
         [ADTAdtraceFactory.logger error:@"Failed to obtain CPU type (%d)", error];
         return nil;
@@ -351,22 +341,19 @@
         return nil;
     }
 
-
-    NSString * cpuSubtypeString = [ADTSystemProfile readCpuTypeSubtype:cputype readSubType:YES cpusubtype:cpuSubtype];
-
+    NSString *cpuSubtypeString = [ADTSystemProfile readCpuTypeSubtype:cputype readSubType:YES cpusubtype:cpuSubtype];
     if (cpuSubtypeString != nil) {
         return cpuSubtypeString;
     }
 
-    NSString * unknowCpuSubtype = [NSString stringWithFormat:@"Unknown CPU subtype %d", cpuSubtype];
+    NSString *unknowCpuSubtype = [NSString stringWithFormat:@"Unknown CPU subtype %d", cpuSubtype];
     [ADTAdtraceFactory.logger warn:@"%@", unknowCpuSubtype];
     return unknowCpuSubtype;
 }
 
-+ (NSString*) readCpuTypeSubtype:(int)cputype
++ (NSString *)readCpuTypeSubtype:(int)cputype
                      readSubType:(BOOL)readSubType
-                      cpusubtype:(int)cpusubtype
-{
+                      cpusubtype:(int)cpusubtype {
     switch (cputype)
     {
 #ifdef CPU_TYPE_ANY
@@ -617,6 +604,10 @@
             case CPU_SUBTYPE_ARM64_V8:
                 return @"CPU_SUBTYPE_ARM64_V8";
 #endif
+#ifdef CPU_SUBTYPE_ARM64E
+            case CPU_SUBTYPE_ARM64E:
+                return @"CPU_SUBTYPE_ARM64E";
+#endif
         }
             break;
 #endif
@@ -661,6 +652,10 @@
             case CPU_SUBTYPE_ARM_V7K:
                 return @"CPU_SUBTYPE_ARM_V7K";
 #endif
+#ifdef CPU_SUBTYPE_ARM_V8
+            case CPU_SUBTYPE_ARM_V8:
+                return @"CPU_SUBTYPE_ARM_V8";
+#endif
 #ifdef CPU_SUBTYPE_ARM_V6M
             case CPU_SUBTYPE_ARM_V6M:
                 return @"CPU_SUBTYPE_ARM_V6M";
@@ -673,9 +668,25 @@
             case CPU_SUBTYPE_ARM_V7EM:
                 return @"CPU_SUBTYPE_ARM_V7EM";
 #endif
-#ifdef CPU_SUBTYPE_ARM_V8
-            case CPU_SUBTYPE_ARM_V8:
-                return @"CPU_SUBTYPE_ARM_V8";
+#ifdef CPU_SUBTYPE_ARM_V8M
+            case CPU_SUBTYPE_ARM_V8M:
+                return @"CPU_SUBTYPE_ARM_V8M";
+#endif
+        }
+            break;
+#endif
+#ifdef CPU_TYPE_ARM64_32
+        case CPU_TYPE_ARM64_32:
+            if (!readSubType) return @"CPU_TYPE_ARM64_32";
+            switch (cpusubtype)
+        {
+#ifdef CPU_SUBTYPE_ARM64_32_ALL
+            case CPU_SUBTYPE_ARM64_32_ALL:
+                return @"CPU_SUBTYPE_ARM64_32_ALL";
+#endif
+#ifdef CPU_SUBTYPE_ARM64_32_V8
+            case CPU_SUBTYPE_ARM64_32_V8:
+                return @"CPU_SUBTYPE_ARM64_32_V8";
 #endif
         }
             break;

@@ -2,20 +2,23 @@
 //  ADTResponseData.m
 //  adtrace
 //
-
+//  Created by Nasser Amini (@namini40) on Jun 2022.
+//  Copyright © 2022 adtrace io. All rights reserved.
+//
 
 #import "ADTResponseData.h"
 #import "ADTActivityKind.h"
 
 @implementation ADTResponseData
 
-- (id)init {
+- (id)init
+{
     self = [super init];
     
     if (self == nil) {
         return nil;
     }
-    
+
     return self;
 }
 
@@ -40,9 +43,16 @@
             break;
         case ADTActivityKindClick:
             responseData = [[ADTSdkClickResponseData alloc] init];
+            responseData.sdkClickPackage = activityPackage;
             break;
         case ADTActivityKindEvent:
-            responseData = [[ADTEventResponseData alloc] initWithActivityPackage:activityPackage];
+            responseData = [[ADTEventResponseData alloc]
+                                initWithEventToken:
+                                    [activityPackage.parameters
+                                        objectForKey:@"event_token"]
+                                callbackId:
+                                    [activityPackage.parameters
+                                        objectForKey:@"event_callback_id"]];
             break;
         case ADTActivityKindAttribution:
             responseData = [[ADTAttributionResponseData alloc] init];
@@ -52,6 +62,7 @@
             break;
     }
 
+    responseData.sdkPackage = activityPackage;
     responseData.activityKind = activityKind;
 
     return responseData;
@@ -71,7 +82,6 @@
         copy.message = [self.message copyWithZone:zone];
         copy.timeStamp = [self.timeStamp copyWithZone:zone];
         copy.adid = [self.adid copyWithZone:zone];
-        copy.success = self.success;
         copy.willRetry = self.willRetry;
         copy.trackingState = self.trackingState;
         copy.jsonResponse = [self.jsonResponse copyWithZone:zone];
@@ -84,16 +94,6 @@
 @end
 
 @implementation ADTSessionResponseData
-
-- (id)initWithActivityPackage:(ADTActivityPackage *)activityPackage {
-    self = [super init];
-
-    if (self == nil) {
-        return nil;
-    }
-
-    return self;
-}
 
 - (ADTSessionSuccess *)successResponseData {
     ADTSessionSuccess *successResponseData = [ADTSessionSuccess sessionSuccessResponseData];
@@ -131,19 +131,17 @@
 
 @implementation ADTEventResponseData
 
-+ (ADTEventResponseData *)responseDataWithActivityPackage:(ADTActivityPackage *)activityPackage {
-    return [[ADTEventResponseData alloc] initWithActivityPackage:activityPackage];
-}
-
-- (id)initWithActivityPackage:(ADTActivityPackage *)activityPackage {
+- (id)initWithEventToken:(NSString *)eventToken
+       callbackId:(NSString *)callbackId
+{
     self = [super init];
     
     if (self == nil) {
         return nil;
     }
 
-    self.eventToken = [activityPackage.parameters objectForKey:@"event_token"];
-    self.callbackId = [activityPackage.parameters objectForKey:@"event_callback_id"];
+    self.eventToken = eventToken;
+    self.callbackId = callbackId;
 
     return self;
 }
@@ -193,16 +191,6 @@
 @end
 
 @implementation ADTAttributionResponseData
-
-- (id)initWithActivityPackage:(ADTActivityPackage *)activityPackage {
-    self = [super init];
-
-    if (self == nil) {
-        return nil;
-    }
-
-    return self;
-}
 
 - (id)copyWithZone:(NSZone *)zone {
     ADTAttributionResponseData *copy = [super copyWithZone:zone];

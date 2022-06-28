@@ -2,7 +2,9 @@
 //  ADTAttribution.h
 //  adtrace
 //
-
+//  Created by Nasser Amini (@namini40) on Jun 2022.
+//  Copyright © 2022 adtrace io. All rights reserved.
+//
 
 #import <Foundation/Foundation.h>
 
@@ -50,6 +52,21 @@
  * @brief Adtrace identifier value.
  */
 @property (nonatomic, copy, nullable) NSString *adid;
+
+/**
+ * @brief Cost type.
+ */
+@property (nonatomic, copy, nullable) NSString *costType;
+
+/**
+ * @brief Cost amount.
+ */
+@property (nonatomic, copy, nullable) NSNumber *costAmount;
+
+/**
+ * @brief Cost currency.
+ */
+@property (nonatomic, copy, nullable) NSString *costCurrency;
 
 /**
  * @brief Make attribution object.

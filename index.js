@@ -6,12 +6,14 @@ import {
     Platform,
 } from 'react-native';
 
-const module_adtrace = NativeModules.AdTrace;
-
+let module_adtrace =null;
 let module_adtrace_emitter = null;
+
 if (Platform.OS === "android") {
+    module_adtrace = NativeModules.AdTrace;
     module_adtrace_emitter = new NativeEventEmitter(NativeModules.AdTrace);
 } else if (Platform.OS === "ios") {
+    module_adtrace = NativeModules.Adtrace;
     module_adtrace_emitter = new NativeEventEmitter(NativeModules.AdtraceEventEmitter);
 }
 
@@ -19,12 +21,12 @@ if (Platform.OS === "android") {
 
 var AdTrace = {};
 
-AdTrace.create = function(AdTraceConfig) {
-    module_adtrace.create(AdTraceConfig);
+AdTrace.create = function(adtraceConfig) {
+    module_adtrace.create(adtraceConfig);
 };
 
-AdTrace.trackEvent = function(AdTraceEvent) {
-    module_adtrace.trackEvent(AdTraceEvent);
+AdTrace.trackEvent = function(adtraceEvent) {
+    module_adtrace.trackEvent(adtraceEvent);
 };
 
 AdTrace.setEnabled = function(enabled) {
@@ -49,6 +51,28 @@ AdTrace.appWillOpenUrl = function(uri) {
 
 AdTrace.sendFirstPackages = function() {
     module_adtrace.sendFirstPackages();
+};
+
+AdTrace.trackAdRevenue = function(source, payload = undefined) {
+    if (payload === undefined) {
+        // new API
+        module_adtrace.trackAdRevenueNew(source);
+    } else {
+        // old API
+        module_adtrace.trackAdRevenue(source, payload);
+    }
+};
+
+AdTrace.trackAppStoreSubscription = function(subscription) {
+    if (Platform.OS === "ios") {
+        module_adtrace.trackAppStoreSubscription(subscription);
+    }
+};
+
+AdTrace.trackPlayStoreSubscription = function(subscription) {
+    if (Platform.OS === "android") {
+        module_adtrace.trackPlayStoreSubscription(subscription);
+    }
 };
 
 AdTrace.addSessionCallbackParameter = function(key, value) {
@@ -83,7 +107,11 @@ AdTrace.resetSessionPartnerParameters = function() {
 
 AdTrace.gdprForgetMe = function() {
     module_adtrace.gdprForgetMe();
-}
+};
+
+AdTrace.disableThirdPartySharing = function() {
+    module_adtrace.disableThirdPartySharing();
+};
 
 AdTrace.getIdfa = function(callback) {
     module_adtrace.getIdfa(callback);
@@ -101,16 +129,45 @@ AdTrace.getAttribution = function(callback) {
     module_adtrace.getAttribution(callback);
 };
 
-AdTrace.getAmazonAdId = function(callback) {
-    module_adtrace.getAmazonAdId(callback);
-};
+// AdTrace.getAmazonAdId = function(callback) {
+    // module_adtrace.getAmazonAdId(callback);
+// };
 
 AdTrace.getSdkVersion = function(callback) {
-    module_adtrace.getSdkVersion("react-native1.2.3", callback);
-}
+    module_adtrace.getSdkVersion("react-native2.0.1", callback);
+};
 
 AdTrace.setReferrer = function(referrer) {
-    module_adtrace.setReferrer(referrer);
+    if (Platform.OS === "android") {
+        module_adtrace.setReferrer(referrer);
+    }
+};
+
+AdTrace.convertUniversalLink = function(url, scheme, callback) {
+    if (!url || !scheme || !callback) {
+        return;
+    }
+    module_adtrace.convertUniversalLink(url, scheme, callback);
+};
+
+AdTrace.requestTrackingAuthorizationWithCompletionHandler = function(callback) {
+    module_adtrace.requestTrackingAuthorizationWithCompletionHandler(callback);
+};
+
+AdTrace.updateConversionValue = function(conversionValue) {
+    module_adtrace.updateConversionValue(conversionValue);
+};
+
+AdTrace.getAppTrackingAuthorizationStatus = function(callback) {
+    module_adtrace.getAppTrackingAuthorizationStatus(callback);
+};
+
+AdTrace.trackThirdPartySharing = function(adtraceThirdPartySharing) {
+    module_adtrace.trackThirdPartySharing(adtraceThirdPartySharing);
+};
+
+AdTrace.trackMeasurementConsent = function(measurementConsent) {
+    module_adtrace.trackMeasurementConsent(measurementConsent);
 };
 
 AdTrace.componentWillUnmount = function() {
@@ -179,30 +236,40 @@ AdTrace.onPause = function(testParam) {
 // AdTraceConfig
 
 var AdTraceConfig = function(appToken, environment) {
-    this.sdkPrefix = "react-native1.2.2";
+    this.sdkPrefix = "react-native2.1.0";
     this.appToken = appToken;
     this.environment = environment;
     this.logLevel = null;
     this.eventBufferingEnabled = null;
     this.shouldLaunchDeeplink = null;
     this.sendInBackground = null;
-    this.enableInstalledApps = null;
+    this.needsCost = null;
     this.delayStart = null;
     this.userAgent = null;
     this.isDeviceKnown = null;
     this.defaultTracker = null;
+    this.externalDeviceId = null;
     this.secretId = null;
     this.info1 = null;
     this.info2 = null;
     this.info3 = null;
     this.info4 = null;
+    this.urlStrategy = null;
     // Android only
     this.processName = null;
     this.readMobileEquipmentIdentity = null;
+    this.preinstallTrackingEnabled = null;
+    this.preinstallFilePath = null;
+    // iOS only
+    this.allowiAdInfoReading = null;
+    this.allowAdServicesInfoReading = null;
+    this.allowIdfaReading = null;
+    this.skAdNetworkHandling = null;
 };
 
 AdTraceConfig.EnvironmentSandbox = "sandbox";
 AdTraceConfig.EnvironmentProduction = "production";
+
 AdTraceConfig.LogLevelVerbose = "VERBOSE";
 AdTraceConfig.LogLevelDebug = "DEBUG";
 AdTraceConfig.LogLevelInfo = "INFO";
@@ -210,12 +277,27 @@ AdTraceConfig.LogLevelWarn = "WARN";
 AdTraceConfig.LogLevelError = "ERROR";
 AdTraceConfig.LogLevelAssert = "ASSERT";
 AdTraceConfig.LogLevelSuppress = "SUPPRESS";
+
 AdTraceConfig.AttributionSubscription = null;
 AdTraceConfig.EventTrackingSucceededSubscription = null;
 AdTraceConfig.EventTrackingFailedSubscription = null;
 AdTraceConfig.SessionTrackingSucceededSubscription = null;
 AdTraceConfig.SessionTrackingFailedSubscription = null;
 AdTraceConfig.DeferredDeeplinkSubscription = null;
+AdTraceConfig.ConversionValueUpdatedSubscription = null;
+
+AdTraceConfig.UrlStrategyChina = "china";
+AdTraceConfig.UrlStrategyIndia = "india";
+
+AdTraceConfig.DataResidencyEU = "data-residency-eu";
+AdTraceConfig.DataResidencyTR = "data-residency-tr";
+AdTraceConfig.DataResidencyUS = "data-residency-us";
+
+AdTraceConfig.AdRevenueSourceAppLovinMAX = "applovin_max_sdk";
+AdTraceConfig.AdRevenueSourceMopub = "mopub";
+AdTraceConfig.AdRevenueSourceAdmob = "admob_sdk";
+AdTraceConfig.AdRevenueSourceIronSource = "ironsource_sdk";
+AdTraceConfig.AdRevenueSourceAdmost = "admost_sdk";
 
 AdTraceConfig.prototype.setEventBufferingEnabled = function(isEnabled) {
     this.eventBufferingEnabled = isEnabled;
@@ -231,6 +313,10 @@ AdTraceConfig.prototype.setProcessName = function(processName) {
 
 AdTraceConfig.prototype.setDefaultTracker = function(defaultTracker) {
     this.defaultTracker = defaultTracker;
+};
+
+AdTraceConfig.prototype.setExternalDeviceId = function(externalDeviceId) {
+    this.externalDeviceId = externalDeviceId;
 };
 
 AdTraceConfig.prototype.setUserAgent = function(userAgent) {
@@ -263,24 +349,52 @@ AdTraceConfig.prototype.setSendInBackground = function(sendInBackground) {
     this.sendInBackground = sendInBackground;
 };
 
-AdTraceConfig.prototype.setEnableInstalledApps = function(enableInstalledApps) {
-    this.enableInstalledApps = enableInstalledApps;
-};
-
 AdTraceConfig.prototype.setDeviceKnown = function(isDeviceKnown) {
     this.isDeviceKnown = isDeviceKnown;
+};
+
+AdTraceConfig.prototype.setNeedsCost = function(needsCost) {
+    this.needsCost = needsCost;
 };
 
 AdTraceConfig.prototype.setSdkPrefix = function(sdkPrefix) {
     this.sdkPrefix = sdkPrefix;
 };
 
+AdTraceConfig.prototype.setUrlStrategy = function(urlStrategy) {
+    this.urlStrategy = urlStrategy;
+};
+
 AdTraceConfig.prototype.setReadMobileEquipmentIdentity = function(readMobileEquipmentIdentity) {
     // this.readMobileEquipmentIdentity = readMobileEquipmentIdentity;
 };
 
+AdTraceConfig.prototype.setPreinstallTrackingEnabled = function(isEnabled) {
+    this.preinstallTrackingEnabled = isEnabled;
+};
+
+AdTraceConfig.prototype.setPreinstallFilePath = function(preinstallFilePath) {
+    this.preinstallFilePath = preinstallFilePath;
+};
+
+AdTraceConfig.prototype.setAllowiAdInfoReading = function(allowiAdInfoReading) {
+    this.allowiAdInfoReading = allowiAdInfoReading;
+};
+
+AdTraceConfig.prototype.setAllowAdServicesInfoReading = function(allowAdServicesInfoReading) {
+    this.allowAdServicesInfoReading = allowAdServicesInfoReading;
+};
+
+AdTraceConfig.prototype.setAllowIdfaReading = function(allowIdfaReading) {
+    this.allowIdfaReading = allowIdfaReading;
+};
+
 AdTraceConfig.prototype.setShouldLaunchDeeplink = function(shouldLaunchDeeplink) {
     this.shouldLaunchDeeplink = shouldLaunchDeeplink;
+};
+
+AdTraceConfig.prototype.deactivateSKAdNetworkHandling = function() {
+    this.skAdNetworkHandling = false;
 };
 
 AdTraceConfig.prototype.setAttributionCallbackListener = function(attributionCallbackListener) {
@@ -337,16 +451,27 @@ AdTraceConfig.prototype.setDeferredDeeplinkCallbackListener = function(deferredD
     }
 };
 
+AdTraceConfig.prototype.setConversionValueUpdatedCallbackListener = function(conversionValueUpdatedCallbackListener) {
+    if (Platform.OS === "ios") {
+        if (null == AdTraceConfig.ConversionValueUpdatedSubscription) {
+            module_adtrace.setConversionValueUpdatedCallbackListener();
+            AdTraceConfig.ConversionValueUpdatedSubscription = module_adtrace_emitter.addListener(
+                'adtrace_conversionValueUpdated', conversionValueUpdatedCallbackListener
+            );
+        }
+    }
+};
+
 // AdTraceEvent
 
 var AdTraceEvent = function(eventToken) {
     this.eventToken = eventToken;
     this.revenue = null;
     this.currency = null;
+    this.transactionId = null;
     this.callbackId = null;
-    this.eventValue = null;
     this.callbackParameters = {};
-    this.partnerParameters = {};
+    this.valueParameters = {};
 };
 
 AdTraceEvent.prototype.setRevenue = function(revenue, currency) {
@@ -363,19 +488,161 @@ AdTraceEvent.prototype.addCallbackParameter = function(key, value) {
     this.callbackParameters[key] = value;
 };
 
-AdTraceEvent.prototype.addPartnerParameter = function(key, value) {
+AdTraceEvent.prototype.addEventParameter = function(key, value) {
     if (typeof key !== 'string' || typeof value !== 'string') {
         return;
     }
-    this.partnerParameters[key] = value;
+         this.valueParameters[key] = value;
+};
+
+AdTraceEvent.prototype.setTransactionId = function(transactionId) {
+    this.transactionId = transactionId;
 };
 
 AdTraceEvent.prototype.setCallbackId = function(callbackId) {
     this.callbackId = callbackId;
 };
 
-AdTraceEvent.prototype.setEventValue = function(value) {
-    this.eventValue = value;
+// AdTraceAppStoreSubscription
+
+var AdTraceAppStoreSubscription = function(price, currency, transactionId, receipt) {
+    this.price = price;
+    this.currency = currency;
+    this.transactionId = transactionId;
+    this.receipt = receipt;
+    this.transactionDate = null;
+    this.salesRegion = null;
+    this.callbackParameters = {};
+    this.partnerParameters = {};
 };
 
-module.exports = { AdTrace, AdTraceEvent, AdTraceConfig }
+AdTraceAppStoreSubscription.prototype.setTransactionDate = function(transactionDate) {
+    this.transactionDate = transactionDate;
+};
+
+AdTraceAppStoreSubscription.prototype.setSalesRegion = function(salesRegion) {
+    this.salesRegion = salesRegion;
+};
+
+AdTraceAppStoreSubscription.prototype.addCallbackParameter = function(key, value) {
+    if (typeof key !== 'string' || typeof value !== 'string') {
+        return;
+    }
+    this.callbackParameters[key] = value;
+};
+
+AdTraceAppStoreSubscription.prototype.addPartnerParameter = function(key, value) {
+    if (typeof key !== 'string' || typeof value !== 'string') {
+        return;
+    }
+    this.partnerParameters[key] = value;
+};
+
+// AdTracePlayStoreSubscription
+
+var AdTracePlayStoreSubscription = function(price, currency, sku, orderId, signature, purchaseToken) {
+    this.price = price;
+    this.currency = currency;
+    this.sku = sku;
+    this.orderId = orderId;
+    this.signature = signature;
+    this.purchaseToken = purchaseToken;
+    this.purchaseTime = null;
+    this.callbackParameters = {};
+    this.partnerParameters = {};
+};
+
+AdTracePlayStoreSubscription.prototype.setPurchaseTime = function(purchaseTime) {
+    this.purchaseTime = purchaseTime;
+};
+
+AdTracePlayStoreSubscription.prototype.addCallbackParameter = function(key, value) {
+    if (typeof key !== 'string' || typeof value !== 'string') {
+        return;
+    }
+    this.callbackParameters[key] = value;
+};
+
+AdTracePlayStoreSubscription.prototype.addPartnerParameter = function(key, value) {
+    if (typeof key !== 'string' || typeof value !== 'string') {
+        return;
+    }
+    this.partnerParameters[key] = value;
+};
+
+// AdTraceThirdPartySharing
+
+var AdTraceThirdPartySharing = function(isEnabled) {
+    this.isEnabled = isEnabled;
+    this.granularOptions = [];
+};
+
+AdTraceThirdPartySharing.prototype.addGranularOption = function(partnerName, key, value) {
+    if (typeof partnerName !== 'string' || typeof key !== 'string' || typeof value !== 'string') {
+        return;
+    }
+    this.granularOptions.push(partnerName);
+    this.granularOptions.push(key);
+    this.granularOptions.push(value);
+};
+
+// AdTraceAdRevenue
+
+var AdTraceAdRevenue = function(source) {
+    this.source = source;
+    this.revenue = null;
+    this.currency = null;
+    this.adImpressionsCount = null;
+    this.adRevenueNetwork = null;
+    this.adRevenueUnit = null;
+    this.adRevenuePlacement = null;
+    this.callbackParameters = {};
+    this.partnerParameters = {};
+};
+
+AdTraceAdRevenue.prototype.setRevenue = function(revenue, currency) {
+    if (revenue != null) {
+        this.revenue = revenue.toString();
+        this.currency = currency;
+    }
+};
+
+AdTraceAdRevenue.prototype.setAdImpressionsCount = function(adImpressionsCount) {
+    this.adImpressionsCount = adImpressionsCount.toString();
+};
+
+AdTraceAdRevenue.prototype.setAdRevenueNetwork = function(adRevenueNetwork) {
+    this.adRevenueNetwork = adRevenueNetwork;
+};
+
+AdTraceAdRevenue.prototype.setAdRevenueUnit = function(adRevenueUnit) {
+    this.adRevenueUnit = adRevenueUnit;
+};
+
+AdTraceAdRevenue.prototype.setAdRevenuePlacement = function(adRevenuePlacement) {
+    this.adRevenuePlacement = adRevenuePlacement;
+};
+
+AdTraceAdRevenue.prototype.addCallbackParameter = function(key, value) {
+    if (typeof key !== 'string' || typeof value !== 'string') {
+        return;
+    }
+    this.callbackParameters[key] = value;
+};
+
+AdTraceAdRevenue.prototype.addPartnerParameter = function(key, value) {
+    if (typeof key !== 'string' || typeof value !== 'string') {
+        return;
+    }
+    this.partnerParameters[key] = value;
+};
+
+module.exports = {
+    AdTrace,
+    AdTraceEvent,
+    AdTraceConfig,
+    AdTraceAppStoreSubscription,
+    AdTracePlayStoreSubscription,
+    AdTraceThirdPartySharing,
+    AdTraceAdRevenue
+}

@@ -2,6 +2,9 @@
 //  ADTAttributionHandler.m
 //  adtrace
 //
+//  Created by Nasser Amini (@namini40) on Jun 2022.
+//  Copyright © 2022 adtrace io. All rights reserved.
+//
 
 #import "ADTAttributionHandler.h"
 #import "ADTAdtraceFactory.h"
@@ -10,42 +13,41 @@
 #import "NSString+ADTAdditions.h"
 #import "ADTTimerOnce.h"
 #import "ADTPackageBuilder.h"
+#import "ADTUtil.h"
 
-static const char * const kInternalQueueName     = "com.adtrace.AttributionQueue";
+static const char * const kInternalQueueName     = "io.adtrace.AttributionQueue";
 static NSString   * const kAttributionTimerName   = @"Attribution timer";
 
 @interface ADTAttributionHandler()
 
 @property (nonatomic, strong) dispatch_queue_t internalQueue;
+@property (nonatomic, strong) ADTRequestHandler *requestHandler;
 @property (nonatomic, weak) id<ADTActivityHandler> activityHandler;
 @property (nonatomic, weak) id<ADTLogger> logger;
 @property (nonatomic, strong) ADTTimerOnce *attributionTimer;
 @property (atomic, assign) BOOL paused;
-@property (nonatomic, copy) NSString *basePath;
 @property (nonatomic, copy) NSString *lastInitiatedBy;
 
 @end
 
 @implementation ADTAttributionHandler
-
-+ (id<ADTAttributionHandler>)handlerWithActivityHandler:(id<ADTActivityHandler>)activityHandler
-                                          startsSending:(BOOL)startsSending;
-{
-    return [[ADTAttributionHandler alloc] initWithActivityHandler:activityHandler
-                                                    startsSending:startsSending];
-}
-
 - (id)initWithActivityHandler:(id<ADTActivityHandler>) activityHandler
-                startsSending:(BOOL)startsSending;
+                startsSending:(BOOL)startsSending
+                    userAgent:(NSString *)userAgent
+                  urlStrategy:(ADTUrlStrategy *)urlStrategy
 {
     self = [super init];
     if (self == nil) return nil;
 
     self.internalQueue = dispatch_queue_create(kInternalQueueName, DISPATCH_QUEUE_SERIAL);
+    self.requestHandler = [[ADTRequestHandler alloc]
+                                initWithResponseCallback:self
+                                urlStrategy:urlStrategy
+                                userAgent:userAgent
+                                requestTimeout:[ADTAdtraceFactory requestTimeout]];
     self.activityHandler = activityHandler;
     self.logger = ADTAdtraceFactory.logger;
     self.paused = !startsSending;
-    self.basePath = [activityHandler getBasePath];
     __weak __typeof__(self) weakSelf = self;
     self.attributionTimer = [ADTTimerOnce timerWithBlock:^{
         __typeof__(self) strongSelf = weakSelf;
@@ -110,14 +112,14 @@ static NSString   * const kAttributionTimerName   = @"Attribution timer";
 - (void)checkSessionResponseI:(ADTAttributionHandler*)selfI
           sessionResponseData:(ADTSessionResponseData *)sessionResponseData {
     [selfI checkAttributionI:selfI responseData:sessionResponseData];
-
+    
     [selfI.activityHandler launchSessionResponseTasks:sessionResponseData];
 }
 
 - (void)checkSdkClickResponseI:(ADTAttributionHandler*)selfI
           sdkClickResponseData:(ADTSdkClickResponseData *)sdkClickResponseData {
     [selfI checkAttributionI:selfI responseData:sdkClickResponseData];
-
+    
     [selfI.activityHandler launchSdkClickResponseTasks:sdkClickResponseData];
 }
 
@@ -126,7 +128,7 @@ static NSString   * const kAttributionTimerName   = @"Attribution timer";
     [selfI checkAttributionI:selfI responseData:attributionResponseData];
 
     [selfI checkDeeplinkI:selfI attributionResponseData:attributionResponseData];
-
+    
     [selfI.activityHandler launchAttributionResponseTasks:attributionResponseData];
 }
 
@@ -187,25 +189,33 @@ attributionResponseData:(ADTAttributionResponseData *)attributionResponseData {
 
     [selfI.logger verbose:@"%@", attributionPackage.extendedString];
 
-    NSURL * baseUrl = [NSURL URLWithString:[ADTAdtraceFactory baseUrl]];
+    NSDictionary *sendingParameters = @{
+        @"sent_at": [ADTUtil formatSeconds1970:[NSDate.date timeIntervalSince1970]]
+    };
 
-    [ADTUtil sendGetRequest:baseUrl
-                   basePath:selfI.basePath
-         prefixErrorMessage:@"Failed to get attribution"
-            activityPackage:attributionPackage
-        responseDataHandler:^(ADTResponseData * responseData)
-     {
-         // Check if any package response contains information that user has opted out.
-         // If yes, disable SDK and flush any potentially stored packages that happened afterwards.
-         if (responseData.trackingState == ADTTrackingStateOptedOut) {
-             [selfI.activityHandler setTrackingStateOptedOut];
-             return;
-         }
+    [selfI.requestHandler sendPackageByGET:attributionPackage
+                        sendingParameters:sendingParameters];
+}
 
-         if ([responseData isKindOfClass:[ADTAttributionResponseData class]]) {
-             [selfI checkAttributionResponse:(ADTAttributionResponseData*)responseData];
-         }
-     }];
+- (void)responseCallback:(ADTResponseData *)responseData {
+    if (responseData.jsonResponse) {
+        [self.logger debug:
+            @"Got attribution JSON response with message: %@", responseData.message];
+    } else {
+        [self.logger error:
+            @"Could not get attribution JSON response with message: %@", responseData.message];
+    }
+
+    // Check if any package response contains information that user has opted out.
+    // If yes, disable SDK and flush any potentially stored packages that happened afterwards.
+    if (responseData.trackingState == ADTTrackingStateOptedOut) {
+        [self.activityHandler setTrackingStateOptedOut];
+        return;
+    }
+
+    if ([responseData isKindOfClass:[ADTAttributionResponseData class]]) {
+        [self checkAttributionResponse:(ADTAttributionResponseData*)responseData];
+    }
 }
 
 - (void)waitRequestAttributionWithDelayI:(ADTAttributionHandler*)selfI
@@ -229,10 +239,11 @@ attributionResponseData:(ADTAttributionResponseData *)attributionResponseData {
     double now = [NSDate.date timeIntervalSince1970];
 
     ADTPackageBuilder *attributionBuilder = [[ADTPackageBuilder alloc]
-                                             initWithDeviceInfo:selfI.activityHandler.deviceInfo
+                                             initWithPackageParams:selfI.activityHandler.packageParams
                                              activityState:selfI.activityHandler.activityState
                                              config:selfI.activityHandler.adtraceConfig
                                              sessionParameters:selfI.activityHandler.sessionParameters
+                                             trackingStatusManager:selfI.activityHandler.trackingStatusManager
                                              createdAt:now];
     ADTActivityPackage *attributionPackage = [attributionBuilder buildAttributionPackage:selfI.lastInitiatedBy];
 
@@ -253,6 +264,7 @@ attributionResponseData:(ADTAttributionResponseData *)attributionResponseData {
     self.activityHandler = nil;
     self.logger = nil;
     self.attributionTimer = nil;
+    self.requestHandler = nil;
 }
 
 @end

@@ -1,3 +1,9 @@
+/*
+ Copyright (C) 2016 Apple Inc. All Rights Reserved.
+
+ Abstract:
+ Basic demonstration of how to use the SystemConfiguration Reachablity APIs.
+ */
 
 #import <arpa/inet.h>
 #import <ifaddrs.h>

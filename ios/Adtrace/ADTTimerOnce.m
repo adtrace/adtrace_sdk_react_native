@@ -2,6 +2,9 @@
 //  ADTTimerOnce.m
 //  adtrace
 //
+//  Created by Nasser Amini (@namini40) on Jun 2022.
+//  Copyright © 2022 adtrace io. All rights reserved.
+//
 
 #import "ADTTimerOnce.h"
 #import "ADTLogger.h"
@@ -68,6 +71,15 @@ static const uint64_t kTimerLeeway   =  1 * NSEC_PER_SEC; // 1 second
     [self.logger verbose:@"%@ starting. Launching in %@ seconds", self.name, fireInFormatted];
 
     self.source = dispatch_source_create(DISPATCH_SOURCE_TYPE_TIMER, 0, 0, self.internalQueue);
+
+    if (!self.source) {
+        [self.logger error:@"%@ could not start witouth source", self.name];
+        return;
+    }
+    if (!self.block) {
+        [self.logger error:@"%@ could not start witouth block", self.name];
+        return;
+    }
 
     dispatch_source_set_timer(self.source,
                               dispatch_walltime(NULL, startIn * NSEC_PER_SEC),

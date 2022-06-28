@@ -1,8 +1,10 @@
 //
 //  Adtrace.m
-//  Adtrace
+//  Adtrace SDK
 //
-
+//  Created by Nasser Amini (@namini40) on Jun 2022.
+//  Copyright © 2022 adtrace io. All rights reserved.
+//
 
 #import "Adtrace.h"
 #import "ADTUtil.h"
@@ -13,11 +15,24 @@
 
 #if !__has_feature(objc_arc)
 #error Adtrace requires ARC
-// See README for details: https://github.com/adtrace/ios_sdk/blob/master/README.md
+// See README for details: https://github.com/adtrace/
 #endif
 
-NSString * const ADTEnvironmentSandbox      = @"sandbox";
-NSString * const ADTEnvironmentProduction   = @"production";
+NSString * const ADTEnvironmentSandbox = @"sandbox";
+NSString * const ADTEnvironmentProduction = @"production";
+
+NSString * const ADTAdRevenueSourceAppLovinMAX = @"applovin_max_sdk";
+NSString * const ADTAdRevenueSourceMopub = @"mopub";
+NSString * const ADTAdRevenueSourceAdMob = @"admob_sdk";
+NSString * const ADTAdRevenueSourceIronSource = @"ironsource_sdk";
+NSString * const ADTAdRevenueSourceAdMost = @"admost_sdk";
+
+NSString * const ADTUrlStrategyIndia = @"UrlStrategyIndia";
+NSString * const ADTUrlStrategyChina = @"UrlStrategyChina";
+
+NSString * const ADTDataResidencyEU = @"DataResidencyEU";
+NSString * const ADTDataResidencyTR = @"DataResidencyTR";
+NSString * const ADTDataResidencyUS = @"DataResidencyUS";
 
 @implementation AdtraceTestOptions
 @end
@@ -39,17 +54,15 @@ NSString * const ADTEnvironmentProduction   = @"production";
 static Adtrace *defaultInstance = nil;
 static dispatch_once_t onceToken = 0;
 
-+ (id)getInstance {
++ (instancetype)getInstance {
     dispatch_once(&onceToken, ^{
         defaultInstance = [[self alloc] init];
     });
-
     return defaultInstance;
 }
 
-- (id)init {
+- (instancetype)init {
     self = [super init];
-
     if (self == nil) {
         return nil;
     }
@@ -57,51 +70,70 @@ static dispatch_once_t onceToken = 0;
     self.activityHandler = nil;
     self.logger = [ADTAdtraceFactory logger];
     self.savedPreLaunch = [[ADTSavedPreLaunch alloc] init];
-
     return self;
 }
 
 #pragma mark - Public static methods
 
 + (void)appDidLaunch:(ADTConfig *)adtraceConfig {
-    [[Adtrace getInstance] appDidLaunch:adtraceConfig];
+    @synchronized (self) {
+        [[Adtrace getInstance] appDidLaunch:adtraceConfig];
+    }
 }
 
 + (void)trackEvent:(ADTEvent *)event {
-    [[Adtrace getInstance] trackEvent:event];
+    @synchronized (self) {
+        [[Adtrace getInstance] trackEvent:event];
+    }
 }
 
 + (void)trackSubsessionStart {
-    [[Adtrace getInstance] trackSubsessionStart];
+    @synchronized (self) {
+        [[Adtrace getInstance] trackSubsessionStart];
+    }
 }
 
 + (void)trackSubsessionEnd {
-    [[Adtrace getInstance] trackSubsessionEnd];
+    @synchronized (self) {
+        [[Adtrace getInstance] trackSubsessionEnd];
+    }
 }
 
 + (void)setEnabled:(BOOL)enabled {
-    Adtrace *instance = [Adtrace getInstance];
-    [instance setEnabled:enabled];
+    @synchronized (self) {
+        Adtrace *instance = [Adtrace getInstance];
+        [instance setEnabled:enabled];
+    }
 }
 
 + (BOOL)isEnabled {
-    return [[Adtrace getInstance] isEnabled];
+    @synchronized (self) {
+        return [[Adtrace getInstance] isEnabled];
+    }
 }
 
 + (void)appWillOpenUrl:(NSURL *)url {
-    [[Adtrace getInstance] appWillOpenUrl:url];
+    @synchronized (self) {
+        [[Adtrace getInstance] appWillOpenUrl:[url copy]];
+    }
 }
 
 + (void)setDeviceToken:(NSData *)deviceToken {
-    [[Adtrace getInstance] setDeviceToken:deviceToken];
+    @synchronized (self) {
+        [[Adtrace getInstance] setDeviceToken:[deviceToken copy]];
+    }
 }
 
 + (void)setPushToken:(NSString *)pushToken {
-    [[Adtrace getInstance] setPushToken:pushToken];
+    @synchronized (self) {
+        [[Adtrace getInstance] setPushToken:[pushToken copy]];
+    }
 }
 
 + (void)setOfflineMode:(BOOL)enabled {
-    [[Adtrace getInstance] setOfflineMode:enabled];
+    @synchronized (self) {
+        [[Adtrace getInstance] setOfflineMode:enabled];
+    }
 }
 
 + (void)sendAdWordsRequest {
@@ -109,69 +141,149 @@ static dispatch_once_t onceToken = 0;
 }
 
 + (NSString *)idfa {
-    return [[Adtrace getInstance] idfa];
+    @synchronized (self) {
+        return [[Adtrace getInstance] idfa];
+    }
 }
 
 + (NSString *)sdkVersion {
-    return [[Adtrace getInstance] sdkVersion];
+    @synchronized (self) {
+        return [[Adtrace getInstance] sdkVersion];
+    }
 }
 
 + (NSURL *)convertUniversalLink:(NSURL *)url scheme:(NSString *)scheme {
-    return [[Adtrace getInstance] convertUniversalLink:url scheme:scheme];
+    @synchronized (self) {
+        return [[Adtrace getInstance] convertUniversalLink:[url copy] scheme:[scheme copy]];
+    }
 }
 
 + (void)sendFirstPackages {
-    [[Adtrace getInstance] sendFirstPackages];
+    @synchronized (self) {
+        [[Adtrace getInstance] sendFirstPackages];
+    }
 }
 
 + (void)addSessionCallbackParameter:(NSString *)key value:(NSString *)value {
-    [[Adtrace getInstance] addSessionCallbackParameter:key value:value];
-
+    @synchronized (self) {
+        [[Adtrace getInstance] addSessionCallbackParameter:[key copy] value:[value copy]];
+    }
 }
 
 + (void)addSessionPartnerParameter:(NSString *)key value:(NSString *)value {
-    [[Adtrace getInstance] addSessionPartnerParameter:key value:value];
+    @synchronized (self) {
+        [[Adtrace getInstance] addSessionPartnerParameter:[key copy] value:[value copy]];
+    }
 }
 
-
 + (void)removeSessionCallbackParameter:(NSString *)key {
-    [[Adtrace getInstance] removeSessionCallbackParameter:key];
+    @synchronized (self) {
+        [[Adtrace getInstance] removeSessionCallbackParameter:[key copy]];
+    }
 }
 
 + (void)removeSessionPartnerParameter:(NSString *)key {
-    [[Adtrace getInstance] removeSessionPartnerParameter:key];
+    @synchronized (self) {
+        [[Adtrace getInstance] removeSessionPartnerParameter:[key copy]];
+    }
 }
 
 + (void)resetSessionCallbackParameters {
-    [[Adtrace getInstance] resetSessionCallbackParameters];
+    @synchronized (self) {
+        [[Adtrace getInstance] resetSessionCallbackParameters];
+    }
 }
 
 + (void)resetSessionPartnerParameters {
-    [[Adtrace getInstance] resetSessionPartnerParameters];
+    @synchronized (self) {
+        [[Adtrace getInstance] resetSessionPartnerParameters];
+    }
 }
 
 + (void)gdprForgetMe {
-    [[Adtrace getInstance] gdprForgetMe];
+    @synchronized (self) {
+        [[Adtrace getInstance] gdprForgetMe];
+    }
+}
+
++ (void)trackAdRevenue:(nonnull NSString *)source payload:(nonnull NSData *)payload {
+    @synchronized (self) {
+        [[Adtrace getInstance] trackAdRevenue:[source copy] payload:[payload copy]];
+    }
+}
+
++ (void)disableThirdPartySharing {
+    @synchronized (self) {
+        [[Adtrace getInstance] disableThirdPartySharing];
+    }
+}
+
++ (void)trackThirdPartySharing:(nonnull ADTThirdPartySharing *)thirdPartySharing {
+    @synchronized (self) {
+        [[Adtrace getInstance] trackThirdPartySharing:thirdPartySharing];
+    }
+}
+
++ (void)trackMeasurementConsent:(BOOL)enabled {
+    @synchronized (self) {
+        [[Adtrace getInstance] trackMeasurementConsent:enabled];
+    }
+}
+
++ (void)trackSubscription:(nonnull ADTSubscription *)subscription {
+    @synchronized (self) {
+        [[Adtrace getInstance] trackSubscription:subscription];
+    }
+}
+
++ (void)requestTrackingAuthorizationWithCompletionHandler:(void (^_Nullable)(NSUInteger status))completion {
+    @synchronized (self) {
+        [[Adtrace getInstance] requestTrackingAuthorizationWithCompletionHandler:completion];
+    }
+}
+
++ (int)appTrackingAuthorizationStatus {
+    @synchronized (self) {
+        return [[Adtrace getInstance] appTrackingAuthorizationStatus];
+    }
+}
+
++ (void)updateConversionValue:(NSInteger)conversionValue {
+    @synchronized (self) {
+        [[Adtrace getInstance] updateConversionValue:conversionValue];
+    }
+}
+
++ (void)trackAdRevenue:(ADTAdRevenue *)adRevenue {
+    @synchronized (self) {
+        [[Adtrace getInstance] trackAdRevenue:adRevenue];
+    }
 }
 
 + (ADTAttribution *)attribution {
-    return [[Adtrace getInstance] attribution];
+    @synchronized (self) {
+        return [[Adtrace getInstance] attribution];
+    }
 }
 
 + (NSString *)adid {
-    return [[Adtrace getInstance] adid];
+    @synchronized (self) {
+        return [[Adtrace getInstance] adid];
+    }
 }
 
 + (void)setTestOptions:(AdtraceTestOptions *)testOptions {
-    if (testOptions.teardown) {
-        if (defaultInstance != nil) {
-            [defaultInstance teardown];
+    @synchronized (self) {
+        if (testOptions.teardown) {
+            if (defaultInstance != nil) {
+                [defaultInstance teardown];
+            }
+            defaultInstance = nil;
+            onceToken = 0;
+            [ADTAdtraceFactory teardown:testOptions.deleteState];
         }
-        defaultInstance = nil;
-        onceToken = 0;
-        [ADTAdtraceFactory teardown:testOptions.deleteState];
+        [[Adtrace getInstance] setTestOptions:(AdtraceTestOptions *)testOptions];
     }
-    [[Adtrace getInstance] setTestOptions:(AdtraceTestOptions *)testOptions];
 }
 
 #pragma mark - Public instance methods
@@ -181,16 +293,15 @@ static dispatch_once_t onceToken = 0;
         [self.logger error:@"Adtrace already initialized"];
         return;
     }
-
-    self.activityHandler = [ADTAdtraceFactory activityHandlerWithConfig:adtraceConfig
-                                                        savedPreLaunch:self.savedPreLaunch];
+    self.activityHandler = [[ADTActivityHandler alloc]
+                                initWithConfig:adtraceConfig
+                                savedPreLaunch:self.savedPreLaunch];
 }
 
 - (void)trackEvent:(ADTEvent *)event {
     if (![self checkActivityHandler]) {
         return;
     }
-
     [self.activityHandler trackEvent:event];
 }
 
@@ -198,7 +309,6 @@ static dispatch_once_t onceToken = 0;
     if (![self checkActivityHandler]) {
         return;
     }
-
     [self.activityHandler applicationDidBecomeActive];
 }
 
@@ -206,7 +316,6 @@ static dispatch_once_t onceToken = 0;
     if (![self checkActivityHandler]) {
         return;
     }
-
     [self.activityHandler applicationWillResignActive];
 }
 
@@ -224,7 +333,6 @@ static dispatch_once_t onceToken = 0;
     if (![self checkActivityHandler]) {
         return [self isInstanceEnabled];
     }
-
     return [self.activityHandler isEnabled];
 }
 
@@ -234,7 +342,6 @@ static dispatch_once_t onceToken = 0;
         [ADTUserDefaults saveDeeplinkUrl:url andClickTime:clickTime];
         return;
     }
-
     [self.activityHandler appWillOpenUrl:url withClickTime:clickTime];
 }
 
@@ -280,7 +387,6 @@ static dispatch_once_t onceToken = 0;
     if (![self checkActivityHandler]) {
         return;
     }
-
     [self.activityHandler sendFirstPackages];
 }
 
@@ -289,11 +395,9 @@ static dispatch_once_t onceToken = 0;
         [self.activityHandler addSessionCallbackParameter:key value:value];
         return;
     }
-
     if (self.savedPreLaunch.preLaunchActionsArray == nil) {
         self.savedPreLaunch.preLaunchActionsArray = [[NSMutableArray alloc] init];
     }
-
     [self.savedPreLaunch.preLaunchActionsArray addObject:^(ADTActivityHandler *activityHandler) {
         [activityHandler addSessionCallbackParameterI:activityHandler key:key value:value];
     }];
@@ -304,11 +408,9 @@ static dispatch_once_t onceToken = 0;
         [self.activityHandler addSessionPartnerParameter:key value:value];
         return;
     }
-
     if (self.savedPreLaunch.preLaunchActionsArray == nil) {
         self.savedPreLaunch.preLaunchActionsArray = [[NSMutableArray alloc] init];
     }
-
     [self.savedPreLaunch.preLaunchActionsArray addObject:^(ADTActivityHandler *activityHandler) {
         [activityHandler addSessionPartnerParameterI:activityHandler key:key value:value];
     }];
@@ -319,11 +421,9 @@ static dispatch_once_t onceToken = 0;
         [self.activityHandler removeSessionCallbackParameter:key];
         return;
     }
-
     if (self.savedPreLaunch.preLaunchActionsArray == nil) {
         self.savedPreLaunch.preLaunchActionsArray = [[NSMutableArray alloc] init];
     }
-
     [self.savedPreLaunch.preLaunchActionsArray addObject:^(ADTActivityHandler *activityHandler) {
         [activityHandler removeSessionCallbackParameterI:activityHandler key:key];
     }];
@@ -334,11 +434,9 @@ static dispatch_once_t onceToken = 0;
         [self.activityHandler removeSessionPartnerParameter:key];
         return;
     }
-
     if (self.savedPreLaunch.preLaunchActionsArray == nil) {
         self.savedPreLaunch.preLaunchActionsArray = [[NSMutableArray alloc] init];
     }
-
     [self.savedPreLaunch.preLaunchActionsArray addObject:^(ADTActivityHandler *activityHandler) {
         [activityHandler removeSessionPartnerParameterI:activityHandler key:key];
     }];
@@ -349,11 +447,9 @@ static dispatch_once_t onceToken = 0;
         [self.activityHandler resetSessionCallbackParameters];
         return;
     }
-
     if (self.savedPreLaunch.preLaunchActionsArray == nil) {
         self.savedPreLaunch.preLaunchActionsArray = [[NSMutableArray alloc] init];
     }
-
     [self.savedPreLaunch.preLaunchActionsArray addObject:^(ADTActivityHandler *activityHandler) {
         [activityHandler resetSessionCallbackParametersI:activityHandler];
     }];
@@ -364,11 +460,9 @@ static dispatch_once_t onceToken = 0;
         [self.activityHandler resetSessionPartnerParameters];
         return;
     }
-
     if (self.savedPreLaunch.preLaunchActionsArray == nil) {
         self.savedPreLaunch.preLaunchActionsArray = [[NSMutableArray alloc] init];
     }
-
     [self.savedPreLaunch.preLaunchActionsArray addObject:^(ADTActivityHandler *activityHandler) {
         [activityHandler resetSessionPartnerParametersI:activityHandler];
     }];
@@ -376,7 +470,6 @@ static dispatch_once_t onceToken = 0;
 
 - (void)gdprForgetMe {
     [ADTUserDefaults setGdprForgetMe];
-
     if ([self checkActivityHandler:@"GDPR forget me"]) {
         if (self.activityHandler.isEnabled) {
             [self.activityHandler setGdprForgetMe];
@@ -384,11 +477,79 @@ static dispatch_once_t onceToken = 0;
     }
 }
 
+- (void)trackAdRevenue:(NSString *)source payload:(NSData *)payload {
+    if (![self checkActivityHandler]) {
+        return;
+    }
+    [self.activityHandler trackAdRevenue:source payload:payload];
+}
+
+- (void)disableThirdPartySharing {
+    if (![self checkActivityHandler:@"disable third party sharing"]) {
+        [ADTUserDefaults setDisableThirdPartySharing];
+        return;
+    }
+    [self.activityHandler disableThirdPartySharing];
+}
+
+- (void)trackThirdPartySharing:(nonnull ADTThirdPartySharing *)thirdPartySharing {
+    if (![self checkActivityHandler]) {
+        if (self.savedPreLaunch.preLaunchAdtraceThirdPartySharingArray == nil) {
+            self.savedPreLaunch.preLaunchAdtraceThirdPartySharingArray =
+                [[NSMutableArray alloc] init];
+        }
+        [self.savedPreLaunch.preLaunchAdtraceThirdPartySharingArray addObject:thirdPartySharing];
+        return;
+    }
+    [self.activityHandler trackThirdPartySharing:thirdPartySharing];
+}
+
+- (void)trackMeasurementConsent:(BOOL)enabled {
+    if (![self checkActivityHandler]) {
+        self.savedPreLaunch.lastMeasurementConsentTracked = [NSNumber numberWithBool:enabled];
+        return;
+    }
+    [self.activityHandler trackMeasurementConsent:enabled];
+}
+
+- (void)trackSubscription:(ADTSubscription *)subscription {
+    if (![self checkActivityHandler]) {
+        return;
+    }
+    [self.activityHandler trackSubscription:subscription];
+}
+
+- (void)requestTrackingAuthorizationWithCompletionHandler:(void (^_Nullable)(NSUInteger status))completion {
+    [ADTUtil requestTrackingAuthorizationWithCompletionHandler:^(NSUInteger status) {
+        if (completion) {
+            completion(status);
+        }
+        if (![self checkActivityHandler:@"request Tracking Authorization"]) {
+            return;
+        }
+        [self.activityHandler updateAttStatusFromUserCallback:(int)status];
+    }];
+}
+
+- (int)appTrackingAuthorizationStatus {
+    return [ADTUtil attStatus];
+}
+
+- (void)updateConversionValue:(NSInteger)conversionValue {
+    [ADTUtil updateSkAdNetworkConversionValue:[NSNumber numberWithInteger:conversionValue]];
+}
+
+- (void)trackAdRevenue:(ADTAdRevenue *)adRevenue {
+    if (![self checkActivityHandler]) {
+        return;
+    }
+    [self.activityHandler trackAdRevenue:adRevenue];
+}
+
 - (ADTAttribution *)attribution {
     if (![self checkActivityHandler]) {
         return nil;
     }
-
     return [self.activityHandler attribution];
 }
 
@@ -396,7 +557,6 @@ static dispatch_once_t onceToken = 0;
     if (![self checkActivityHandler]) {
         return nil;
     }
-
     return [self.activityHandler adid];
 }
 
@@ -409,23 +569,22 @@ static dispatch_once_t onceToken = 0;
         [self.logger error:@"Adtrace already down or not initialized"];
         return;
     }
-
     [self.activityHandler teardown];
     self.activityHandler = nil;
 }
 
 - (void)setTestOptions:(AdtraceTestOptions *)testOptions {
-    if (testOptions.basePath != nil) {
-        self.savedPreLaunch.basePath = testOptions.basePath;
-    }
-    if (testOptions.gdprPath != nil) {
-        self.savedPreLaunch.gdprPath = testOptions.gdprPath;
+    if (testOptions.extraPath != nil) {
+        self.savedPreLaunch.extraPath = testOptions.extraPath;
     }
     if (testOptions.baseUrl != nil) {
         [ADTAdtraceFactory setBaseUrl:testOptions.baseUrl];
     }
     if (testOptions.gdprUrl != nil) {
         [ADTAdtraceFactory setGdprUrl:testOptions.gdprUrl];
+    }
+    if (testOptions.subscriptionUrl != nil) {
+        [ADTAdtraceFactory setSubscriptionUrl:testOptions.subscriptionUrl];
     }
     if (testOptions.timerIntervalInMilliseconds != nil) {
         NSTimeInterval timerIntervalInSeconds = [testOptions.timerIntervalInMilliseconds intValue] / 1000.0;
@@ -447,8 +606,15 @@ static dispatch_once_t onceToken = 0;
         [ADTAdtraceFactory setSdkClickHandlerBackoffStrategy:[ADTBackoffStrategy backoffStrategyWithType:ADTNoWait]];
         [ADTAdtraceFactory setPackageHandlerBackoffStrategy:[ADTBackoffStrategy backoffStrategyWithType:ADTNoWait]];
     }
-    
+    if (testOptions.enableSigning) {
+        [ADTAdtraceFactory enableSigning];
+    }
+    if (testOptions.disableSigning) {
+        [ADTAdtraceFactory disableSigning];
+    }
+
     [ADTAdtraceFactory setiAdFrameworkEnabled:testOptions.iAdFrameworkEnabled];
+    [ADTAdtraceFactory setAdServicesFrameworkEnabled:testOptions.adServicesFrameworkEnabled];
 }
 
 #pragma mark - Private & helper methods
@@ -474,7 +640,6 @@ static dispatch_once_t onceToken = 0;
         } else {
             [self.logger error:@"Please initialize Adtrace by calling 'appDidLaunch' before"];
         }
-
         return NO;
     } else {
         return YES;

@@ -2,7 +2,9 @@
 //  ADTKeychain.m
 //  Adtrace
 //
-
+//  Created by Nasser Amini (@namini40) on Jun 2022.
+//  Copyright © 2022 adtrace io. All rights reserved.
+//
 
 #import "ADTLogger.h"
 #import "ADTKeychain.h"
@@ -44,58 +46,48 @@
     return [[ADTKeychain getInstance] setValue:value forKeychainKey:key inService:service];
 }
 
-+ (NSString *)valueForKeychainKeyV1:(NSString *)key service:(NSString *)service {
++ (NSString *)valueForKeychainKey:(NSString *)key service:(NSString *)service {
     if (key == nil) {
         return nil;
     }
 
-    return [[ADTKeychain getInstance] valueForKeychainKeyV1:key service:service];
+    return [[ADTKeychain getInstance] valueForKeychainKey:key service:service];
 }
 
-+ (NSString *)valueForKeychainKeyV2:(NSString *)key service:(NSString *)service {
-    if (key == nil) {
-        return nil;
-    }
-
-    return [[ADTKeychain getInstance] valueForKeychainKeyV2:key service:service];
-}
-
-+ (CFStringRef *)getSecAttrAccessGroupToken {
-    CFStringRef *stringRef = dlsym(RTLD_SELF, "kSecAttrAccessGroupToken");
-    return stringRef;
-}
-
-#pragma mark - Private & helper methods
+#pragma mark - Set Keychain item value
 
 - (BOOL)setValue:(NSString *)value forKeychainKey:(NSString *)key inService:(NSString *)service {
     OSStatus status = [self setValueWithStatus:value forKeychainKey:key inService:service];
 
     if (status != noErr) {
-        [[ADTAdtraceFactory logger] warn:@"Value unsuccessfully written to the keychain v1 way"];
-
+        [[ADTAdtraceFactory logger] warn:@"Value unsuccessfully written to the keychain"];
         return NO;
     } else {
         // Check was writing successful.
         BOOL wasSuccessful = [self wasWritingSuccessful:value forKeychainKey:key inService:service];
 
         if (wasSuccessful) {
-            [[ADTAdtraceFactory logger] warn:@"Value successfully written in v1 way to the keychain after the check"];
+            [[ADTAdtraceFactory logger] warn:@"Value successfully written to the keychain"];
         }
 
         return wasSuccessful;
     }
 }
 
-- (NSString *)valueForKeychainKeyV2:(NSString *)key service:(NSString *)service {
-    NSMutableDictionary *v2KeychainItem = [self keychainItemForKeyV2:key service:service];
-
-    return [self valueForKeychainItem:v2KeychainItem key:key service:service];
+- (OSStatus)setValueWithStatus:(NSString *)value forKeychainKey:(NSString *)key inService:(NSString *)service {
+    NSMutableDictionary *keychainItem;
+    
+    keychainItem = [self keychainItemForKey:key service:service];
+    keychainItem[(__bridge id)kSecValueData] = [value dataUsingEncoding:NSUTF8StringEncoding];
+    
+    return SecItemAdd((__bridge CFDictionaryRef)keychainItem, NULL);
 }
 
-- (NSString *)valueForKeychainKeyV1:(NSString *)key service:(NSString *)service {
-    NSMutableDictionary *v1KeychainItem = [self keychainItemForKeyV1:key service:service];
+#pragma mark - Get Keychain item value
 
-    return [self valueForKeychainItem:v1KeychainItem key:key service:service];
+- (NSString *)valueForKeychainKey:(NSString *)key service:(NSString *)service {
+    NSMutableDictionary *keychainItem = [self keychainItemForKey:key service:service];
+    return [self valueForKeychainItem:keychainItem key:key service:service];
 }
 
 - (NSString *)valueForKeychainItem:(NSMutableDictionary *)keychainItem key:(NSString *)key service:(NSString *)service {
@@ -103,20 +95,17 @@
         return nil;
     }
 
-    CFDictionaryRef result = nil;
-
     keychainItem[(__bridge id)kSecReturnData] = (__bridge id)kCFBooleanTrue;
     keychainItem[(__bridge id)kSecReturnAttributes] = (__bridge id)kCFBooleanTrue;
 
+    CFDictionaryRef result = nil;
     OSStatus status = SecItemCopyMatching((__bridge CFDictionaryRef)keychainItem, (CFTypeRef *)&result);
-
     if (status != noErr) {
         return nil;
     }
 
     NSDictionary *resultDict = (__bridge_transfer NSDictionary *)result;
     NSData *data = resultDict[(__bridge id)kSecValueData];
-
     if (!data) {
         return nil;
     }
@@ -124,25 +113,12 @@
     return [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
 }
 
-- (NSMutableDictionary *)keychainItemForKeyV2:(NSString *)key service:(NSString *)service {
+#pragma mark - Build Keychain item
+
+- (NSMutableDictionary *)keychainItemForKey:(NSString *)key service:(NSString *)service {
     NSMutableDictionary *keychainItem = [[NSMutableDictionary alloc] init];
 
-    CFStringRef *cStringSecAttrAccessGroupToken = [ADTKeychain getSecAttrAccessGroupToken];
-
-    if (!cStringSecAttrAccessGroupToken) {
-        return nil;
-    }
-
-    keychainItem[(__bridge id)kSecAttrAccessGroup] = (__bridge id)(* cStringSecAttrAccessGroupToken);
-    [self keychainItemForKey:keychainItem key:key service:service];
-
-    return keychainItem;
-}
-
-- (NSMutableDictionary *)keychainItemForKeyV1:(NSString *)key service:(NSString *)service {
-    NSMutableDictionary *keychainItem = [[NSMutableDictionary alloc] init];
-
-    keychainItem[(__bridge id)kSecAttrAccessible] = (__bridge id)kSecAttrAccessibleAlways;
+    keychainItem[(__bridge id)kSecAttrAccessible] = (__bridge id)kSecAttrAccessibleAfterFirstUnlock;
     [self keychainItemForKey:keychainItem key:key service:service];
 
     return keychainItem;
@@ -154,20 +130,10 @@
     keychainItem[(__bridge id)kSecAttrService] = service;
 }
 
-- (OSStatus)setValueWithStatus:(NSString *)value forKeychainKey:(NSString *)key inService:(NSString *)service {
-    NSMutableDictionary *keychainItem;
-
-    keychainItem = [self keychainItemForKeyV1:key service:service];
-    keychainItem[(__bridge id)kSecValueData] = [value dataUsingEncoding:NSUTF8StringEncoding];
-
-    return SecItemAdd((__bridge CFDictionaryRef)keychainItem, NULL);
-}
+#pragma mark - Writing validation
 
 - (BOOL)wasWritingSuccessful:(NSString *)value forKeychainKey:(NSString *)key inService:(NSString *)service {
-    NSString *writtenValue;
-
-    writtenValue = [self valueForKeychainKeyV1:key service:service];
-    
+    NSString *writtenValue = [self valueForKeychainKey:key service:service];
     if ([writtenValue isEqualToString:value]) {
         return YES;
     } else {

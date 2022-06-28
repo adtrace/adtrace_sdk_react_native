@@ -2,13 +2,14 @@
 //  ADTActivityState.m
 //  Adtrace
 //
+//  Created by Nasser Amini (@namini40) on Jun 2022.
+//  Copyright © 2022 adtrace io. All rights reserved.
+//
 
-
-#import "ADTKeychain.h"
 #import "ADTAdtraceFactory.h"
 #import "ADTActivityState.h"
-#import "UIDevice+ADTAdditions.h"
 #import "NSString+ADTAdditions.h"
+#import "ADTUtil.h"
 
 static const int kTransactionIdCount = 10;
 static NSString *appToken = nil;
@@ -19,27 +20,28 @@ static NSString *appToken = nil;
 
 - (id)init {
     self = [super init];
-    
     if (self == nil) {
         return nil;
     }
-    
-    [self assignUuid:[UIDevice.currentDevice adjCreateUuid]];
-    
-    self.eventCount         = 0;
-    self.sessionCount       = 0;
-    self.subsessionCount    = -1;   // -1 means unknown
-    self.sessionLength      = -1;
-    self.timeSpent          = -1;
-    self.lastActivity       = -1;
-    self.lastInterval       = -1;
-    self.enabled            = YES;
-    self.isGdprForgotten    = NO;
-    self.askingAttribution  = NO;
-    self.deviceToken        = nil;
-    self.transactionIds     = [NSMutableArray arrayWithCapacity:kTransactionIdCount];
-    self.updatePackages  = NO;
-    
+
+    [self assignRandomToken:[ADTUtil generateRandomUuid]];
+
+    self.eventCount = 0;
+    self.sessionCount = 0;
+    self.subsessionCount = -1;   // -1 means unknown
+    self.sessionLength = -1;
+    self.timeSpent = -1;
+    self.lastActivity = -1;
+    self.lastInterval = -1;
+    self.enabled = YES;
+    self.isGdprForgotten = NO;
+    self.askingAttribution = NO;
+    self.isThirdPartySharingDisabled = NO;
+    self.deviceToken = nil;
+    self.transactionIds = [NSMutableArray arrayWithCapacity:kTransactionIdCount];
+    self.updatePackages = NO;
+    self.trackingManagerAuthorizationStatus = -1;
+
     return self;
 }
 
@@ -53,10 +55,10 @@ static NSString *appToken = nil;
 
 - (void)resetSessionAttributes:(double)now {
     self.subsessionCount = 1;
-    self.sessionLength   = 0;
-    self.timeSpent       = 0;
-    self.lastInterval    = -1;
-    self.lastActivity    = now;
+    self.sessionLength = 0;
+    self.timeSpent = 0;
+    self.lastInterval = -1;
+    self.lastActivity = now;
 }
 
 - (void)addTransactionId:(NSString *)transactionId {
@@ -64,12 +66,12 @@ static NSString *appToken = nil;
     if (self.transactionIds == nil) {
         self.transactionIds = [NSMutableArray arrayWithCapacity:kTransactionIdCount];
     }
-    
+
     // Make space.
     if (self.transactionIds.count == kTransactionIdCount) {
         [self.transactionIds removeObjectAtIndex:0];
     }
-    
+
     // Add the new ID.
     [self.transactionIds addObject:transactionId];
 }
@@ -80,113 +82,59 @@ static NSString *appToken = nil;
 
 #pragma mark - Private & helper methods
 
-- (void)assignUuid:(NSString *)uuid {
-    // 1. Check if UUID is written to keychain in v2 way.
-    // 1.1 If yes, take stored UUID and send it to v1 check.
-    // 1.2 If not, take given UUID and send it to v1 check.
-    // v1 check:
-    // 2.1 If given UUID is found in v1 way, use it.
-    // 2.2 If given UUID is not found in v1 way, write it in v1 way and use it.
-
-    // First check if we have the key written with app's unique key name.
-    NSString *uniqueKey = [self generateUniqueKey];
-    NSString *persistedUuidUnique = [ADTKeychain valueForKeychainKeyV2:uniqueKey service:@"deviceInfo"];
-
-    if (persistedUuidUnique != nil) {
-        // Check if value has UUID format.
-        if ((bool)[[NSUUID alloc] initWithUUIDString:persistedUuidUnique]) {
-            [[ADTAdtraceFactory logger] verbose:@"Value found and read from the keychain v2 way"];
-
-            // If we read the key with v2 way, write it back in v1 way since in iOS 11, that's the only one that it works.
-            [self assignUuidOldMethod:persistedUuidUnique];
-        }
-    }
-
-    // At this point, UUID was not persisted in v2 way or if persisted, didn't have proper UUID format.
-    // Try the v1 way with given UUID.
-    [self assignUuidOldMethod:uuid];
-}
-
-- (void)assignUuidOldMethod:(NSString *)uuid {
-    NSString *persistedUuid = [ADTKeychain valueForKeychainKeyV1:@"adtrace_persisted_uuid" service:@"deviceInfo"];
-
-    // Check if value exists in keychain.
-    if (persistedUuid != nil) {
-        // Check if value has UUID format.
-        if ((bool)[[NSUUID alloc] initWithUUIDString:persistedUuid]) {
-            [[ADTAdtraceFactory logger] verbose:@"Value found and read from the keychain v1 way"];
-
-            // Value written in keychain seems to have UUID format.
-            self.uuid = persistedUuid;
+- (void)assignRandomToken:(NSString *)randomToken {
+    NSString *persistedDedupeToken = [ADTUtil getPersistedRandomToken];
+    if (persistedDedupeToken != nil) {
+        if ((bool)[[NSUUID alloc] initWithUUIDString:persistedDedupeToken]) {
+            [[ADTAdtraceFactory logger] verbose:@"Primary dedupe token successfully read"];
+            self.dedupeToken = persistedDedupeToken;
             self.isPersisted = YES;
-
             return;
         }
     }
-
-    // At this point, UUID was not persisted in v1 way or if persisted, didn't have proper UUID format.
-
-    // Since we don't have anything in the keychain, we'll use the passed UUID value.
-    // Try to save that value to the keychain in v1 way and flag if successfully written.
-    self.uuid = uuid;
-    self.isPersisted = [ADTKeychain setValue:self.uuid forKeychainKey:@"adtrace_persisted_uuid" inService:@"deviceInfo"];
-}
-
-- (NSString *)generateUniqueKey {
-    if (appToken == nil) {
-        return nil;
-    }
-
-    NSString *bundleIdentifier = [[NSBundle mainBundle] bundleIdentifier];
-
-    if (bundleIdentifier == nil) {
-        return nil;
-    }
-
-    NSString *joinedKey = [NSString stringWithFormat:@"%@%@", bundleIdentifier, appToken];
-
-    return [joinedKey adjSha1];
+    
+    self.dedupeToken = randomToken;
+    self.isPersisted = [ADTUtil setPersistedRandomToken:self.dedupeToken];
 }
 
 - (NSString *)description {
-    return [NSString stringWithFormat:@"ec:%d sc:%d ssc:%d ask:%d sl:%.1f ts:%.1f la:%.1f dt:%@ gdprf:%d",
-            self.eventCount, self.sessionCount, self.subsessionCount, self.askingAttribution, self.sessionLength,
-            self.timeSpent, self.lastActivity, self.deviceToken, self.isGdprForgotten];
+    return [NSString stringWithFormat:@"ec:%d sc:%d ssc:%d ask:%d sl:%.1f ts:%.1f la:%.1f dt:%@ gdprf:%d dtps:%d att:%d",
+            self.eventCount, self.sessionCount,
+            self.subsessionCount, self.askingAttribution, self.sessionLength,
+            self.timeSpent, self.lastActivity, self.deviceToken,
+            self.isGdprForgotten, self.isThirdPartySharingDisabled, self.trackingManagerAuthorizationStatus];
 }
 
 #pragma mark - NSCoding protocol methods
 
 - (id)initWithCoder:(NSCoder *)decoder {
     self = [super init];
-    
     if (self == nil) {
         return nil;
     }
+
+    self.eventCount = [decoder decodeIntForKey:@"eventCount"];
+    self.sessionCount = [decoder decodeIntForKey:@"sessionCount"];
+    self.subsessionCount = [decoder decodeIntForKey:@"subsessionCount"];
+    self.sessionLength = [decoder decodeDoubleForKey:@"sessionLength"];
+    self.timeSpent = [decoder decodeDoubleForKey:@"timeSpent"];
+    self.lastActivity = [decoder decodeDoubleForKey:@"lastActivity"];
     
-    self.eventCount         = [decoder decodeIntForKey:@"eventCount"];
-    self.sessionCount       = [decoder decodeIntForKey:@"sessionCount"];
-    self.subsessionCount    = [decoder decodeIntForKey:@"subsessionCount"];
-    self.sessionLength      = [decoder decodeDoubleForKey:@"sessionLength"];
-    self.timeSpent          = [decoder decodeDoubleForKey:@"timeSpent"];
-    self.lastActivity       = [decoder decodeDoubleForKey:@"lastActivity"];
-    
-    // Default values for migrating devices
+    // Default values for migrating devices.
     if ([decoder containsValueForKey:@"uuid"]) {
-        [self assignUuid:[decoder decodeObjectForKey:@"uuid"]];
+        [self assignRandomToken:[decoder decodeObjectForKey:@"uuid"]];
     }
-    
-    if (self.uuid == nil) {
-        [self assignUuid:[UIDevice.currentDevice adjCreateUuid]];
+    if (self.dedupeToken == nil) {
+        [self assignRandomToken:[ADTUtil generateRandomUuid]];
     }
-    
+
     if ([decoder containsValueForKey:@"transactionIds"]) {
         self.transactionIds = [decoder decodeObjectForKey:@"transactionIds"];
     }
-    
     if (self.transactionIds == nil) {
         self.transactionIds = [NSMutableArray arrayWithCapacity:kTransactionIdCount];
     }
-    
+
     if ([decoder containsValueForKey:@"enabled"]) {
         self.enabled = [decoder decodeBoolForKey:@"enabled"];
     } else {
@@ -198,74 +146,92 @@ static NSString *appToken = nil;
     } else {
         self.isGdprForgotten = NO;
     }
-    
+
     if ([decoder containsValueForKey:@"askingAttribution"]) {
         self.askingAttribution = [decoder decodeBoolForKey:@"askingAttribution"];
     } else {
         self.askingAttribution = NO;
     }
-    
-    if ([decoder containsValueForKey:@"deviceToken"]) {
-        self.deviceToken        = [decoder decodeObjectForKey:@"deviceToken"];
-    }
-    
-    if ([decoder containsValueForKey:@"updatePackages"]) {
-        self.updatePackages     = [decoder decodeBoolForKey:@"updatePackages"];
+
+    if ([decoder containsValueForKey:@"isThirdPartySharingDisabled"]) {
+        self.isThirdPartySharingDisabled = [decoder decodeBoolForKey:@"isThirdPartySharingDisabled"];
     } else {
-        self.updatePackages     = NO;
+        self.isThirdPartySharingDisabled = NO;
     }
-    
+
+    if ([decoder containsValueForKey:@"deviceToken"]) {
+        self.deviceToken = [decoder decodeObjectForKey:@"deviceToken"];
+    }
+
+    if ([decoder containsValueForKey:@"updatePackages"]) {
+        self.updatePackages = [decoder decodeBoolForKey:@"updatePackages"];
+    } else {
+        self.updatePackages = NO;
+    }
+
     if ([decoder containsValueForKey:@"adid"]) {
-        self.adid               = [decoder decodeObjectForKey:@"adid"];
+        self.adid = [decoder decodeObjectForKey:@"adid"];
     }
-    
+
     if ([decoder containsValueForKey:@"attributionDetails"]) {
         self.attributionDetails = [decoder decodeObjectForKey:@"attributionDetails"];
     }
-    
+
+    if ([decoder containsValueForKey:@"trackingManagerAuthorizationStatus"]) {
+        self.trackingManagerAuthorizationStatus =
+            [decoder decodeIntForKey:@"trackingManagerAuthorizationStatus"];
+    } else {
+        self.trackingManagerAuthorizationStatus = -1;
+    }
+
     self.lastInterval = -1;
-    
+
     return self;
 }
 
 - (void)encodeWithCoder:(NSCoder *)encoder {
-    [encoder encodeInt:self.eventCount         forKey:@"eventCount"];
-    [encoder encodeInt:self.sessionCount       forKey:@"sessionCount"];
-    [encoder encodeInt:self.subsessionCount    forKey:@"subsessionCount"];
-    [encoder encodeDouble:self.sessionLength   forKey:@"sessionLength"];
-    [encoder encodeDouble:self.timeSpent       forKey:@"timeSpent"];
-    [encoder encodeDouble:self.lastActivity    forKey:@"lastActivity"];
-    [encoder encodeObject:self.uuid            forKey:@"uuid"];
-    [encoder encodeObject:self.transactionIds  forKey:@"transactionIds"];
-    [encoder encodeBool:self.enabled           forKey:@"enabled"];
-    [encoder encodeBool:self.isGdprForgotten   forKey:@"isGdprForgotten"];
+    [encoder encodeInt:self.eventCount forKey:@"eventCount"];
+    [encoder encodeInt:self.sessionCount forKey:@"sessionCount"];
+    [encoder encodeInt:self.subsessionCount forKey:@"subsessionCount"];
+    [encoder encodeDouble:self.sessionLength forKey:@"sessionLength"];
+    [encoder encodeDouble:self.timeSpent forKey:@"timeSpent"];
+    [encoder encodeDouble:self.lastActivity forKey:@"lastActivity"];
+    [encoder encodeObject:self.dedupeToken forKey:@"uuid"];
+    [encoder encodeObject:self.transactionIds forKey:@"transactionIds"];
+    [encoder encodeBool:self.enabled forKey:@"enabled"];
+    [encoder encodeBool:self.isGdprForgotten forKey:@"isGdprForgotten"];
     [encoder encodeBool:self.askingAttribution forKey:@"askingAttribution"];
-    [encoder encodeObject:self.deviceToken     forKey:@"deviceToken"];
-    [encoder encodeBool:self.updatePackages    forKey:@"updatePackages"];
-    [encoder encodeObject:self.adid            forKey:@"adid"];
+    [encoder encodeBool:self.isThirdPartySharingDisabled forKey:@"isThirdPartySharingDisabled"];
+    [encoder encodeObject:self.deviceToken forKey:@"deviceToken"];
+    [encoder encodeBool:self.updatePackages forKey:@"updatePackages"];
+    [encoder encodeObject:self.adid forKey:@"adid"];
     [encoder encodeObject:self.attributionDetails forKey:@"attributionDetails"];
+    [encoder encodeInt:self.trackingManagerAuthorizationStatus
+                   forKey:@"trackingManagerAuthorizationStatus"];
 }
 
 #pragma mark - NSCopying protocol methods
 
 - (id)copyWithZone:(NSZone *)zone {
     ADTActivityState *copy = [[[self class] allocWithZone:zone] init];
-    
+
     // Copy only values used by package builder.
     if (copy) {
-        copy.sessionCount       = self.sessionCount;
-        copy.subsessionCount    = self.subsessionCount;
-        copy.sessionLength      = self.sessionLength;
-        copy.timeSpent          = self.timeSpent;
-        copy.uuid               = [self.uuid copyWithZone:zone];
-        copy.lastInterval       = self.lastInterval;
-        copy.eventCount         = self.eventCount;
-        copy.enabled            = self.enabled;
-        copy.isGdprForgotten    = self.isGdprForgotten;
-        copy.lastActivity       = self.lastActivity;
-        copy.askingAttribution  = self.askingAttribution;
-        copy.deviceToken        = [self.deviceToken copyWithZone:zone];
-        copy.updatePackages     = self.updatePackages;
+        copy.sessionCount = self.sessionCount;
+        copy.subsessionCount = self.subsessionCount;
+        copy.sessionLength = self.sessionLength;
+        copy.timeSpent = self.timeSpent;
+        copy.dedupeToken = [self.dedupeToken copyWithZone:zone];
+        copy.lastInterval = self.lastInterval;
+        copy.eventCount = self.eventCount;
+        copy.enabled = self.enabled;
+        copy.isGdprForgotten = self.isGdprForgotten;
+        copy.lastActivity = self.lastActivity;
+        copy.askingAttribution = self.askingAttribution;
+        copy.isThirdPartySharingDisabled = self.isThirdPartySharingDisabled;
+        copy.deviceToken = [self.deviceToken copyWithZone:zone];
+        copy.updatePackages = self.updatePackages;
+        copy.trackingManagerAuthorizationStatus = self.trackingManagerAuthorizationStatus;
     }
     
     return copy;

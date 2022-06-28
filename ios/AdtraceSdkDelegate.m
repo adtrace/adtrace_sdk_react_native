@@ -2,6 +2,9 @@
 //  AdtraceSdkDelegate.m
 //  Adtrace SDK
 //
+//  Created by Nasser Amini (@namini40) on Jun 2022.
+//  Copyright © 2022 adtrace io. All rights reserved.
+//
 
 #import <objc/runtime.h>
 #import "AdtraceSdkDelegate.h"
@@ -35,6 +38,7 @@ static AdtraceSdkDelegate *defaultInstance = nil;
                          sessionSucceededCallback:(BOOL)swizzleSessionSucceededCallback
                             sessionFailedCallback:(BOOL)swizzleSessionFailedCallback
                          deferredDeeplinkCallback:(BOOL)swizzleDeferredDeeplinkCallback
+                   conversionValueUpdatedCallback:(BOOL)swizzleConversionValueUpdatedCallback
                      shouldLaunchDeferredDeeplink:(BOOL)shouldLaunchDeferredDeeplink {
     dispatch_once(&onceToken, ^{
         defaultInstance = [[AdtraceSdkDelegate alloc] init];
@@ -64,6 +68,10 @@ static AdtraceSdkDelegate *defaultInstance = nil;
             [defaultInstance swizzleCallbackMethod:@selector(adtraceDeeplinkResponse:)
                                   swizzledSelector:@selector(adtraceDeeplinkResponseWannabe:)];
         }
+        if (swizzleConversionValueUpdatedCallback) {
+            [defaultInstance swizzleCallbackMethod:@selector(adtraceConversionValueUpdated:)
+                                  swizzledSelector:@selector(adtraceConversionValueUpdatedWannabe:)];
+        }
         [defaultInstance setShouldLaunchDeferredDeeplink:shouldLaunchDeferredDeeplink];
     });
 
@@ -91,6 +99,9 @@ static AdtraceSdkDelegate *defaultInstance = nil;
     [self addValueOrEmpty:dictionary key:@"adgroup" value:attribution.adgroup];
     [self addValueOrEmpty:dictionary key:@"clickLabel" value:attribution.clickLabel];
     [self addValueOrEmpty:dictionary key:@"adid" value:attribution.adid];
+    [self addValueOrEmpty:dictionary key:@"costType" value:attribution.costType];
+    [self addValueOrEmpty:dictionary key:@"costAmount" value:attribution.costAmount];
+    [self addValueOrEmpty:dictionary key:@"costCurrency" value:attribution.costCurrency];
     [AdtraceEventEmitter dispatchEvent:@"adtrace_attribution" withDictionary:dictionary];
 }
 
@@ -181,6 +192,11 @@ static AdtraceSdkDelegate *defaultInstance = nil;
     NSString *path = [deeplink absoluteString];
     [AdtraceEventEmitter dispatchEvent:@"adtrace_deferredDeeplink" withDictionary:@{@"uri": path}];
     return _shouldLaunchDeferredDeeplink;
+}
+
+- (void)adtraceConversionValueUpdatedWannabe:(NSNumber *)conversionValue {
+    // NSString *strConversionValue = [conversionValue stringValue];
+    [AdtraceEventEmitter dispatchEvent:@"adtrace_conversionValueUpdated" withDictionary:@{@"conversionValue": conversionValue}];
 }
 
 - (void)swizzleCallbackMethod:(SEL)originalSelector

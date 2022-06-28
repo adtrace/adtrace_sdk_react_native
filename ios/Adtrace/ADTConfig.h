@@ -2,7 +2,9 @@
 //  ADTConfig.h
 //  adtrace
 //
-
+//  Created by Nasser Amini (@namini40) on Jun 2022.
+//  Copyright © 2022 adtrace io. All rights reserved.
+//
 
 #import <Foundation/Foundation.h>
 
@@ -74,6 +76,13 @@
  */
 - (BOOL)adtraceDeeplinkResponse:(nullable NSURL *)deeplink;
 
+/**
+ * @brief Optional delegate method that gets called when Adtrace SDK sets conversion value for the user.
+ *
+ * @param conversionValue Conversion value used by Adtrace SDK to invoke updateConversionValue: API.
+ */
+- (void)adtraceConversionValueUpdated:(nullable NSNumber *)conversionValue;
+
 @end
 
 /**
@@ -92,6 +101,8 @@
  * @brief Default tracker to attribute organic installs to (optional).
  */
 @property (nonatomic, copy, nullable) NSString *defaultTracker;
+
+@property (nonatomic, copy, nullable) NSString *externalDeviceId;
 
 /**
  * @brief Adtrace app token.
@@ -140,6 +151,21 @@
 @property (nonatomic, assign) BOOL sendInBackground;
 
 /**
+ * @brief Enables/disables reading of iAd framework data needed for ASA tracking.
+ */
+@property (nonatomic, assign) BOOL allowiAdInfoReading;
+
+/**
+ * @brief Enables/disables reading of AdServices framework data needed for attribution.
+ */
+@property (nonatomic, assign) BOOL allowAdServicesInfoReading;
+
+/**
+ * @brief Enables/disables reading of IDFA parameter.
+ */
+@property (nonatomic, assign) BOOL allowIdfaReading;
+
+/**
  * @brief Enables delayed start of the SDK.
  */
 @property (nonatomic, assign) double delayStart;
@@ -153,6 +179,11 @@
  * @brief Set if the device is known.
  */
 @property (nonatomic, assign) BOOL isDeviceKnown;
+
+/**
+ * @brief Set if cost data is needed in attribution response.
+ */
+@property (nonatomic, assign) BOOL needsCost;
 
 /**
  * @brief Adtrace app secret id.
@@ -172,6 +203,16 @@
                info2:(NSUInteger)info2
                info3:(NSUInteger)info3
                info4:(NSUInteger)info4;
+
+
+@property (nonatomic, assign, readonly) BOOL isSKAdNetworkHandlingActive;
+
+- (void)deactivateSKAdNetworkHandling;
+
+/**
+ * @brief Adtrace url strategy.
+ */
+@property (nonatomic, copy, readwrite, nullable) NSString *urlStrategy;
 
 /**
  * @brief Get configuration object for the initialization of the Adtrace SDK.

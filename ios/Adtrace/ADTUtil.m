@@ -2,46 +2,48 @@
 //  ADTUtil.m
 //  Adtrace SDK
 //
+//  Created by Nasser Amini (@namini40) on Jun 2022.
+//  Copyright © 2022 adtrace io. All rights reserved.
+//
 
 #include <math.h>
+#include <dlfcn.h>
 #include <stdlib.h>
 #include <sys/xattr.h>
+
 #import <objc/message.h>
+#import <sys/utsname.h>
+#import <sys/types.h>
+#import <sys/sysctl.h>
+
+#import <UIKit/UIKit.h>
 
 #import "ADTUtil.h"
 #import "ADTLogger.h"
-#import "ADTReachability.h"
 #import "ADTResponseData.h"
 #import "ADTAdtraceFactory.h"
-#import "UIDevice+ADTAdditions.h"
 #import "NSString+ADTAdditions.h"
 
-#if !TARGET_OS_TV
-#import <CoreTelephony/CTCarrier.h>
-#import <CoreTelephony/CTTelephonyNetworkInfo.h>
+#if !ADTRACE_NO_IDFA
+#import <AdSupport/ASIdentifierManager.h>
 #endif
 
-static const double kRequestTimeout = 60;   // 60 seconds
+#if !ADTRACE_NO_IAD && !TARGET_OS_TV
+#import <iAd/iAd.h>
+#endif
 
 static NSString *userAgent = nil;
-static ADTReachability *reachability = nil;
 static NSRegularExpression *universalLinkRegex = nil;
 static NSNumberFormatter *secondsNumberFormatter = nil;
 static NSRegularExpression *optionalRedirectRegex = nil;
 static NSRegularExpression *shortUniversalLinkRegex = nil;
 static NSRegularExpression *excludedDeeplinkRegex = nil;
-static NSURLSessionConfiguration *urlSessionConfiguration = nil;
 
-#if !TARGET_OS_TV
-static CTCarrier *carrier = nil;
-static CTTelephonyNetworkInfo *networkInfo = nil;
-#endif
-
-static NSString * const kClientSdk                  = @"ios1.2.2";
+static NSString * const kClientSdk                  = @"ios4.29.6";
 static NSString * const kDeeplinkParam              = @"deep_link=";
 static NSString * const kSchemeDelimiter            = @"://";
 static NSString * const kDefaultScheme              = @"AdtraceUniversalScheme";
-static NSString * const kUniversalLinkPattern       = @"https://[^.]*\\.ulink\\.adtrace\\.io/ulink/?(.*)";
+static NSString * const kUniversalLinkPattern       = @"https://[^.]*\\.ulink\\.adtrace\\.com/ulink/?(.*)";
 static NSString * const kOptionalRedirectPattern    = @"adtrace_redirect=[^&#]*";
 static NSString * const kShortUniversalLinkPattern  = @"http[s]?://[a-z0-9]{4}\\.adt\\.st/?(.*)";
 static NSString * const kExcludedDeeplinksPattern   = @"^(fb|vk)[0-9]{5,}[^:]*://authorize.*access_token=.*";
@@ -59,25 +61,13 @@ static NSString * const kDateFormat                 = @"yyyy-MM-dd'T'HH:mm:ss.SS
     [self initializeShortUniversalLinkRegex];
     [self initializeOptionalRedirectRegex];
     [self initializeExcludedDeeplinkRegex];
-    [self initializeUrlSessionConfiguration];
-    [self initializeReachability];
-#if !TARGET_OS_TV
-    [self initializeNetworkInfoAndCarrier];
-#endif
 }
 
 + (void)teardown {
-    reachability = nil;
     universalLinkRegex = nil;
     secondsNumberFormatter = nil;
     optionalRedirectRegex = nil;
     shortUniversalLinkRegex = nil;
-    urlSessionConfiguration = nil;
-#if !TARGET_OS_TV
-    networkInfo = nil;
-    carrier = nil;
-#endif
-
 }
 
 + (void)initializeUniversalLinkRegex {
@@ -133,30 +123,6 @@ static NSString * const kDateFormat                 = @"yyyy-MM-dd'T'HH:mm:ss.SS
     [secondsNumberFormatter setPositiveFormat:@"0.0"];
 }
 
-+ (NSURLSessionConfiguration *)getUrlSessionConfiguration {
-    if (urlSessionConfiguration != nil) {
-        return urlSessionConfiguration;
-    } else {
-        return [NSURLSessionConfiguration defaultSessionConfiguration];
-    }
-}
-
-+ (void)initializeUrlSessionConfiguration {
-    urlSessionConfiguration = [NSURLSessionConfiguration defaultSessionConfiguration];
-}
-
-#if !TARGET_OS_TV
-+ (void)initializeNetworkInfoAndCarrier {
-    networkInfo = [[CTTelephonyNetworkInfo alloc] init];
-    carrier = [networkInfo subscriberCellularProvider];
-}
-#endif
-
-+ (void)initializeReachability {
-    reachability = [ADTReachability reachabilityForInternetConnection];
-    [reachability startNotifier];
-}
-
 + (void)updateUrlSessionConfiguration:(ADTConfig *)config {
     userAgent = config.userAgent;
 }
@@ -167,25 +133,21 @@ static NSString * const kDateFormat                 = @"yyyy-MM-dd'T'HH:mm:ss.SS
 
 + (NSDateFormatter *)getDateFormatter {
     NSDateFormatter *dateFormatter = [[NSDateFormatter alloc] init];
-    if ([NSCalendar instancesRespondToSelector:@selector(calendarWithIdentifier:)]) {
-        // http://stackoverflow.com/a/3339787
-        NSString *calendarIdentifier;
+    [dateFormatter setCalendar:[[NSCalendar alloc] initWithCalendarIdentifier:NSCalendarIdentifierGregorian]];
+    [dateFormatter setDateFormat:kDateFormat];
+
+    Class class = NSClassFromString([NSString adtJoin:@"N", @"S", @"locale", nil]);
+    if (class != nil) {
+        NSString *keyLwli = [NSString adtJoin:@"locale", @"with", @"locale", @"identifier:", nil];
+        SEL selLwli = NSSelectorFromString(keyLwli);
+        if ([class respondsToSelector:selLwli]) {
 #pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wtautological-pointer-compare"
-        if (&NSCalendarIdentifierGregorian != NULL) {
-#pragma clang diagnostic pop
-            calendarIdentifier = NSCalendarIdentifierGregorian;
-        } else {
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wunreachable-code"
-#pragma clang diagnostic ignored "-Wdeprecated-declarations"
-            calendarIdentifier = NSGregorianCalendar;
+#pragma clang diagnostic ignored "-Warc-performSelector-leaks"
+            id loc = [class performSelector:selLwli withObject:@"en_US"];
+            [dateFormatter setLocale:loc];
 #pragma clang diagnostic pop
         }
-        dateFormatter.calendar = [NSCalendar calendarWithIdentifier:calendarIdentifier];
     }
-    dateFormatter.locale = [NSLocale systemLocale];
-    [dateFormatter setDateFormat:kDateFormat];
 
     return dateFormatter;
 }
@@ -242,127 +204,204 @@ static NSString * const kDateFormat                 = @"yyyy-MM-dd'T'HH:mm:ss.SS
     return [dateFormatter stringFromDate:value];
 }
 
-+ (void)saveJsonResponse:(NSData *)jsonData responseData:(ADTResponseData *)responseData {
-    NSError *error = nil;
-    NSException *exception = nil;
-    NSDictionary *jsonDict = [ADTUtil buildJsonDict:jsonData exceptionPtr:&exception errorPtr:&error];
-
-    if (exception != nil) {
-        NSString *message = [NSString stringWithFormat:@"Failed to parse json response. (%@)", exception.description];
-        [ADTAdtraceFactory.logger error:message];
-        responseData.message = message;
-        return;
-    }
-    if (error != nil) {
-        NSString *message = [NSString stringWithFormat:@"Failed to parse json response. (%@)", error.localizedDescription];
-        [ADTAdtraceFactory.logger error:message];
-        responseData.message = message;
-        return;
-    }
-
-    responseData.jsonResponse = jsonDict;
-}
-
-+ (NSDictionary *)buildJsonDict:(NSData *)jsonData
-                   exceptionPtr:(NSException **)exceptionPtr
-                       errorPtr:(NSError **)error {
-    if (jsonData == nil) {
-        return nil;
-    }
-
-    NSDictionary *jsonDict = nil;
-    @try {
-        jsonDict = [NSJSONSerialization JSONObjectWithData:jsonData options:0 error:error];
-    } @catch (NSException *ex) {
-        *exceptionPtr = ex;
-        return nil;
-    }
-    return jsonDict;
-}
-
 + (id)readObject:(NSString *)fileName
       objectName:(NSString *)objectName
-           class:(Class)classToRead {
-    // Try to read from Application Support directory first.
-    NSString *documentsFilePath = [ADTUtil getFilePathInDocumentsDir:fileName];
-    NSString *appSupportFilePath = [ADTUtil getFilePathInAppSupportDir:fileName];
-
-    @try {
-        id appSupportObject = [NSKeyedUnarchiver unarchiveObjectWithFile:appSupportFilePath];
-        if ([appSupportObject isKindOfClass:classToRead]) {
-            // Successfully read object from Application Support folder, return it.
-            if ([appSupportObject isKindOfClass:[NSArray class]]) {
-                [[ADTAdtraceFactory logger] debug:@"Package handler read %d packages", [appSupportObject count]];
-            } else {
-                [[ADTAdtraceFactory logger] debug:@"Read %@: %@", objectName, appSupportObject];
-            }
-            // Just in case check if old file exists in Documents folder and if yes, remove it.
-            [ADTUtil deleteFileInPath:documentsFilePath];
-            return appSupportObject;
-        } else if (appSupportObject == nil) {
-            // [[ADTAdtraceFactory logger] verbose:@"%@ file not found", appSupportFilePath];
-            [[ADTAdtraceFactory logger] verbose:@"%@ file not found in \"Application Support/Adtrace\" folder", fileName];
-        } else {
-            // [[ADTAdtraceFactory logger] error:@"Failed to read %@ file", appSupportFilePath];
-            [[ADTAdtraceFactory logger] error:@"Failed to read %@ file from \"Application Support/Adtrace\" folder", fileName];
-        }
-    } @catch (NSException *ex) {
-        // [[ADTAdtraceFactory logger] error:@"Failed to read %@ file  (%@)", appSupportFilePath, ex];
-        [[ADTAdtraceFactory logger] error:@"Failed to read %@ file from \"Application Support/Adtrace\" folder (%@)", fileName, ex];
-    }
-
-    // If in here, for some reason, reading of file from Application Support folder failed.
-    // Let's check the Documents folder.
-    @try {
-        id documentsObject = [NSKeyedUnarchiver unarchiveObjectWithFile:documentsFilePath];
-        if (documentsObject != nil) {
-            // Successfully read object from Documents folder.
-            if ([documentsObject isKindOfClass:[NSArray class]]) {
-                [[ADTAdtraceFactory logger] debug:@"Package handler read %d packages", [documentsObject count]];
-            } else {
-                [[ADTAdtraceFactory logger] debug:@"Read %@: %@", objectName, documentsObject];
-            }
-            // Do the file migration.
-            [[ADTAdtraceFactory logger] verbose:@"Migrating %@ file from Documents to \"Application Support/Adtrace\" folder", fileName];
-            [ADTUtil migrateFileFromPath:documentsFilePath toPath:appSupportFilePath];
-            return documentsObject;
-        } else if (documentsObject == nil) {
-            // [[ADTAdtraceFactory logger] verbose:@"%@ file not found", documentsFilePath];
-            [[ADTAdtraceFactory logger] verbose:@"%@ file not found in Documents folder", fileName];
-        } else {
-            // [[ADTAdtraceFactory logger] error:@"Failed to read %@ file", documentsFilePath];
-            [[ADTAdtraceFactory logger] error:@"Failed to read %@ file from Documents folder", fileName];
-        }
-    } @catch (NSException *ex) {
-        // [[ADTAdtraceFactory logger] error:@"Failed to read %@ file (%@)", documentsFilePath, ex];
-        [[ADTAdtraceFactory logger] error:@"Failed to read %@ file from Documents folder (%@)", fileName, ex];
-    }
+           class:(Class)classToRead
+      syncObject:(id)syncObject {
+#if TARGET_OS_TV
     return nil;
+#endif
+    @synchronized(syncObject) {
+        NSString *documentsFilePath = [ADTUtil getFilePathInDocumentsDir:fileName];
+        NSString *appSupportFilePath = [ADTUtil getFilePathInAppSupportDir:fileName];
+
+        // Try to read from Application Support directory first.
+        @try {
+            id appSupportObject;
+            if (@available(iOS 11.0, tvOS 11.0, *)) {
+                NSData *data = [NSData dataWithContentsOfFile:appSupportFilePath];
+                // API introduced in iOS 11.
+                NSError *errorUnarchiver = nil;
+                NSKeyedUnarchiver *unarchiver = [[NSKeyedUnarchiver alloc] initForReadingFromData:data
+                                                                                            error:&errorUnarchiver];
+                if (errorUnarchiver == nil) {
+                    [unarchiver setRequiresSecureCoding:NO];
+                    appSupportObject = [unarchiver decodeObjectOfClass:classToRead forKey:NSKeyedArchiveRootObjectKey];
+                } else {
+                    // TODO: try to make this error fit the logging flow; if not, remove it
+                    // [[ADTAdtraceFactory logger] debug:@"Failed to read %@ with error: %@", objectName, errorUnarchiver.localizedDescription];
+                }
+            } else {
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+                // API_DEPRECATED [2.0-12.0]
+                // "Use +unarchivedObjectOfClass:fromData:error: instead"
+                appSupportObject = [NSKeyedUnarchiver unarchiveObjectWithFile:appSupportFilePath];
+#pragma clang diagnostic pop
+            }
+
+            if (appSupportObject != nil) {
+                if ([appSupportObject isKindOfClass:classToRead]) {
+                    // Successfully read object from Application Support folder, return it.
+                    if ([appSupportObject isKindOfClass:[NSArray class]]) {
+                        [[ADTAdtraceFactory logger] debug:@"Package handler read %d packages", [appSupportObject count]];
+                    } else {
+                        [[ADTAdtraceFactory logger] debug:@"Read %@: %@", objectName, appSupportObject];
+                    }
+
+                    // Just in case check if old file exists in Documents folder and if yes, remove it.
+                    [ADTUtil deleteFileInPath:documentsFilePath];
+
+                    return appSupportObject;
+                }
+            } else {
+                // [[ADTAdtraceFactory logger] error:@"Failed to read %@ file", appSupportFilePath];
+                [[ADTAdtraceFactory logger] debug:@"File %@ not found in \"Application Support/Adtrace\" folder", fileName];
+            }
+        } @catch (NSException *ex) {
+            // [[ADTAdtraceFactory logger] error:@"Failed to read %@ file  (%@)", appSupportFilePath, ex];
+            [[ADTAdtraceFactory logger] error:@"Failed to read %@ file from \"Application Support/Adtrace\" folder (%@)", fileName, ex];
+        }
+
+        // If in here, for some reason, reading of file from Application Support folder failed.
+        // Let's check the Documents folder.
+        @try {
+            id documentsObject;
+            if (@available(iOS 11.0, tvOS 11.0, *)) {
+                NSData *data = [NSData dataWithContentsOfFile:documentsFilePath];
+                // API introduced in iOS 11.
+                NSError *errorUnarchiver = nil;
+                NSKeyedUnarchiver *unarchiver = [[NSKeyedUnarchiver alloc] initForReadingFromData:data
+                                                                                            error:&errorUnarchiver];
+                if (errorUnarchiver == nil) {
+                    [unarchiver setRequiresSecureCoding:NO];
+                    documentsObject = [unarchiver decodeObjectOfClass:classToRead forKey:NSKeyedArchiveRootObjectKey];
+                } else {
+                    // TODO: try to make this error fit the logging flow; if not, remove it
+                    // [[ADTAdtraceFactory logger] debug:@"Failed to read %@ with error: %@", objectName, errorUnarchiver.localizedDescription];
+                }
+            } else {
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+                // API_DEPRECATED [2.0-12.0]
+                // "Use +unarchivedObjectOfClass:fromData:error: instead"
+                documentsObject = [NSKeyedUnarchiver unarchiveObjectWithFile:documentsFilePath];
+#pragma clang diagnostic pop
+            }
+
+            if (documentsObject != nil) {
+                // Successfully read object from Documents folder.
+                if ([documentsObject isKindOfClass:[NSArray class]]) {
+                    [[ADTAdtraceFactory logger] debug:@"Package handler read %d packages", [documentsObject count]];
+                } else {
+                    [[ADTAdtraceFactory logger] debug:@"Read %@: %@", objectName, documentsObject];
+                }
+
+                // Do the file migration.
+                [[ADTAdtraceFactory logger] verbose:@"Migrating %@ file from Documents to \"Application Support/Adtrace\" folder", fileName];
+                [ADTUtil migrateFileFromPath:documentsFilePath toPath:appSupportFilePath];
+
+                return documentsObject;
+            } else {
+                // [[ADTAdtraceFactory logger] error:@"Failed to read %@ file", documentsFilePath];
+                [[ADTAdtraceFactory logger] debug:@"File %@ not found in Documents folder", fileName];
+            }
+        } @catch (NSException *ex) {
+            // [[ADTAdtraceFactory logger] error:@"Failed to read %@ file (%@)", documentsFilePath, ex];
+            [[ADTAdtraceFactory logger] error:@"Failed to read %@ file from Documents folder (%@)", fileName, ex];
+        }
+
+        return nil;
+    }
 }
 
 + (void)writeObject:(id)object
            fileName:(NSString *)fileName
-         objectName:(NSString *)objectName {
-    NSString *filePath = [ADTUtil getFilePathInAppSupportDir:fileName];
-    BOOL result = (filePath != nil) && [NSKeyedArchiver archiveRootObject:object toFile:filePath];
-    if (result == YES) {
-        [ADTUtil excludeFromBackup:filePath];
-        if ([object isKindOfClass:[NSArray class]]) {
-            [[ADTAdtraceFactory logger] debug:@"Package handler wrote %d packages", [object count]];
-        } else {
-            [[ADTAdtraceFactory logger] debug:@"Wrote %@: %@", objectName, object];
+         objectName:(NSString *)objectName
+         syncObject:(id)syncObject {
+#if TARGET_OS_TV
+    return;
+#endif
+    @synchronized(syncObject) {
+        @try {
+            BOOL result;
+            NSString *filePath = [ADTUtil getFilePathInAppSupportDir:fileName];
+            if (!filePath) {
+                [[ADTAdtraceFactory logger] error:@"Cannot get filepath from filename: %@, to write %@ file", fileName, objectName];
+                return;
+            }
+
+            if (@available(iOS 11.0, tvOS 11.0, *)) {
+                NSError *errorArchiving = nil;
+                // API introduced in iOS 11.
+                NSData *data = [NSKeyedArchiver archivedDataWithRootObject:object requiringSecureCoding:NO error:&errorArchiving];
+                if (data && errorArchiving == nil) {
+                    NSError *errorWriting = nil;
+                    result = [data writeToFile:filePath options:NSDataWritingAtomic error:&errorWriting];
+                    result = result && (errorWriting == nil);
+                } else {
+                    result = NO;
+                }
+            } else {
+                // API_DEPRECATED [2.0-12.0]
+                // Use +archivedDataWithRootObject:requiringSecureCoding:error: and -writeToURL:options:error: instead
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+                result = [NSKeyedArchiver archiveRootObject:object toFile:filePath];
+#pragma clang diagnostic pop
+            }
+            if (result == YES) {
+                [ADTUtil excludeFromBackup:filePath];
+                if ([object isKindOfClass:[NSArray class]]) {
+                    [[ADTAdtraceFactory logger] debug:@"Package handler wrote %d packages", [object count]];
+                } else {
+                    [[ADTAdtraceFactory logger] debug:@"Wrote %@: %@", objectName, object];
+                }
+            } else {
+                [[ADTAdtraceFactory logger] error:@"Failed to write %@ file", objectName];
+            }
+        } @catch (NSException *exception) {
+            [[ADTAdtraceFactory logger] error:@"Failed to write %@ file (%@)", objectName, exception];
         }
-    } else {
-        [[ADTAdtraceFactory logger] error:@"Failed to write %@ file", objectName];
     }
 }
 
 + (BOOL)migrateFileFromPath:(NSString *)oldPath toPath:(NSString *)newPath {
-    NSError *errorCopy;
-    [[NSFileManager defaultManager] copyItemAtPath:oldPath toPath:newPath error:&errorCopy];
-    if (errorCopy != nil) {
+    __autoreleasing NSError *error;
+    __autoreleasing NSError **errorPointer = &error;
+    Class class = NSClassFromString([NSString adtJoin:@"N", @"S", @"file", @"manager", nil]);
+    if (class == nil) {
+        return NO;
+    }
+    NSString *keyDm = [NSString adtJoin:@"default", @"manager", nil];
+    SEL selDm = NSSelectorFromString(keyDm);
+    if (![class respondsToSelector:selDm]) {
+        return NO;
+    }
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Warc-performSelector-leaks"
+    id man = [class performSelector:selDm];
+#pragma clang diagnostic pop
+    NSString *keyCpy = [NSString stringWithFormat:@"%@%@%@",
+                        [NSString adtJoin:@"copy", @"item", @"at", @"path", @":", nil],
+                        [NSString adtJoin:@"to", @"path", @":", nil],
+                        [NSString adtJoin:@"error", @":", nil]];
+    SEL selCpy = NSSelectorFromString(keyCpy);
+    if (![man respondsToSelector:selCpy]) {
+        return NO;
+    }
+
+    NSInvocation *inv = [NSInvocation invocationWithMethodSignature:[man methodSignatureForSelector:selCpy]];
+    [inv setSelector:selCpy];
+    [inv setTarget:man];
+    [inv setArgument:&oldPath atIndex:2];
+    [inv setArgument:&newPath atIndex:3];
+    [inv setArgument:&errorPointer atIndex:4];
+    [inv invoke];
+
+    if (error != nil) {
         [[ADTAdtraceFactory logger] error:@"Error while copying from %@ to %@", oldPath, newPath];
-        [[ADTAdtraceFactory logger] error:[errorCopy description]];
+        [[ADTAdtraceFactory logger] error:[error description]];
         return NO;
     }
     // Migration successful.
@@ -397,12 +436,61 @@ static NSString * const kDateFormat                 = @"yyyy-MM-dd'T'HH:mm:ss.SS
 + (BOOL)checkForDirectoryPresenceInPath:(NSString *)path forFolder:(NSString *)folderName {
     // Check for presence of directory first.
     // If it doesn't exist, make one.
-    if (![[NSFileManager defaultManager] fileExistsAtPath:path]) {
+    Class class = NSClassFromString([NSString adtJoin:@"N", @"S", @"file", @"manager", nil]);
+    if (class == nil) {
+        return NO;
+    }
+    NSString *keyDm = [NSString adtJoin:@"default", @"manager", nil];
+    SEL selDm = NSSelectorFromString(keyDm);
+    if (![class respondsToSelector:selDm]) {
+        return NO;
+    }
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Warc-performSelector-leaks"
+    id man = [class performSelector:selDm];
+#pragma clang diagnostic pop
+    NSString *keyExi = [NSString adtJoin:@"file", @"exists", @"at", @"path", @":", nil];
+    SEL selExi = NSSelectorFromString(keyExi);
+    if (![man respondsToSelector:selExi]) {
+        return NO;
+    }
+    
+    NSInvocation *invMan = [NSInvocation invocationWithMethodSignature:[man methodSignatureForSelector:selExi]];
+    [invMan setSelector:selExi];
+    [invMan setTarget:man];
+    [invMan setArgument:&path atIndex:2];
+    [invMan invoke];
+    
+    BOOL exists;
+    [invMan getReturnValue:&exists];
+    
+    if (!exists) {
         [[ADTAdtraceFactory logger] debug:@"%@ directory not present and will be created", folderName];
-        NSError *error;
-        [[NSFileManager defaultManager] createDirectoryAtPath:path withIntermediateDirectories:NO attributes:nil error:&error];
+        BOOL withIntermediateDirectories = NO;
+        NSDictionary *attributes = nil;
+        __autoreleasing NSError *error;
+        __autoreleasing NSError **errorPointer = &error;
+        NSString *keyCrt = [NSString stringWithFormat:@"%@%@%@%@",
+                            [NSString adtJoin:@"create", @"directory", @"at", @"path", @":", nil],
+                            [NSString adtJoin:@"with", @"intermediate", @"directories", @":", nil],
+                            [NSString adtJoin:@"attributes", @":", nil],
+                            [NSString adtJoin:@"error", @":", nil]];
+        SEL selCrt = NSSelectorFromString(keyCrt);
+        if (![man respondsToSelector:selCrt]) {
+            return NO;
+        }
+
+        NSInvocation *inv = [NSInvocation invocationWithMethodSignature:[man methodSignatureForSelector:selCrt]];
+        [inv setSelector:selCrt];
+        [inv setTarget:man];
+        [inv setArgument:&path atIndex:2];
+        [inv setArgument:&withIntermediateDirectories atIndex:3];
+        [inv setArgument:&attributes atIndex:4];
+        [inv setArgument:&errorPointer atIndex:5];
+        [inv invoke];
+
         if (error != nil) {
-            [[ADTAdtraceFactory logger] error:@"Error while creating % directory", path];
+            [[ADTAdtraceFactory logger] error:@"Error while creating %@ directory", path];
             [[ADTAdtraceFactory logger] error:[error description]];
             return NO;
         }
@@ -451,379 +539,6 @@ static NSString * const kDateFormat                 = @"yyyy-MM-dd'T'HH:mm:ss.SS
     return value != nil && value != (id)[NSNull null];
 }
 
-+ (NSString *)formatErrorMessage:(NSString *)prefixErrorMessage
-              systemErrorMessage:(NSString *)systemErrorMessage
-              suffixErrorMessage:(NSString *)suffixErrorMessage {
-    NSString *errorMessage = [NSString stringWithFormat:@"%@ (%@)", prefixErrorMessage, systemErrorMessage];
-    if (suffixErrorMessage == nil) {
-        return errorMessage;
-    } else {
-        return [errorMessage stringByAppendingFormat:@" %@", suffixErrorMessage];
-    }
-}
-
-+ (void)sendGetRequest:(NSURL *)baseUrl
-              basePath:(NSString *)basePath
-    prefixErrorMessage:(NSString *)prefixErrorMessage
-       activityPackage:(ADTActivityPackage *)activityPackage
-   responseDataHandler:(void (^)(ADTResponseData *responseData))responseDataHandler {
-    NSMutableDictionary *parametersCopy = [[NSMutableDictionary alloc] initWithCapacity:[activityPackage.parameters count]];
-    [parametersCopy addEntriesFromDictionary:activityPackage.parameters];
-
-    NSString *appSecret = [ADTUtil extractAppSecret:parametersCopy];
-    NSString *secretId = [ADTUtil extractSecretId:parametersCopy];
-    [ADTUtil extractEventCallbackId:parametersCopy];
-
-    NSMutableURLRequest *request = [ADTUtil requestForGetPackage:activityPackage.path
-                                                       clientSdk:activityPackage.clientSdk
-                                                      parameters:parametersCopy
-                                                         baseUrl:baseUrl
-                                                        basePath:basePath];
-    [ADTUtil sendRequest:request
-      prefixErrorMessage:prefixErrorMessage
-         activityPackage:activityPackage
-                secretId:secretId
-               appSecret:appSecret
-     responseDataHandler:responseDataHandler];
-}
-
-+ (void)sendRequest:(NSMutableURLRequest *)request
- prefixErrorMessage:(NSString *)prefixErrorMessage
-    activityPackage:(ADTActivityPackage *)activityPackage
-           secretId:(NSString *)secretId
-          appSecret:(NSString *)appSecret
-responseDataHandler:(void (^)(ADTResponseData *responseData))responseDataHandler {
-    [ADTUtil sendRequest:request
-      prefixErrorMessage:prefixErrorMessage
-      suffixErrorMessage:nil
-                secretId:secretId
-               appSecret:appSecret
-         activityPackage:activityPackage
-     responseDataHandler:responseDataHandler];
-}
-
-+ (void)sendPostRequest:(NSURL *)baseUrl
-              queueSize:(NSUInteger)queueSize
-     prefixErrorMessage:(NSString *)prefixErrorMessage
-     suffixErrorMessage:(NSString *)suffixErrorMessage
-        activityPackage:(ADTActivityPackage *)activityPackage
-    responseDataHandler:(void (^)(ADTResponseData *responseData))responseDataHandler {
-    NSMutableDictionary *parametersCopy = [[NSMutableDictionary alloc] initWithCapacity:[activityPackage.parameters count]];
-    [parametersCopy addEntriesFromDictionary:activityPackage.parameters];
-
-    NSString *appSecret = [ADTUtil extractAppSecret:parametersCopy];
-    NSString *secretId = [ADTUtil extractSecretId:parametersCopy];
-    [ADTUtil extractEventCallbackId:parametersCopy];
-
-    NSMutableURLRequest *request = [ADTUtil requestForPostPackage:activityPackage.path
-                                                        clientSdk:activityPackage.clientSdk
-                                                       parameters:parametersCopy
-                                                          baseUrl:baseUrl queueSize:queueSize];
-    [ADTUtil sendRequest:request
-      prefixErrorMessage:prefixErrorMessage
-      suffixErrorMessage:suffixErrorMessage
-                secretId:secretId
-               appSecret:appSecret
-         activityPackage:activityPackage
-     responseDataHandler:responseDataHandler];
-}
-
-+ (void)sendRequest:(NSMutableURLRequest *)request
- prefixErrorMessage:(NSString *)prefixErrorMessage
- suffixErrorMessage:(NSString *)suffixErrorMessage
-           secretId:(NSString *)secretId
-          appSecret:(NSString *)appSecret
-    activityPackage:(ADTActivityPackage *)activityPackage
-responseDataHandler:(void (^)(ADTResponseData *responseData))responseDataHandler {
-    NSString *authHeader = [ADTUtil buildAuthorizationHeader:appSecret
-                                                    secretId:secretId
-                                             activityPackage:activityPackage];
-    if (authHeader != nil) {
-        [request setValue:authHeader forHTTPHeaderField:@"Authorization"];
-    }
-    if (userAgent != nil) {
-        [request setValue:userAgent forHTTPHeaderField:@"User-Agent"];
-    }
-
-    Class NSURLSessionClass = NSClassFromString(@"NSURLSession");
-    if (NSURLSessionClass != nil) {
-        [ADTUtil sendNSURLSessionRequest:request
-                      prefixErrorMessage:prefixErrorMessage
-                      suffixErrorMessage:suffixErrorMessage
-                         activityPackage:activityPackage
-                     responseDataHandler:responseDataHandler];
-    } else {
-        [ADTUtil sendNSURLConnectionRequest:request
-                         prefixErrorMessage:prefixErrorMessage
-                         suffixErrorMessage:suffixErrorMessage
-                            activityPackage:activityPackage
-                        responseDataHandler:responseDataHandler];
-    }
-}
-
-+ (NSString *)extractAppSecret:(NSMutableDictionary *)parameters {
-    NSString *appSecret = [parameters objectForKey:@"app_secret"];
-    if (appSecret == nil) {
-        return nil;
-    }
-    [parameters removeObjectForKey:@"app_secret"];
-    return appSecret;
-}
-
-+ (NSString *)extractSecretId:(NSMutableDictionary *)parameters {
-    NSString *appSecret = [parameters objectForKey:@"secret_id"];
-    if (appSecret == nil) {
-        return nil;
-    }
-    [parameters removeObjectForKey:@"secret_id"];
-    return appSecret;
-}
-
-+ (void)extractEventCallbackId:(NSMutableDictionary *)parameters {
-    NSString *eventCallbackId = [parameters objectForKey:@"event_callback_id"];
-    if (eventCallbackId == nil) {
-        return;
-    }
-    [parameters removeObjectForKey:@"event_callback_id"];
-}
-
-+ (NSMutableURLRequest *)requestForGetPackage:(NSString *)path
-                                    clientSdk:(NSString *)clientSdk
-                                   parameters:(NSDictionary *)parameters
-                                      baseUrl:(NSURL *)baseUrl
-                                     basePath:(NSString *)basePath {
-    NSString *queryStringParameters = [ADTUtil queryString:parameters];
-    NSString *relativePath;
-    if (basePath != nil) {
-        relativePath = [NSString stringWithFormat:@"%@%@?%@", basePath, path, queryStringParameters];
-    } else {
-        relativePath = [NSString stringWithFormat:@"%@?%@", path, queryStringParameters];
-    }
-
-    NSURL *url = [NSURL URLWithString:relativePath relativeToURL:baseUrl];
-    NSMutableURLRequest *request = [NSMutableURLRequest requestWithURL:url];
-    request.timeoutInterval = kRequestTimeout;
-    request.HTTPMethod = @"GET";
-    [request setValue:clientSdk forHTTPHeaderField:@"Client-Sdk"];
-    return request;
-}
-
-+ (NSMutableURLRequest *)requestForPostPackage:(NSString *)path
-                                     clientSdk:(NSString *)clientSdk
-                                    parameters:(NSDictionary *)parameters
-                                       baseUrl:(NSURL *)baseUrl
-                                     queueSize:(NSUInteger)queueSize {
-    NSURL *url = [baseUrl URLByAppendingPathComponent:path];
-    NSMutableURLRequest *request = [NSMutableURLRequest requestWithURL:url];
-    request.timeoutInterval = kRequestTimeout;
-    request.HTTPMethod = @"POST";
-    [request setValue:@"application/x-www-form-urlencoded" forHTTPHeaderField:@"Content-Type"];
-    [request setValue:clientSdk forHTTPHeaderField:@"Client-Sdk"];
-
-    NSString *bodyString = [ADTUtil queryString:parameters queueSize:queueSize];
-    NSData *body = [NSData dataWithBytes:bodyString.UTF8String length:bodyString.length];
-    [request setHTTPBody:body];
-    return request;
-}
-
-+ (NSString *)buildAuthorizationHeader:(NSString *)appSecret
-                              secretId:(NSString *)secretId
-                       activityPackage:(ADTActivityPackage *)activityPackage {
-    if (appSecret == nil) {
-        return nil;
-    }
-
-    NSMutableDictionary *parameters = activityPackage.parameters;
-    NSString *activityKindS = [ADTActivityKindUtil activityKindToString:activityPackage.activityKind];
-    NSDictionary *signatureParameters = [ADTUtil buildSignatureParameters:parameters
-                                                                appSecret:appSecret
-                                                            activityKindS:activityKindS];
-    NSMutableString *fields = [[NSMutableString alloc] initWithCapacity:5];
-    NSMutableString *clearSignature = [[NSMutableString alloc] initWithCapacity:5];
-
-    // signature part of header
-    for (NSDictionary *key in signatureParameters) {
-        [fields appendFormat:@"%@ ", key];
-        NSString *value = [signatureParameters objectForKey:key];
-        [clearSignature appendString:value];
-    }
-
-    NSString *secretIdHeader = [NSString stringWithFormat:@"secret_id=\"%@\"", secretId];
-    // algorithm part of header
-    NSString *algorithm = @"sha256";
-    NSString *signature = [clearSignature adtSha256];
-    NSString *signatureHeader = [NSString stringWithFormat:@"signature=\"%@\"", signature];
-    NSString *algorithmHeader = [NSString stringWithFormat:@"algorithm=\"%@\"", algorithm];
-    // fields part of header
-    // Remove last empty space.
-    if (fields.length > 0) {
-        [fields deleteCharactersInRange:NSMakeRange(fields.length - 1, 1)];
-    }
-
-    NSString *fieldsHeader = [NSString stringWithFormat:@"headers=\"%@\"", fields];
-    // putting it all together
-    NSString *authorizationHeader = [NSString stringWithFormat:@"Signature %@,%@,%@,%@",
-                                     secretIdHeader,
-                                     signatureHeader,
-                                     algorithmHeader,
-                                     fieldsHeader];
-    [ADTAdtraceFactory.logger debug:@"authorizationHeader %@", authorizationHeader];
-    return authorizationHeader;
-}
-
-+ (NSDictionary *)buildSignatureParameters:(NSMutableDictionary *)parameters
-                                 appSecret:(NSString *)appSecret
-                             activityKindS:(NSString *)activityKindS {
-    NSString *activityKindName = @"activity_kind";
-    NSString *activityKindValue = activityKindS;
-    NSString *createdAtName = @"created_at";
-    NSString *createdAtValue = [parameters objectForKey:createdAtName];
-    NSString *deviceIdentifierName = [ADTUtil getValidIdentifier:parameters];
-    NSString *deviceIdentifierValue = [parameters objectForKey:deviceIdentifierName];
-    NSMutableDictionary *signatureParameters = [[NSMutableDictionary alloc] initWithCapacity:4];
-
-    [ADTUtil checkAndAddEntry:signatureParameters key:@"app_secret" value:appSecret];
-    [ADTUtil checkAndAddEntry:signatureParameters key:createdAtName value:createdAtValue];
-    [ADTUtil checkAndAddEntry:signatureParameters key:activityKindName value:activityKindValue];
-    [ADTUtil checkAndAddEntry:signatureParameters key:deviceIdentifierName value:deviceIdentifierValue];
-    return signatureParameters;
-}
-
-+ (void)checkAndAddEntry:(NSMutableDictionary *)parameters
-                     key:(NSString *)key
-                   value:(NSString *)value {
-    if (key == nil) {
-        return;
-    }
-
-    if (value == nil) {
-        return;
-    }
-
-    [parameters setObject:value forKey:key];
-}
-
-+ (NSString *)getValidIdentifier:(NSMutableDictionary *)parameters {
-    NSString *idfaName = @"idfa";
-    NSString *persistentUUIDName = @"persistent_ios_uuid";
-    NSString *uuidName = @"ios_uuid";
-
-    if ([parameters objectForKey:idfaName] != nil) {
-        return idfaName;
-    }
-    if ([parameters objectForKey:persistentUUIDName] != nil) {
-        return persistentUUIDName;
-    }
-    if ([parameters objectForKey:uuidName] != nil) {
-        return uuidName;
-    }
-    return nil;
-}
-
-+ (void)sendNSURLSessionRequest:(NSMutableURLRequest *)request
-             prefixErrorMessage:(NSString *)prefixErrorMessage
-             suffixErrorMessage:(NSString *)suffixErrorMessage
-                activityPackage:(ADTActivityPackage *)activityPackage
-            responseDataHandler:(void (^)(ADTResponseData *responseData))responseDataHandler {
-    NSURLSession *session = [NSURLSession sessionWithConfiguration:[ADTUtil getUrlSessionConfiguration]];
-    NSURLSessionDataTask *task = [session dataTaskWithRequest:request
-                                            completionHandler:
-                                  ^(NSData *data, NSURLResponse *response, NSError *error) {
-                                      ADTResponseData *responseData = [ADTUtil completionHandler:data
-                                                                                        response:(NSHTTPURLResponse *)response
-                                                                                           error:error
-                                                                              prefixErrorMessage:prefixErrorMessage
-                                                                              suffixErrorMessage:suffixErrorMessage
-                                                                                 activityPackage:activityPackage];
-                                      responseDataHandler(responseData);
-                                  }];
-    [task resume];
-    [session finishTasksAndInvalidate];
-}
-
-+ (void)sendNSURLConnectionRequest:(NSMutableURLRequest *)request
-                prefixErrorMessage:(NSString *)prefixErrorMessage
-                suffixErrorMessage:(NSString *)suffixErrorMessage
-                   activityPackage:(ADTActivityPackage *)activityPackage
-               responseDataHandler:(void (^)(ADTResponseData *responseData))responseDataHandler {
-    NSError *responseError = nil;
-    NSHTTPURLResponse *urlResponse = nil;
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wdeprecated-declarations"
-    NSData *data = [NSURLConnection sendSynchronousRequest:request
-                                         returningResponse:&urlResponse
-                                                     error:&responseError];
-#pragma clang diagnostic pop
-    ADTResponseData *responseData = [ADTUtil completionHandler:data
-                                                      response:(NSHTTPURLResponse *)urlResponse
-                                                         error:responseError
-                                            prefixErrorMessage:prefixErrorMessage
-                                            suffixErrorMessage:suffixErrorMessage
-                                               activityPackage:activityPackage];
-    responseDataHandler(responseData);
-}
-
-+ (ADTResponseData *)completionHandler:(NSData *)data
-                              response:(NSHTTPURLResponse *)urlResponse
-                                 error:(NSError *)responseError
-                    prefixErrorMessage:(NSString *)prefixErrorMessage
-                    suffixErrorMessage:(NSString *)suffixErrorMessage
-                       activityPackage:(ADTActivityPackage *)activityPackage {
-    ADTResponseData *responseData = [ADTResponseData buildResponseData:activityPackage];
-    // Connection error
-    if (responseError != nil) {
-        NSString *errorMessage = [ADTUtil formatErrorMessage:prefixErrorMessage
-                                          systemErrorMessage:responseError.localizedDescription
-                                          suffixErrorMessage:suffixErrorMessage];
-        [ADTAdtraceFactory.logger error:errorMessage];
-        responseData.message = errorMessage;
-        return responseData;
-    }
-    if ([ADTUtil isNull:data]) {
-        NSString *errorMessage = [ADTUtil formatErrorMessage:prefixErrorMessage
-                                          systemErrorMessage:@"empty error"
-                                          suffixErrorMessage:suffixErrorMessage];
-        [ADTAdtraceFactory.logger error:errorMessage];
-        responseData.message = errorMessage;
-        return responseData;
-    }
-
-    NSString *responseString = [[[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding] adtTrim];
-    NSInteger statusCode = urlResponse.statusCode;
-    [ADTAdtraceFactory.logger verbose:@"Response: %@", responseString];
-
-    if (statusCode == 429) {
-        [ADTAdtraceFactory.logger error:@"Too frequent requests to the endpoint (429)"];
-        return responseData;
-    }
-    [ADTUtil saveJsonResponse:data responseData:responseData];
-    if ([ADTUtil isNull:responseData.jsonResponse]) {
-        return responseData;
-    }
-
-    NSString *messageResponse = [responseData.jsonResponse objectForKey:@"message"];
-    responseData.message = messageResponse;
-    responseData.timeStamp = [responseData.jsonResponse objectForKey:@"timestamp"];
-    responseData.adid = [responseData.jsonResponse objectForKey:@"adid"];
-
-    NSString *trackingState = [responseData.jsonResponse objectForKey:@"tracking_state"];
-    if (trackingState != nil) {
-        if ([trackingState isEqualToString:@"opted_out"]) {
-            responseData.trackingState = ADTTrackingStateOptedOut;
-        }
-    }
-    if (messageResponse == nil) {
-        messageResponse = @"No message found";
-    }
-    if (statusCode == 200) {
-        [ADTAdtraceFactory.logger info:@"%@", messageResponse];
-        responseData.success = YES;
-    } else {
-        [ADTAdtraceFactory.logger error:@"%@", messageResponse];
-    }
-    return responseData;
-}
-
 // Convert all values to strings, if value is dictionary -> recursive call
 + (NSDictionary *)convertDictionaryValues:(NSDictionary *)dictionary {
     NSMutableDictionary *convertedDictionary = [[NSMutableDictionary alloc] initWithCapacity:dictionary.count];
@@ -846,47 +561,6 @@ responseDataHandler:(void (^)(ADTResponseData *responseData))responseDataHandler
         }
     }
     return convertedDictionary;
-}
-
-+ (NSString *)idfa {
-    return [[UIDevice currentDevice] adtIdForAdvertisers];
-}
-
-+ (NSString *)getUpdateTime {
-    NSDate *updateTime = nil;
-    id<ADTLogger> logger = ADTAdtraceFactory.logger;
-    @try {
-        __autoreleasing NSError *error;
-        NSString *infoPlistPath = [[NSBundle mainBundle] pathForResource:@"Info" ofType:@"plist"];
-        updateTime = [[[NSFileManager defaultManager] attributesOfItemAtPath:infoPlistPath error:&error] objectForKey:NSFileModificationDate];
-    } @catch (NSException *exception) {
-        [logger error:@"Error while trying to check update date. Exception: %@", exception];
-    }
-    return [ADTUtil formatDate:updateTime];
-}
-
-+ (NSString *)getInstallTime {
-    id<ADTLogger> logger = ADTAdtraceFactory.logger;
-    NSDate *installTime = nil;
-    NSString *pathToCheck = nil;
-    NSSearchPathDirectory folderToCheck = NSDocumentDirectory;
-#if TARGET_OS_TV
-    folderToCheck = NSCachesDirectory;
-#endif
-    @try {
-        NSArray *paths = NSSearchPathForDirectoriesInDomains(folderToCheck, NSUserDomainMask, YES);
-        if (paths.count > 0) {
-            pathToCheck = [paths objectAtIndex:0];
-        } else {
-            // There's no NSDocumentDirectory (or NSCachesDirectory).
-            // Check app's bundle creation date instead.
-            pathToCheck = [[NSBundle mainBundle] bundlePath];
-        }
-        installTime = [[NSFileManager defaultManager] attributesOfItemAtPath:pathToCheck error:nil][NSFileCreationDate];
-    } @catch (NSException *exception) {
-        [logger error:@"Error while trying to check install date. Exception: %@", exception];
-    }
-    return [ADTUtil formatDate:installTime];
 }
 
 + (NSURL *)convertUniversalLink:(NSURL *)url scheme:(NSString *)scheme {
@@ -1062,7 +736,7 @@ responseDataHandler:(void (^)(ADTResponseData *responseData))responseDataHandler
 }
 
 + (BOOL)isInactive {
-#if ADTUST_IM
+#if ADTRACE_IM
     // Assume iMessage extension app can't be started from background.
     return NO;
 #else
@@ -1139,6 +813,13 @@ responseDataHandler:(void (^)(ADTResponseData *responseData))responseDataHandler
     });
 }
 
++ (void)launchSynchronisedWithObject:(id)synchronisationObject
+                               block:(synchronisedBlock)block {
+    @synchronized (synchronisationObject) {
+        block();
+    }
+}
+
 + (BOOL)deleteFileWithName:(NSString *)fileName {
     NSString *documentsFilePath = [ADTUtil getFilePathInDocumentsDir:fileName];
     NSString *appSupportFilePath = [ADTUtil getFilePathInAppSupportDir:fileName];
@@ -1148,13 +829,56 @@ responseDataHandler:(void (^)(ADTResponseData *responseData))responseDataHandler
 }
 
 + (BOOL)deleteFileInPath:(NSString *)filePath {
-    NSError *error;
-    if (![[NSFileManager defaultManager] fileExistsAtPath:filePath]) {
-        // [[ADTAdtraceFactory logger] verbose:@"File does not exist at path %@", filePath];
+    Class class = NSClassFromString([NSString adtJoin:@"N", @"S", @"file", @"manager", nil]);
+    if (class == nil) {
+        return NO;
+    }
+    NSString *keyDm = [NSString adtJoin:@"default", @"manager", nil];
+    SEL selDm = NSSelectorFromString(keyDm);
+    if (![class respondsToSelector:selDm]) {
+        return NO;
+    }
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Warc-performSelector-leaks"
+    id man = [class performSelector:selDm];
+#pragma clang diagnostic pop
+    NSString *keyExi = [NSString adtJoin:@"file", @"exists", @"at", @"path", @":", nil];
+    SEL selExi = NSSelectorFromString(keyExi);
+    if (![man respondsToSelector:selExi]) {
+        return NO;
+    }
+
+    NSMethodSignature *msExi = [man methodSignatureForSelector:selExi];
+    NSInvocation *invExi = [NSInvocation invocationWithMethodSignature:msExi];
+    [invExi setSelector:selExi];
+    [invExi setTarget:man];
+    [invExi setArgument:&filePath atIndex:2];
+    [invExi invoke];
+    BOOL exists;
+    [invExi getReturnValue:&exists];
+    if (!exists) {
         return YES;
     }
 
-    BOOL deleted = [[NSFileManager defaultManager] removeItemAtPath:filePath error:&error];
+    __autoreleasing NSError *error;
+    __autoreleasing NSError **errorPointer = &error;
+    NSString *keyRm = [NSString stringWithFormat:@"%@%@",
+                        [NSString adtJoin:@"remove", @"item", @"at", @"path", @":", nil],
+                        [NSString adtJoin:@"error", @":", nil]];
+    SEL selRm = NSSelectorFromString(keyRm);
+    if (![man respondsToSelector:selRm]) {
+        return NO;
+    }
+
+    NSInvocation *inv = [NSInvocation invocationWithMethodSignature:[man methodSignatureForSelector:selRm]];
+    [inv setSelector:selRm];
+    [inv setTarget:man];
+    [inv setArgument:&filePath atIndex:2];
+    [inv setArgument:&errorPointer atIndex:3];
+    [inv invoke];
+    BOOL deleted;
+    [inv getReturnValue:&deleted];
+
     if (!deleted) {
         [[ADTAdtraceFactory logger] verbose:@"Unable to delete file at path %@", filePath];
     }
@@ -1165,7 +889,7 @@ responseDataHandler:(void (^)(ADTResponseData *responseData))responseDataHandler
 }
 
 + (void)launchDeepLinkMain:(NSURL *)deepLinkUrl {
-#if ADTUST_IM
+#if ADTRACE_IM
     // No deep linking in iMessage extension apps.
     return;
 #else
@@ -1202,25 +926,33 @@ responseDataHandler:(void (^)(ADTResponseData *responseData))responseDataHandler
         BOOL success = [sharedUIApplication openURL:deepLinkUrl];
 #pragma clang diagnostic pop
         if (!success) {
-            [ADTAdtraceFactory.logger error:@"Unable to open deep link (%@)", deepLinkUrl];
+            [ADTAdtraceFactory.logger error:@"Unable to open deep link without completionHandler (%@)", deepLinkUrl];
         }
     }
 #endif
 }
 
+// adapted from https://stackoverflow.com/a/9084784
 + (NSString *)convertDeviceToken:(NSData *)deviceToken {
-    if (deviceToken == nil) {
-        return nil;;
+    NSUInteger dataLength  = [deviceToken length];
+
+    if (dataLength == 0) {
+        return nil;
     }
 
-    NSString *deviceTokenString = [deviceToken.description stringByTrimmingCharactersInSet:
-                                   [NSCharacterSet characterSetWithCharactersInString:@"<>"]];
-    if (deviceTokenString == nil) {
-        return nil;;
+    const unsigned char *dataBuffer = (const unsigned char *)[deviceToken bytes];
+
+    if (!dataBuffer) {
+        return nil;
     }
 
-    deviceTokenString = [deviceTokenString stringByReplacingOccurrencesOfString:@" " withString:@""];
-    return deviceTokenString;
+    NSMutableString *hexString  = [NSMutableString stringWithCapacity:(dataLength * 2)];
+
+    for (NSUInteger i = 0; i < dataLength; ++i) {
+        [hexString appendString:[NSString stringWithFormat:@"%02lx", (unsigned long)dataBuffer[i]]];
+    }
+
+    return [hexString copy];
 }
 
 + (BOOL)checkAttributionDetails:(NSDictionary *)attributionDetails {
@@ -1244,8 +976,10 @@ responseDataHandler:(void (^)(ADTResponseData *responseData))responseDataHandler
     }
     // Apple Search Ads fields
     if ([ADTUtil contains:details key:@"iad-adgroup-id" value:@"1234567890"] &&
-        [ADTUtil contains:details key:@"iad-adgroup-name" value:@"AdgroupName"] &&
-        [ADTUtil contains:details key:@"iad-keyword" value:@"Keyword"]) {
+        [ADTUtil contains:details key:@"iad-keyword" value:@"Keyword"] && (
+            [ADTUtil contains:details key:@"iad-adgroup-name" value:@"AdgroupName"] ||
+            [ADTUtil contains:details key:@"iad-adgroup-name" value:@"AdGroupName"]
+        )) {
         [ADTAdtraceFactory.logger debug:@"iAd attribution details has dummy Apple Search Ads fields"];
         return NO;
     }
@@ -1267,13 +1001,6 @@ responseDataHandler:(void (^)(ADTResponseData *responseData))responseDataHandler
         return NO;
     }
     return [value isEqualToString:[readValue description]];
-}
-
-+ (NSNumber *)readReachabilityFlags {
-    if (reachability == nil) {
-        return nil;
-    }
-    return [reachability currentReachabilityFlags];
 }
 
 + (BOOL)isDeeplinkValid:(NSURL *)url {
@@ -1304,35 +1031,554 @@ responseDataHandler:(void (^)(ADTResponseData *responseData))responseDataHandler
     return kClientSdk;
 }
 
-#if !TARGET_OS_TV
-+ (NSString *)readMCC {
-    if (carrier == nil) {
-        return nil;
++ (void)updateSkAdNetworkConversionValue:(NSNumber *)conversionValue {
+    id<ADTLogger> logger = [ADTAdtraceFactory logger];
+    
+    Class skAdNetwork = NSClassFromString(@"SKAdNetwork");
+    if (skAdNetwork == nil) {
+        [logger warn:@"StoreKit framework not found in the app (SKAdNetwork not found)"];
+        return;
     }
-    return [carrier mobileCountryCode];
+    
+    SEL updateConversionValueSelector = NSSelectorFromString(@"updateConversionValue:");
+    if ([skAdNetwork respondsToSelector:updateConversionValueSelector]) {
+        NSInteger intValue = [conversionValue integerValue];
+        
+        NSMethodSignature *conversionValueMethodSignature = [skAdNetwork methodSignatureForSelector:updateConversionValueSelector];
+        NSInvocation *conversionInvocation = [NSInvocation invocationWithMethodSignature:conversionValueMethodSignature];
+        [conversionInvocation setSelector:updateConversionValueSelector];
+        [conversionInvocation setTarget:skAdNetwork];
+
+        [conversionInvocation setArgument:&intValue atIndex:2];
+        [conversionInvocation invoke];
+        
+        [logger verbose:@"Call to SKAdNetwork's updateConversionValue: method made with value %d", intValue];
+    }
 }
 
-+ (NSString *)readMNC {
-    if (carrier == nil) {
-        return nil;
-    }
-    return [carrier mobileNetworkCode];
++ (Class)adSupportManager {
+    NSString *className = [NSString adtJoin:@"A", @"S", @"identifier", @"manager", nil];
+    Class class = NSClassFromString(className);
+    return class;
 }
 
-+ (NSString *)readCurrentRadioAccessTechnology {
-    if (networkInfo == nil) {
++ (Class)appTrackingManager {
+    NSString *className = [NSString adtJoin:@"A", @"T", @"tracking", @"manager", nil];
+    Class class = NSClassFromString(className);
+    return class;
+}
+
++ (BOOL)trackingEnabled {
+#if ADTRACE_NO_IDFA
+    return NO;
+#else
+    // return [[ASIdentifierManager sharedManager] isAdvertisingTrackingEnabled];
+    Class adSupportClass = [ADTUtil adSupportManager];
+    if (adSupportClass == nil) {
+        return NO;
+    }
+
+    NSString *keyManager = [NSString adtJoin:@"shared", @"manager", nil];
+    SEL selManager = NSSelectorFromString(keyManager);
+    if (![adSupportClass respondsToSelector:selManager]) {
+        return NO;
+    }
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Warc-performSelector-leaks"
+    id manager = [adSupportClass performSelector:selManager];
+    NSString *keyEnabled = [NSString adtJoin:@"is", @"advertising", @"tracking", @"enabled", nil];
+    SEL selEnabled = NSSelectorFromString(keyEnabled);
+    if (![manager respondsToSelector:selEnabled]) {
+        return NO;
+    }
+    
+    NSMethodSignature *msEnabled = [manager methodSignatureForSelector:selEnabled];
+    NSInvocation *invEnabled = [NSInvocation invocationWithMethodSignature:msEnabled];
+    [invEnabled setSelector:selEnabled];
+    [invEnabled setTarget:manager];
+    [invEnabled invoke];
+    BOOL enabled;
+    [invEnabled getReturnValue:&enabled];
+    return enabled;
+#pragma clang diagnostic pop
+#endif
+}
+
++ (NSString *)idfa {
+#if ADTRACE_NO_IDFA
+    return @"";
+#else
+    // return [[[ASIdentifierManager sharedManager] advertisingIdentifier] UUIDString];
+    Class adSupportClass = [ADTUtil adSupportManager];
+    if (adSupportClass == nil) {
+        return @"";
+    }
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Warc-performSelector-leaks"
+    NSString *keyManager = [NSString adtJoin:@"shared", @"manager", nil];
+    SEL selManager = NSSelectorFromString(keyManager);
+    if (![adSupportClass respondsToSelector:selManager]) {
+        return @"";
+    }
+    id manager = [adSupportClass performSelector:selManager];
+    NSString *keyIdentifier = [NSString adtJoin:@"advertising", @"identifier", nil];
+    SEL selIdentifier = NSSelectorFromString(keyIdentifier);
+    if (![manager respondsToSelector:selIdentifier]) {
+        return @"";
+    }
+    id identifier = [manager performSelector:selIdentifier];
+    NSString *keyString = [NSString adtJoin:@"UUID", @"string", nil];
+    SEL selString = NSSelectorFromString(keyString);
+    if (![identifier respondsToSelector:selString]) {
+        return @"";
+    }
+    NSString *string = [identifier performSelector:selString];
+    return string;
+#pragma clang diagnostic pop
+#endif
+}
+
++ (NSString *)idfv {
+    Class class = NSClassFromString([NSString adtJoin:@"U", @"I", @"device", nil]);
+    if (class == nil) {
         return nil;
     }
-    SEL radioTechSelector = NSSelectorFromString(@"currentRadioAccessTechnology");
-    if (![networkInfo respondsToSelector:radioTechSelector]) {
+    NSString *keyCd = [NSString adtJoin:@"current", @"device", nil];
+    SEL selCd = NSSelectorFromString(keyCd);
+    if (![class respondsToSelector:selCd]) {
         return nil;
     }
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Warc-performSelector-leaks"
-    id radioTech = [networkInfo performSelector:radioTechSelector];
+    id dev = [class performSelector:selCd];
 #pragma clang diagnostic pop
-    return radioTech;
+    NSString *keyIfv = [NSString adtJoin:@"identifier", @"for", @"vendor", nil];
+    SEL selIfv = NSSelectorFromString(keyIfv);
+    if (![dev respondsToSelector:selIfv]) {
+        return nil;
+    }
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Warc-performSelector-leaks"
+    NSUUID *uuid = (NSUUID *)[dev performSelector:selIfv];
+#pragma clang diagnostic pop
+    if (uuid == nil) {
+        return nil;
+    }
+    return [uuid UUIDString];
 }
+
++ (NSString *)fbAnonymousId {
+#if TARGET_OS_TV
+    return @"";
+#else
+    // pre FB SDK v6.0.0
+    // return [FBSDKAppEventsUtility retrievePersistedAnonymousID];
+    // post FB SDK v6.0.0
+    // return [FBSDKBasicUtility retrievePersistedAnonymousID];
+    Class class = nil;
+    SEL selGetId = NSSelectorFromString(@"retrievePersistedAnonymousID");
+    class = NSClassFromString(@"FBSDKBasicUtility");
+    if (class != nil) {
+        if ([class respondsToSelector:selGetId]) {
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Warc-performSelector-leaks"
+            NSString *fbAnonymousId = (NSString *)[class performSelector:selGetId];
+            return fbAnonymousId;
+#pragma clang diagnostic pop
+        }
+    }
+    class = NSClassFromString(@"FBSDKAppEventsUtility");
+    if (class != nil) {
+        if ([class respondsToSelector:selGetId]) {
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Warc-performSelector-leaks"
+            NSString *fbAnonymousId = (NSString *)[class performSelector:selGetId];
+            return fbAnonymousId;
+#pragma clang diagnostic pop
+        }
+    }
+    return @"";
 #endif
+}
+
++ (NSString *)deviceType {
+    Class class = NSClassFromString([NSString adtJoin:@"U", @"I", @"device", nil]);
+    if (class == nil) {
+        return nil;
+    }
+    NSString *keyCd = [NSString adtJoin:@"current", @"device", nil];
+    SEL selCd = NSSelectorFromString(keyCd);
+    if (![class respondsToSelector:selCd]) {
+        return nil;
+    }
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Warc-performSelector-leaks"
+    id dev = [class performSelector:selCd];
+#pragma clang diagnostic pop
+    NSString *keyM = [NSString adtJoin:@"model", nil];
+    SEL selM = NSSelectorFromString(keyM);
+    if (![dev respondsToSelector:selM]) {
+        return nil;
+    }
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Warc-performSelector-leaks"
+    return (NSString *)[dev performSelector:selM];
+#pragma clang diagnostic pop
+}
+
++ (NSString *)deviceName {
+    struct utsname systemInfo;
+    uname(&systemInfo);
+    return @(systemInfo.machine);
+}
+
++ (NSUInteger)startedAt {
+    int MIB_SIZE = 2;
+    int mib[MIB_SIZE];
+    size_t size;
+    struct timeval starttime;
+    mib[0] = CTL_KERN;
+    mib[1] = KERN_BOOTTIME;
+    size = sizeof(starttime);
+
+    NSString *m = [[NSString adtJoin:@"s", @"ys", @"ct", @"l", nil] lowercaseString];
+    int (*fptr)(int *, u_int, void *, size_t *, void *, size_t);
+    *(int**)(&fptr) = dlsym(RTLD_SELF, [m UTF8String]);
+    if (fptr) {
+        if ((*fptr)(mib, MIB_SIZE, &starttime, &size, NULL, 0) != -1) {
+            NSDate *startDate = [NSDate dateWithTimeIntervalSince1970:starttime.tv_sec];
+            return (NSUInteger)round([startDate timeIntervalSince1970]);
+        }
+    }
+
+    return 0;
+}
+
++ (int)attStatus {
+    Class appTrackingClass = [self appTrackingManager];
+    if (appTrackingClass != nil) {
+        NSString *keyAuthorization = [NSString adtJoin:@"tracking", @"authorization", @"status", nil];
+        SEL selAuthorization = NSSelectorFromString(keyAuthorization);
+        if ([appTrackingClass respondsToSelector:selAuthorization]) {
+            NSMethodSignature *msAuthorization = [appTrackingClass methodSignatureForSelector:selAuthorization];
+            NSInvocation *invAuthorization = [NSInvocation invocationWithMethodSignature:msAuthorization];
+            [invAuthorization setSelector:selAuthorization];
+            [invAuthorization invokeWithTarget:appTrackingClass];
+            [invAuthorization invoke];
+            NSUInteger status;
+            [invAuthorization getReturnValue:&status];
+            return (int)status;
+        }
+    }
+    return -1;
+}
+
++ (NSString *)fetchAdServicesAttribution:(NSError **)errorPtr {
+    id<ADTLogger> logger = [ADTAdtraceFactory logger];
+
+    // [AAAttribution attributionTokenWithError:...]
+    Class attributionClass = NSClassFromString(@"AAAttribution");
+    if (attributionClass == nil) {
+        [logger warn:@"AdServices framework not found in the app (AAAttribution class not found)"];
+        if (errorPtr) {
+            *errorPtr = [NSError errorWithDomain:@"io.adtrace.sdk.adServices"
+                                            code:100
+                                        userInfo:@{@"Error reason": @"AdServices framework not found"}];
+        }
+        return nil;
+    }
+
+    SEL attributionTokenSelector = NSSelectorFromString(@"attributionTokenWithError:");
+    if (![attributionClass respondsToSelector:attributionTokenSelector]) {
+        [logger warn:@"AdServices framework not found in the app (attributionTokenWithError: method not found)"];
+        if (errorPtr) {
+            *errorPtr = [NSError errorWithDomain:@"io.adtrace.sdk.adServices"
+                                            code:100
+                                        userInfo:@{@"Error reason": @"AdServices framework not found"}];
+        }
+        return nil;
+    }
+    
+    NSMethodSignature *attributionTokenMethodSignature = [attributionClass methodSignatureForSelector:attributionTokenSelector];
+    NSInvocation *tokenInvocation = [NSInvocation invocationWithMethodSignature:attributionTokenMethodSignature];
+    [tokenInvocation setSelector:attributionTokenSelector];
+    [tokenInvocation setTarget:attributionClass];
+    __autoreleasing NSError *error;
+    __autoreleasing NSError **errorPointer = &error;
+    [tokenInvocation setArgument:&errorPointer atIndex:2];
+    [tokenInvocation invoke];
+
+    if (error) {
+        [logger error:@"Error while retrieving AdServices attribution token: %@", error];
+        if (errorPtr) {
+            *errorPtr = error;
+        }
+        return nil;
+    }
+
+    [logger debug:@"AdServices framework successfully found in the app"];
+    NSString * __unsafe_unretained tmpToken = nil;
+    [tokenInvocation getReturnValue:&tmpToken];
+    NSString *token = tmpToken;
+    return token;
+}
+
++ (void)checkForiAd:(ADTActivityHandler *)activityHandler queue:(dispatch_queue_t)queue {
+    // if no tries for iAd v3 left, stop trying
+    id<ADTLogger> logger = [ADTAdtraceFactory logger];
+
+#if ADTRACE_NO_IAD || TARGET_OS_TV
+    [logger debug:@"ADTRACE_NO_IAD or TARGET_OS_TV set"];
+    return;
+#else
+    [logger debug:@"ADTRACE_NO_IAD or TARGET_OS_TV not set"];
+
+    // [[ADClient sharedClient] ...]
+    Class ADClientClass = NSClassFromString(@"ADClient");
+    if (ADClientClass == nil) {
+        [logger warn:@"iAd framework not found in the app (ADClientClass not found)"];
+        return;
+    }
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Warc-performSelector-leaks"
+    SEL sharedClientSelector = NSSelectorFromString(@"sharedClient");
+    if (![ADClientClass respondsToSelector:sharedClientSelector]) {
+        [logger warn:@"iAd framework not found in the app (sharedClient method not found)"];
+        return;
+    }
+    id ADClientSharedClientInstance = [ADClientClass performSelector:sharedClientSelector];
+    if (ADClientSharedClientInstance == nil) {
+        [logger warn:@"iAd framework not found in the app (ADClientSharedClientInstance is nil)"];
+        return;
+    }
+    [logger debug:@"iAd framework successfully found in the app"];
+    BOOL iAdInformationAvailable = [ADTUtil setiAdWithDetails:activityHandler
+                                       adClientSharedInstance:ADClientSharedClientInstance
+                                                        queue:queue];
+    if (!iAdInformationAvailable) {
+        [logger warn:@"iAd information not available"];
+        return;
+    }
+#pragma clang diagnostic pop
+#endif
+}
+
++ (BOOL)setiAdWithDetails:(ADTActivityHandler *)activityHandler
+   adClientSharedInstance:(id)ADClientSharedClientInstance
+                    queue:(dispatch_queue_t)queue {
+    SEL iAdDetailsSelector = NSSelectorFromString(@"requestAttributionDetailsWithBlock:");
+    if (![ADClientSharedClientInstance respondsToSelector:iAdDetailsSelector]) {
+        return NO;
+    }
+
+    __block Class lock = [ADTActivityHandler class];
+    __block BOOL completed = NO;
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Warc-performSelector-leaks"
+    [ADClientSharedClientInstance performSelector:iAdDetailsSelector
+                                       withObject:^(NSDictionary *attributionDetails, NSError *error) {
+        @synchronized (lock) {
+            if (completed) {
+                return;
+            } else {
+                completed = YES;
+            }
+        }
+        [activityHandler setAttributionDetails:attributionDetails
+                                         error:error];
+    }];
+#pragma clang diagnostic pop
+
+    // 5 seconds of timeout
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(5.0 * NSEC_PER_SEC)), queue, ^{
+        @synchronized (lock) {
+            if (completed) {
+                return;
+            } else {
+                completed = YES;
+            }
+        }
+        [activityHandler setAttributionDetails:nil
+                                         error:[NSError errorWithDomain:@"io.adtrace.sdk.iAd"
+                                                                   code:100
+                                                               userInfo:@{@"Error reason": @"iAd request timed out"}]];
+    });
+    return YES;
+}
+
++ (void)requestTrackingAuthorizationWithCompletionHandler:(void (^)(NSUInteger status))completion {
+    Class appTrackingClass = [self appTrackingManager];
+    if (appTrackingClass == nil) {
+        return;
+    }
+    NSString *requestAuthorization = [NSString adtJoin:
+                                      @"request",
+                                      @"tracking",
+                                      @"authorization",
+                                      @"with",
+                                      @"completion",
+                                      @"handler:", nil];
+    SEL selRequestAuthorization = NSSelectorFromString(requestAuthorization);
+    if (![appTrackingClass respondsToSelector:selRequestAuthorization]) {
+        return;
+    }
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunguarded-availability"
+#pragma clang diagnostic ignored "-Warc-performSelector-leaks"
+    [appTrackingClass performSelector:selRequestAuthorization withObject:completion];
+#pragma clang diagnostic pop
+}
+
++ (NSString *)bundleIdentifier {
+    return [[NSBundle mainBundle] bundleIdentifier];
+}
+
++ (NSString *)buildNumber {
+    NSDictionary *infoDictionary = [[NSBundle mainBundle] infoDictionary];
+    return [infoDictionary objectForKey:@"CFBundleVersion"];
+}
+
++ (NSString *)versionNumber {
+    NSDictionary *infoDictionary = [[NSBundle mainBundle] infoDictionary];
+    return [infoDictionary objectForKey:@"CFBundleShortVersionString"];
+}
+
++ (NSString *)osVersion {
+    Class class = NSClassFromString([NSString adtJoin:@"U", @"I", @"device", nil]);
+    if (class == nil) {
+        return nil;
+    }
+    NSString *keyCd = [NSString adtJoin:@"current", @"device", nil];
+    SEL selCd = NSSelectorFromString(keyCd);
+    if (![class respondsToSelector:selCd]) {
+        return nil;
+    }
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Warc-performSelector-leaks"
+    id dev = [class performSelector:selCd];
+#pragma clang diagnostic pop
+    NSString *keySv = [NSString adtJoin:@"system", @"version", nil];
+    SEL selSv = NSSelectorFromString(keySv);
+    if (![dev respondsToSelector:selSv]) {
+        return nil;
+    }
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Warc-performSelector-leaks"
+    return (NSString *)[dev performSelector:selSv];
+#pragma clang diagnostic pop
+}
+
++ (NSString *)installedAt {
+    id<ADTLogger> logger = ADTAdtraceFactory.logger;
+    NSDate *installTime = nil;
+    NSString *pathToCheck = nil;
+    NSSearchPathDirectory folderToCheck = NSDocumentDirectory;
+#if TARGET_OS_TV
+    folderToCheck = NSCachesDirectory;
+#endif
+    @try {
+        NSArray *paths = NSSearchPathForDirectoriesInDomains(folderToCheck, NSUserDomainMask, YES);
+        if (paths.count > 0) {
+            pathToCheck = [paths objectAtIndex:0];
+        } else {
+            pathToCheck = [[NSBundle mainBundle] bundlePath];
+        }
+
+        __autoreleasing NSError *error;
+        __autoreleasing NSError **errorPointer = &error;
+        Class class = NSClassFromString([NSString adtJoin:@"N", @"S", @"file", @"manager", nil]);
+        if (class != nil) {
+            NSString *keyDm = [NSString adtJoin:@"default", @"manager", nil];
+            SEL selDm = NSSelectorFromString(keyDm);
+            if ([class respondsToSelector:selDm]) {
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Warc-performSelector-leaks"
+                id man = [class performSelector:selDm];
+#pragma clang diagnostic pop
+                NSString *keyChk = [NSString stringWithFormat:@"%@%@",
+                        [NSString adtJoin:@"attributes", @"of", @"item", @"at", @"path", @":", nil],
+                        [NSString adtJoin:@"error", @":", nil]];
+                SEL selChk = NSSelectorFromString(keyChk);
+                if ([man respondsToSelector:selChk]) {
+                    NSInvocation *inv = [NSInvocation invocationWithMethodSignature:[man methodSignatureForSelector:selChk]];
+                    [inv setSelector:selChk];
+                    [inv setTarget:man];
+                    [inv setArgument:&pathToCheck atIndex:2];
+                    [inv setArgument:&errorPointer atIndex:3];
+                    [inv invoke];
+                    NSMutableDictionary * __unsafe_unretained tmpResult;
+                    [inv getReturnValue:&tmpResult];
+                    NSMutableDictionary *result = tmpResult;
+                    CFStringRef *indexRef = dlsym(RTLD_SELF, [[NSString adtJoin:@"N", @"S", @"file", @"creation", @"date", nil] UTF8String]);
+                    NSString *ref = (__bridge_transfer id) *indexRef;
+                    installTime = result[ref];
+                }
+            }
+        }
+    } @catch (NSException *exception) {
+        [logger error:@"Error while trying to check install date. Exception: %@", exception];
+        return nil;
+    }
+
+    return [ADTUtil formatDate:installTime];
+}
+
++ (NSString *)generateRandomUuid {
+    CFUUIDRef newUniqueId = CFUUIDCreate(kCFAllocatorDefault);
+    CFStringRef stringRef = CFUUIDCreateString(kCFAllocatorDefault, newUniqueId);
+    NSString *uuidString = (__bridge_transfer NSString*)stringRef;
+    NSString *lowerUuid = [uuidString lowercaseString];
+    CFRelease(newUniqueId);
+    return lowerUuid;
+}
+
++ (NSString *)getPersistedRandomToken {
+    NSMutableDictionary *keychainItem = [[NSMutableDictionary alloc] init];
+    keychainItem[(__bridge id)kSecAttrAccessible] = (__bridge id)kSecAttrAccessibleAfterFirstUnlock;
+    keychainItem[(__bridge id)kSecClass] = (__bridge id)kSecClassGenericPassword;
+    keychainItem[(__bridge id)kSecAttrAccount] = @"adtrace_uuid";
+    keychainItem[(__bridge id)kSecAttrService] = @"deviceInfo";
+    if (!keychainItem) {
+        return nil;
+    }
+
+    keychainItem[(__bridge id)kSecReturnData] = (__bridge id)kCFBooleanTrue;
+    keychainItem[(__bridge id)kSecReturnAttributes] = (__bridge id)kCFBooleanTrue;
+    CFDictionaryRef result = nil;
+    OSStatus status = SecItemCopyMatching((__bridge CFDictionaryRef)keychainItem, (CFTypeRef *)&result);
+    if (status != noErr) {
+        return nil;
+    }
+
+    NSDictionary *resultDict = (__bridge_transfer NSDictionary *)result;
+    NSData *data = resultDict[(__bridge id)kSecValueData];
+    if (!data) {
+        return nil;
+    }
+
+    return [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
+}
+
++ (BOOL)setPersistedRandomToken:(NSString *)randomToken {
+    NSMutableDictionary *keychainItem = [[NSMutableDictionary alloc] init];
+    keychainItem[(__bridge id)kSecAttrAccessible] = (__bridge id)kSecAttrAccessibleAfterFirstUnlock;
+    keychainItem[(__bridge id)kSecClass] = (__bridge id)kSecClassGenericPassword;
+    keychainItem[(__bridge id)kSecAttrAccount] = @"adtrace_uuid";
+    keychainItem[(__bridge id)kSecAttrService] = @"deviceInfo";
+    keychainItem[(__bridge id)kSecValueData] = [randomToken dataUsingEncoding:NSUTF8StringEncoding];
+    OSStatus status = SecItemAdd((__bridge CFDictionaryRef)keychainItem, NULL);
+    if (status != noErr) {
+        [[ADTAdtraceFactory logger] warn:@"Primary dedupe token unsuccessfully written"];
+        return NO;
+    } else {
+        NSString *persistedRandomToken = [ADTUtil getPersistedRandomToken];
+        if ([randomToken isEqualToString:persistedRandomToken]) {
+            [[ADTAdtraceFactory logger] debug:@"Primary dedupe token successfully written"];
+            return YES;
+        } else {
+            return NO;
+        }
+    }
+}
 
 @end
