@@ -77,8 +77,10 @@ We will describe the steps to integrate the AdTrace SDK into your React Native p
 First, download the library from `npm`:
 
 ```
-$ npm install react-native-adtrace --save
+$ npm install --save https://github.com/adtrace/adtrace_sdk_react_native/tree/beta
 ```
+ 
+
 
 For iOS app make sure to go to `ios` folder and install Cocoapods dependencies:
 
