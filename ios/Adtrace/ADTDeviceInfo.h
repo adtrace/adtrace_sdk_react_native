@@ -2,14 +2,16 @@
 //  ADTDeviceInfo.h
 //  adtrace
 //
-
+//  Created by Nasser Amini (@namini40) on Jun 2022.
+//  Copyright © 2022 adtrace io. All rights reserved.
+//
 
 #import <Foundation/Foundation.h>
 
 @interface ADTDeviceInfo : NSObject
 
 @property (nonatomic, copy) NSString *idForAdvertisers;
-@property (nonatomic, copy) NSString *fbAttributionId;
+@property (nonatomic, copy) NSString *fbAnonymousId;
 @property (nonatomic, assign) BOOL trackingEnabled;
 @property (nonatomic, copy) NSString *vendorId;
 @property (nonatomic, copy) NSString *clientSdk;

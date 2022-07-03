@@ -1,11 +1,3 @@
-/**
- * Sample React Native for AdTrace
- * https://github.com/facebook/react-native
- *
- * @format
- * @flow
- */
-
 import React from 'react';
 import {
   SafeAreaView,
@@ -15,6 +7,7 @@ import {
   Text,
   StatusBar,
   TouchableHighlight,
+  Platform,
 } from 'react-native';
 import {
   Header,
@@ -23,36 +16,33 @@ import {
   DebugInstructions,
   ReloadInstructions,
 } from 'react-native/Libraries/NewAppScreen';
-
-import {
-  AdTrace,
-  AdTraceEvent,
-  AdTraceConfig
-} from 'react-native-adtrace';
-
-const App: () => React$Node = () => {
-  AdTrace.getSdkVersion(function(sdkVersion) {
-    console.log("AdTrace SDK version: " + sdkVersion);
+import {AdTrace,AdTraceConfig,AdTraceEvent} from 'react-native-adtrace'
+export default function App() {
+  AdTrace.getSdkVersion(function(sdkVersion){
+    console.log('AdTrace SDK Version: ' + sdkVersion);
   });
-
-  const adtraceConfig = new AdTraceConfig("crmndgfgy6pp", AdTraceConfig.EnvironmentSandbox);
+  const adtraceConfig = new AdTraceConfig("caedfdq89t1t",AdTraceConfig.EnvironmentSandbox);
   adtraceConfig.setLogLevel(AdTraceConfig.LogLevelVerbose);
-  // adtraceConfig.setEnableInstalledApps(true);
-  // adtraceConfig.setDelayStart(6.0);
+  // adtraceConfig.setDelayStart(5.0);
   // adtraceConfig.setEventBufferingEnabled(true);
-  // adtraceConfig.setUserAgent("Custom AdTrace User Agent");
+  // adtraceConfig.setUserAgent("Custom User Agent");
+  // adtraceConfig.deactivateSKAdNetworkHandling();
+  // adtraceConfig.setNeedsCost(true);
 
   adtraceConfig.setAttributionCallbackListener(function(attribution) {
     console.log("Attribution callback received");
-    console.log("Tracker token = " + attribution.trackerToken);
-    console.log("Tracker name = " + attribution.trackerName);
-    console.log("Network = " + attribution.network);
-    console.log("Campaign = " + attribution.campaign);
-    console.log("Adgroup = " + attribution.adgroup);
-    console.log("Creative = " + attribution.creative);
-    console.log("Click label = " + attribution.clickLabel);
-    console.log("Adid = " + attribution.adid);
-  });
+    console.log("Tracker Token: " + attribution.trackerToken);
+    console.log("Tracker name: " + attribution.trackerName);
+    console.log("Network: " + attribution.network);
+    console.log("Compaign: " + attribution.campaign);
+    console.log("Adgroup: " + attribution.adgroup);
+    console.log("Creative: " + attribution.creative);
+    console.log("Click label: " + attribution.clickLabel);
+    console.log("Adid: " + attribution.adid);
+    console.log("Cost type: " + attribution.costType);
+    console.log("Cost amount: " + attribution.costAmount);
+    console.log("Cost currency: " + attribution.costCurrency);
+   });
 
   adtraceConfig.setEventTrackingSucceededCallbackListener(function(eventSuccess) {
     console.log("Event tracking succeeded callback received");
@@ -61,7 +51,7 @@ const App: () => React$Node = () => {
     console.log("Adid: " + eventSuccess.adid);
     console.log("Event token: " + eventSuccess.eventToken);
     console.log("Callback Id: " + eventSuccess.callbackId);
-    console.log("JSON response: " + eventSuccess.jsonResponse );
+    console.log("JSON response: " + eventSuccess.jsonResponse);
   });
 
   adtraceConfig.setEventTrackingFailedCallbackListener(function(eventFailed) {
@@ -97,6 +87,11 @@ const App: () => React$Node = () => {
     console.log("URL: " + uri.uri);
   });
 
+  adtraceConfig.setConversionValueUpdatedCallbackListener(function(conversionValue) {
+    console.log("Conversion value updated callback recveived");
+    console.log("Conversion value: " + conversionValue.conversionValue);
+  });
+
   AdTrace.addSessionCallbackParameter("scpk1", "scpv1");
   AdTrace.addSessionCallbackParameter("scpk2", "scpv2");
 
@@ -108,6 +103,28 @@ const App: () => React$Node = () => {
 
   // AdTrace.resetSessionCallbackParameters();
   // AdTrace.resetSessionPartnerParameters();
+
+  // AdTrace.requestTrackingAuthorizationWithCompletionHandler(function(status) {
+  //   console.log("Authorization status update");
+  //   switch (status) {
+  //       case 0:
+  //           // ATTrackingManagerAuthorizationStatusNotDetermined case
+  //           console.log("Authorization status: ATTrackingManagerAuthorizationStatusNotDetermined");
+  //           break;
+  //       case 1:
+  //           // ATTrackingManagerAuthorizationStatusRestricted case
+  //           console.log("Authorization status: ATTrackingManagerAuthorizationStatusRestricted");
+  //           break;
+  //       case 2:
+  //           // ATTrackingManagerAuthorizationStatusDenied case
+  //           console.log("Authorization status: ATTrackingManagerAuthorizationStatusDenied");
+  //           break;
+  //       case 3:
+  //           // ATTrackingManagerAuthorizationStatusAuthorized case
+  //           console.log("Authorization status: ATTrackingManagerAuthorizationStatusAuthorized");
+  //           break;
+  //   }
+  // });
 
   AdTrace.create(adtraceConfig);
 
@@ -130,27 +147,32 @@ const App: () => React$Node = () => {
   }
 
   function _onPress_trackSimpleEvent() {
-    var adtraceEvent = new AdTraceEvent("c1848s");
+    var adtraceEvent = new AdTraceEvent("udugd8");
     AdTrace.trackEvent(adtraceEvent);
+    AdTrace.updateConversionValue(6);
+    AdTrace.getAppTrackingAuthorizationStatus(function(status) {
+      console.log("Authorization status = " + status);
+    });
   }
 
   function _onPress_trackRevenueEvent() {
-    var adtraceEvent = new AdTraceEvent("0n3qle");
+    var adtraceEvent = new AdTraceEvent("udugd8");
     adtraceEvent.setRevenue(10.0, "USD");
+    adtraceEvent.setTransactionId("DUMMY_TRANSACTION_ID");
     AdTrace.trackEvent(adtraceEvent);
   }
 
   function _onPress_trackCallbackEvent() {
-    var adtraceEvent = new AdTraceEvent("2ph6cs");
+    var adtraceEvent = new AdTraceEvent("udugd8");
     adtraceEvent.addCallbackParameter("DUMMY_KEY_1", "DUMMY_VALUE_1");
     adtraceEvent.addCallbackParameter("DUMMY_KEY_2", "DUMMY_VALUE_2");
     AdTrace.trackEvent(adtraceEvent);
   }
 
-  function _onPress_trackPartnerEvent() {
-    var adtraceEvent = new AdTraceEvent("1zdqzj");
-    adtraceEvent.addPartnerParameter("DUMMY_KEY_1", "DUMMY_VALUE_1");
-    adtraceEvent.addPartnerParameter("DUMMY_KEY_2", "DUMMY_VALUE_2");
+  function _onPress_trackEventParameters() {
+    var adtraceEvent = new AdTraceEvent("ft4r6f");
+    adtraceEvent.addEventParameter("DUMMY_KEY_1", "DUMMY_VALUE_1");
+    adtraceEvent.addEventParameter("DUMMY_KEY_2", "DUMMY_VALUE_2");
     AdTrace.trackEvent(adtraceEvent);
   }
 
@@ -181,10 +203,6 @@ const App: () => React$Node = () => {
 
     AdTrace.getGoogleAdId((googleAdId) => {
       console.log("Google Ad Id = " + googleAdId);
-    });
-
-    AdTrace.getAmazonAdId((amazonAdId) => {
-      console.log("Amazon Ad Id = " + amazonAdId);
     });
 
     AdTrace.getAttribution((attribution) => {
@@ -230,8 +248,8 @@ const App: () => React$Node = () => {
         </TouchableHighlight>
         <TouchableHighlight
           style={styles.button}
-          onPress={_onPress_trackPartnerEvent}>
-          <Text>Track Partner Event</Text>
+          onPress={_onPress_trackEventParameters}>
+          <Text>Track Event with Parameters</Text>
         </TouchableHighlight>
         <TouchableHighlight
           style={styles.button}
@@ -321,4 +339,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default App;
+ 

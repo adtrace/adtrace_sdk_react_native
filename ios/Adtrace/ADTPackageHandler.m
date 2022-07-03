@@ -2,15 +2,18 @@
 //  ADTPackageHandler.m
 //  Adtrace
 //
+//  Created by Nasser Amini (@namini40) on Jun 2022.
+//  Copyright © 2022 adtrace io. All rights reserved.
+//
 
-
-#import "ADTRequestHandler.h"
+#import "ADTPackageHandler.h"
 #import "ADTActivityPackage.h"
 #import "ADTLogger.h"
 #import "ADTUtil.h"
 #import "ADTAdtraceFactory.h"
 #import "ADTBackoffStrategy.h"
 #import "ADTPackageBuilder.h"
+#import "ADTUserDefaults.h"
 
 static NSString   * const kPackageQueueFilename = @"AdtraceIoPackageQueue";
 static const char * const kInternalQueueName    = "io.adtrace.PackageQueue";
@@ -21,43 +24,41 @@ static const char * const kInternalQueueName    = "io.adtrace.PackageQueue";
 
 @property (nonatomic, strong) dispatch_queue_t internalQueue;
 @property (nonatomic, strong) dispatch_semaphore_t sendingSemaphore;
-@property (nonatomic, strong) id<ADTRequestHandler> requestHandler;
+@property (nonatomic, strong) ADTRequestHandler *requestHandler;
 @property (nonatomic, strong) NSMutableArray *packageQueue;
-@property (nonatomic, strong) ADTBackoffStrategy * backoffStrategy;
+@property (nonatomic, strong) ADTBackoffStrategy *backoffStrategy;
+@property (nonatomic, strong) ADTBackoffStrategy *backoffStrategyForInstallSession;
 @property (nonatomic, assign) BOOL paused;
 @property (nonatomic, weak) id<ADTActivityHandler> activityHandler;
 @property (nonatomic, weak) id<ADTLogger> logger;
-@property (nonatomic, copy) NSString *basePath;
-@property (nonatomic, copy) NSString *gdprPath;
+@property (nonatomic, assign) NSInteger lastPackageRetriesCount;
 
 @end
 
 #pragma mark -
 @implementation ADTPackageHandler
 
-+ (id<ADTPackageHandler>)handlerWithActivityHandler:(id<ADTActivityHandler>)activityHandler
-                                      startsSending:(BOOL)startsSending
-{
-    return [[ADTPackageHandler alloc] initWithActivityHandler:activityHandler startsSending:startsSending];
-}
-
 - (id)initWithActivityHandler:(id<ADTActivityHandler>)activityHandler
                 startsSending:(BOOL)startsSending
+                    userAgent:(NSString *)userAgent
+                  urlStrategy:(ADTUrlStrategy *)urlStrategy
 {
     self = [super init];
     if (self == nil) return nil;
 
     self.internalQueue = dispatch_queue_create(kInternalQueueName, DISPATCH_QUEUE_SERIAL);
     self.backoffStrategy = [ADTAdtraceFactory packageHandlerBackoffStrategy];
-    self.basePath = [activityHandler getBasePath];
-    self.gdprPath = [activityHandler getGdprPath];
+    self.backoffStrategyForInstallSession = [ADTAdtraceFactory installSessionBackoffStrategy];
+    self.lastPackageRetriesCount = 0;
 
     [ADTUtil launchInQueue:self.internalQueue
                 selfInject:self
                      block:^(ADTPackageHandler * selfI) {
                          [selfI initI:selfI
                      activityHandler:activityHandler
-                       startsSending:startsSending];
+                       startsSending:startsSending
+                          userAgent:userAgent
+                          urlStrategy:urlStrategy];
                      }];
 
     return self;
@@ -79,7 +80,28 @@ static const char * const kInternalQueueName    = "io.adtrace.PackageQueue";
                      }];
 }
 
-- (void)sendNextPackage:(ADTResponseData *)responseData{
+- (void)responseCallback:(ADTResponseData *)responseData {
+    if (responseData.jsonResponse) {
+        [self.logger debug:@"Got JSON response with message: %@", responseData.message];
+    } else {
+        [self.logger error:@"Could not get JSON response with message: %@", responseData.message];
+    }
+    // Check if any package response contains information that user has opted out.
+    // If yes, disable SDK and flush any potentially stored packages that happened afterwards.
+    if (responseData.trackingState == ADTTrackingStateOptedOut) {
+        [self.activityHandler setTrackingStateOptedOut];
+        return;
+    }
+    if (responseData.jsonResponse == nil) {
+        [self closeFirstPackage:responseData];
+    } else {
+        [self sendNextPackage:responseData];
+    }
+}
+
+- (void)sendNextPackage:(ADTResponseData *)responseData {
+    self.lastPackageRetriesCount = 0;
+
     [ADTUtil launchInQueue:self.internalQueue
                 selfInject:self
                      block:^(ADTPackageHandler* selfI) {
@@ -90,29 +112,31 @@ static const char * const kInternalQueueName    = "io.adtrace.PackageQueue";
 }
 
 - (void)closeFirstPackage:(ADTResponseData *)responseData
-          activityPackage:(ADTActivityPackage *)activityPackage
 {
     responseData.willRetry = YES;
     [self.activityHandler finishedTracking:responseData];
 
-    dispatch_block_t work = ^{
-        [self.logger verbose:@"Package handler can send"];
-        dispatch_semaphore_signal(self.sendingSemaphore);
+    self.lastPackageRetriesCount++;
 
-        [self sendFirstPackage];
-    };
-
-    if (activityPackage == nil) {
-        work();
-        return;
+    NSTimeInterval waitTime;
+    if (responseData.activityKind == ADTActivityKindSession && [ADTUserDefaults getInstallTracked] == NO) {
+        waitTime = [ADTUtil waitingTime:self.lastPackageRetriesCount backoffStrategy:self.backoffStrategyForInstallSession];
+    } else {
+        waitTime = [ADTUtil waitingTime:self.lastPackageRetriesCount backoffStrategy:self.backoffStrategy];
     }
+    NSString *waitTimeFormatted = [ADTUtil secondsNumberFormat:waitTime];
 
-    NSInteger retries = [activityPackage increaseRetries];
-    NSTimeInterval waitTime = [ADTUtil waitingTime:retries backoffStrategy:self.backoffStrategy];
-    NSString * waitTimeFormatted = [ADTUtil secondsNumberFormat:waitTime];
+    [self.logger verbose:@"Waiting for %@ seconds before retrying the %d time", waitTimeFormatted, self.lastPackageRetriesCount];
+    dispatch_after
+        (dispatch_time(DISPATCH_TIME_NOW, (int64_t)(waitTime * NSEC_PER_SEC)),
+         self.internalQueue,
+         ^{
+            [self.logger verbose:@"Package handler finished waiting"];
 
-    [self.logger verbose:@"Waiting for %@ seconds before retrying the %d time", waitTimeFormatted, retries];
-    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(waitTime * NSEC_PER_SEC)), self.internalQueue, work);
+            dispatch_semaphore_signal(self.sendingSemaphore);
+
+            [self sendFirstPackage];
+        });
 }
 
 - (void)pauseSending {
@@ -141,21 +165,10 @@ static const char * const kInternalQueueName    = "io.adtrace.PackageQueue";
     }];
 }
 
-- (NSString *)getBasePath {
-    return _basePath;
-}
-
-- (NSString *)getGdprPath {
-    return _gdprPath;
-}
-
 - (void)teardown {
     [ADTAdtraceFactory.logger verbose:@"ADTPackageHandler teardown"];
     if (self.sendingSemaphore != nil) {
         dispatch_semaphore_signal(self.sendingSemaphore);
-    }
-    if (self.requestHandler != nil) {
-        [self.requestHandler teardown];
     }
     [self teardownPackageQueueS];
     self.internalQueue = nil;
@@ -175,14 +188,20 @@ static const char * const kInternalQueueName    = "io.adtrace.PackageQueue";
 }
 
 #pragma mark - internal
-- (void)initI:(ADTPackageHandler *)selfI
-activityHandler:(id<ADTActivityHandler>)activityHandler
-startsSending:(BOOL)startsSending
+- (void)
+    initI:(ADTPackageHandler *)selfI
+        activityHandler:(id<ADTActivityHandler>)activityHandler
+        startsSending:(BOOL)startsSending
+        userAgent:(NSString *)userAgent
+        urlStrategy:(ADTUrlStrategy *)urlStrategy
 {
     selfI.activityHandler = activityHandler;
     selfI.paused = !startsSending;
-    selfI.requestHandler = [ADTAdtraceFactory requestHandlerForPackageHandler:selfI
-                                                          andActivityHandler:selfI.activityHandler];
+    selfI.requestHandler = [[ADTRequestHandler alloc]
+                                initWithResponseCallback:self
+                                urlStrategy:urlStrategy
+                                userAgent:userAgent
+                                requestTimeout:[ADTAdtraceFactory requestTimeout]];
     selfI.logger = ADTAdtraceFactory.logger;
     selfI.sendingSemaphore = dispatch_semaphore_create(1);
     [selfI readPackageQueueI:selfI];
@@ -192,6 +211,7 @@ startsSending:(BOOL)startsSending
      package:(ADTActivityPackage *)newPackage
 {
     [selfI.packageQueue addObject:newPackage];
+
     [selfI.logger debug:@"Added package %d (%@)", selfI.packageQueue.count, newPackage];
     [selfI.logger verbose:@"%@", newPackage.extendedString];
 
@@ -220,8 +240,18 @@ startsSending:(BOOL)startsSending
         return;
     }
 
-    [selfI.requestHandler sendPackage:activityPackage
-                            queueSize:queueSize - 1];
+    NSMutableDictionary *sendingParameters = [NSMutableDictionary dictionaryWithCapacity:2];
+    if (queueSize - 1 > 0) {
+        [ADTPackageBuilder parameters:sendingParameters
+                               setInt:(int)queueSize - 1
+                               forKey:@"queue_size"];
+    }
+    [ADTPackageBuilder parameters:sendingParameters
+                        setString:[ADTUtil formatSeconds1970:[NSDate.date timeIntervalSince1970]]
+                           forKey:@"sent_at"];
+
+    [selfI.requestHandler sendPackageByPOST:activityPackage
+                          sendingParameters:[sendingParameters copy]];
 }
 
 - (void)sendNextI:(ADTPackageHandler *)selfI {
@@ -272,24 +302,29 @@ startsSending:(BOOL)startsSending
 #pragma mark - private
 - (void)readPackageQueueI:(ADTPackageHandler *)selfI {
     [NSKeyedUnarchiver setClass:[ADTActivityPackage class] forClassName:@"AIActivityPackage"];
-
-    id object = [ADTUtil readObject:kPackageQueueFilename objectName:@"Package queue" class:[NSArray class]];
-
+    
+    id object = [ADTUtil readObject:kPackageQueueFilename
+                         objectName:@"Package queue"
+                              class:[NSArray class]
+                         syncObject:[ADTPackageHandler class]];
+    
     if (object != nil) {
         selfI.packageQueue = object;
     } else {
         selfI.packageQueue = [NSMutableArray array];
     }
+
 }
 
 - (void)writePackageQueueS:(ADTPackageHandler *)selfS {
-    @synchronized ([ADTPackageHandler class]) {
-        if (selfS.packageQueue == nil) {
-            return;
-        }
-
-        [ADTUtil writeObject:selfS.packageQueue fileName:kPackageQueueFilename objectName:@"Package queue"];
+    if (selfS.packageQueue == nil) {
+        return;
     }
+    
+    [ADTUtil writeObject:selfS.packageQueue
+                fileName:kPackageQueueFilename
+              objectName:@"Package queue"
+              syncObject:[ADTPackageHandler class]];
 }
 
 - (void)teardownPackageQueueS {
@@ -297,7 +332,7 @@ startsSending:(BOOL)startsSending
         if (self.packageQueue == nil) {
             return;
         }
-
+        
         [self.packageQueue removeAllObjects];
         self.packageQueue = nil;
     }

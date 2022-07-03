@@ -2,6 +2,9 @@
 //  ADTEvent.h
 //  adtrace
 //
+//  Created by Nasser Amini (@namini40) on Jun 2022.
+//  Copyright © 2022 adtrace io. All rights reserved.
+//
 
 #import <Foundation/Foundation.h>
 
@@ -59,7 +62,7 @@
  * @brief Create Event object with event token.
  *
  * @param eventToken Event token that is created in the dashboard
- *                   at http://adtrace.com and should be six characters long.
+ *                   at https://adtrace.io and should be six characters long.
  */
 + (nullable ADTEvent *)eventWithEventToken:(nonnull NSString *)eventToken;
 
@@ -71,7 +74,7 @@
  * @param key String key in the callback URL.
  * @param value String value of the key in the Callback URL.
  *
- * @note In your dashboard at http://adtrace.com you can assign a callback URL to each
+ * @note In your dashboard at https://adtrace.io you can assign a callback URL to each
  *       event type. That URL will get called every time the event is triggered. On
  *       top of that you can add callback parameters to the following method that
  *       will be forwarded to these callbacks.
@@ -130,7 +133,7 @@
  * @param transactionId The identifier used to validate the receipt and to avoid duplicate revenue events.
  *
  * @note This method is obsolete and should not be used.
- *       For more information, visit: https://github.com/adtrace/ios_purchase_sdk
+ *       For more information, visit: https://github.com/adtrace
  */
 - (void)setReceipt:(nonnull NSData *)receipt transactionId:(nonnull NSString *)transactionId;
 

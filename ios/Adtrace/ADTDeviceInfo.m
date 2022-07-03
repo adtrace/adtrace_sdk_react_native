@@ -2,7 +2,9 @@
 //  ADTDeviceInfo.m
 //  adtrace
 //
-
+//  Created by Nasser Amini (@namini40) on Jun 2022.
+//  Copyright © 2022 adtrace io. All rights reserved.
+//
 
 #import "ADTDeviceInfo.h"
 #import "UIDevice+ADTAdditions.h"
@@ -12,7 +14,7 @@
 #import "NSData+ADTAdditions.h"
 #import "ADTReachability.h"
 
-#if !TARGET_OS_TV
+#if !TARGET_OS_TV && !TARGET_OS_MACCATALYST
 #import <CoreTelephony/CTCarrier.h>
 #import <CoreTelephony/CTTelephonyNetworkInfo.h>
 #endif
@@ -32,18 +34,18 @@
     NSBundle *bundle = NSBundle.mainBundle;
     NSDictionary *infoDictionary = bundle.infoDictionary;
 
-    self.trackingEnabled  = UIDevice.currentDevice.adjTrackingEnabled;
-    self.idForAdvertisers = UIDevice.currentDevice.adjIdForAdvertisers;
-    self.fbAttributionId  = UIDevice.currentDevice.adjFbAttributionId;
-    self.vendorId         = UIDevice.currentDevice.adjVendorId;
+    self.trackingEnabled  = UIDevice.currentDevice.adtTrackingEnabled;
+    self.idForAdvertisers = UIDevice.currentDevice.adtIdForAdvertisers;
+    self.fbAnonymousId    = UIDevice.currentDevice.adtFbAnonymousId;
+    self.vendorId         = UIDevice.currentDevice.adtVendorId;
     self.bundeIdentifier  = [infoDictionary objectForKey:(NSString *)kCFBundleIdentifierKey];
     self.bundleVersion    = [infoDictionary objectForKey:(NSString *)kCFBundleVersionKey];
     self.bundleShortVersion = [bundle objectForInfoDictionaryKey:@"CFBundleShortVersionString"];
     self.languageCode     = [locale objectForKey:NSLocaleLanguageCode];
     self.countryCode      = [locale objectForKey:NSLocaleCountryCode];
     self.osName           = @"ios";
-    self.deviceType       = device.adjDeviceType;
-    self.deviceName       = device.adjDeviceName;
+    self.deviceType       = device.adtDeviceType;
+    self.deviceName       = device.adtDeviceName;
     self.systemVersion    = device.systemVersion;
     self.machineModel     = [ADTSystemProfile machineModel];
     self.cpuSubtype       = [ADTSystemProfile cpuSubtype];
@@ -71,7 +73,7 @@
         NSData * installReceiptData = [NSData dataWithContentsOfURL:installReceiptLocation];
         if (installReceiptData == nil) return;
 
-        self.installReceiptBase64 = [installReceiptData adjEncodeBase64];
+        self.installReceiptBase64 = [installReceiptData adtEncodeBase64];
     } @catch (NSException *exception) {
     }
 }

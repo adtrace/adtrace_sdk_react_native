@@ -6,11 +6,11 @@ Pod::Spec.new do |s|
   s.name           = package['name']
   s.version        = package['version']
   s.summary        = package['description']
-  s.description    = package['description']
+  s.description    = package['name']
   s.license        = package['license']
   s.author         = package['author']
   s.homepage       = package['homepage']
-  s.source         = { :git => 'https://github.com/adtrace/react_native_sdk', :tag => s.version }
+  s.source         = { :git => 'git://github.com/adtrace/adtrace_sdk_react_native.git', :tag => s.version }
 
   s.requires_arc   = true
   s.platform       = :ios, '8.0'
@@ -18,6 +18,6 @@ Pod::Spec.new do |s|
   s.preserve_paths = 'LICENSE', 'README.md', 'package.json', 'index.js'
   s.source_files   = 'ios/*.{h,m}'
 
-  s.dependency 'Adtrace', '~> 1.0.1'
+  s.dependency 'Adtrace-sdk', '2.1.0'
   s.dependency 'React'
 end

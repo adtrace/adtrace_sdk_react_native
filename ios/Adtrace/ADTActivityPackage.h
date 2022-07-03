@@ -2,7 +2,9 @@
 //  ADTActivityPackage.h
 //  Adtrace
 //
-
+//  Created by Nasser Amini (@namini40) on Jun 2022.
+//  Copyright © 2022 adtrace io. All rights reserved.
+//
 
 #import "ADTActivityKind.h"
 
@@ -13,8 +15,6 @@
 @property (nonatomic, copy) NSString *path;
 
 @property (nonatomic, copy) NSString *clientSdk;
-
-@property (nonatomic, assign) NSInteger retries;
 
 @property (nonatomic, strong) NSMutableDictionary *parameters;
 
@@ -33,9 +33,5 @@
 - (NSString *)successMessage;
 
 - (NSString *)failureMessage;
-
-- (NSInteger)getRetries;
-
-- (NSInteger)increaseRetries;
 
 @end

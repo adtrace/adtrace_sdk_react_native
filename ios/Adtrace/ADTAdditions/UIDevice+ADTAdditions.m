@@ -2,44 +2,104 @@
 //  UIDevice+ADTAdditions.m
 //  Adtrace
 //
-
+//  Created by Nasser Amini (@namini40) on Jun 2022.
+//  Copyright © 2022 adtrace io. All rights reserved.
+//
 
 #import "UIDevice+ADTAdditions.h"
 #import "NSString+ADTAdditions.h"
 
 #import <sys/sysctl.h>
 
-#if !ADTUST_NO_IDFA
+#if !ADTRACE_NO_IDFA
 #import <AdSupport/ASIdentifierManager.h>
 #endif
 
-#if !ADTUST_NO_IAD && !TARGET_OS_TV
+#if !ADTRACE_NO_IAD && !TARGET_OS_TV
 #import <iAd/iAd.h>
 #endif
 
+#import "ADTUtil.h"
+#import "ADTSystemProfile.h"
 #import "ADTAdtraceFactory.h"
 
 @implementation UIDevice(ADTAdditions)
 
-- (BOOL)adtTrackingEnabled {
-#if ADTUST_NO_IDFA
-    return NO;
-#else
-    // return [[ASIdentifierManager sharedManager] isAdvertisingTrackingEnabled];
+- (Class)adSupportManager {
     NSString *className = [NSString adtJoin:@"A", @"S", @"identifier", @"manager", nil];
     Class class = NSClassFromString(className);
-    if (class == nil) {
+    
+    return class;
+}
+
+- (Class)appTrackingManager {
+    NSString *className = [NSString adtJoin:@"A", @"T", @"tracking", @"manager", nil];
+    Class class = NSClassFromString(className);
+    
+    return class;
+}
+
+- (int)adtATTStatus {
+    Class appTrackingClass = [self appTrackingManager];
+    if (appTrackingClass != nil) {
+        NSString *keyAuthorization = [NSString adtJoin:@"tracking", @"authorization", @"status", nil];
+        SEL selAuthorization = NSSelectorFromString(keyAuthorization);
+        if ([appTrackingClass respondsToSelector:selAuthorization]) {
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunguarded-availability"
+#pragma clang diagnostic ignored "-Warc-performSelector-leaks"
+            return (int)[appTrackingClass performSelector:selAuthorization];
+#pragma clang diagnostic pop
+        }
+    }
+    
+    return -1;
+}
+
+- (void)requestTrackingAuthorizationWithCompletionHandler:(void (^)(NSUInteger status))completion
+{
+    Class appTrackingClass = [self appTrackingManager];
+    if (appTrackingClass == nil) {
+        return;
+    }
+    NSString *requestAuthorization = [NSString adtJoin:
+                                      @"request",
+                                      @"tracking",
+                                      @"authorization",
+                                      @"with",
+                                      @"completion",
+                                      @"handler:", nil];
+    SEL selRequestAuthorization = NSSelectorFromString(requestAuthorization);
+    if (![appTrackingClass respondsToSelector:selRequestAuthorization]) {
+        return;
+    }
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunguarded-availability"
+#pragma clang diagnostic ignored "-Warc-performSelector-leaks"
+    [appTrackingClass performSelector:selRequestAuthorization withObject:completion];
+#pragma clang diagnostic pop
+}
+
+- (BOOL)adtTrackingEnabled {
+#if ADTRACE_NO_IDFA
+    return NO;
+#else
+    
+//     return [[ASIdentifierManager sharedManager] isAdvertisingTrackingEnabled];
+    Class adSupportClass = [self adSupportManager];
+    if (adSupportClass == nil) {
+        return NO;
+    }
+
+    NSString *keyManager = [NSString adtJoin:@"shared", @"manager", nil];
+    SEL selManager = NSSelectorFromString(keyManager);
+    if (![adSupportClass respondsToSelector:selManager]) {
         return NO;
     }
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Warc-performSelector-leaks"
-    NSString *keyManager = [NSString adtJoin:@"shared", @"manager", nil];
-    SEL selManager = NSSelectorFromString(keyManager);
-    if (![class respondsToSelector:selManager]) {
-        return NO;
-    }
-    id manager = [class performSelector:selManager];
-
+    id manager = [adSupportClass performSelector:selManager];
+    
     NSString *keyEnabled = [NSString adtJoin:@"is", @"advertising", @"tracking", @"enabled", nil];
     SEL selEnabled = NSSelectorFromString(keyEnabled);
     if (![manager respondsToSelector:selEnabled]) {
@@ -52,13 +112,12 @@
 }
 
 - (NSString *)adtIdForAdvertisers {
-#if ADTUST_NO_IDFA
+#if ADTRACE_NO_IDFA
     return @"";
 #else
     // return [[[ASIdentifierManager sharedManager] advertisingIdentifier] UUIDString];
-    NSString *className = [NSString adtJoin:@"A", @"S", @"identifier", @"manager", nil];
-    Class class = NSClassFromString(className);
-    if (class == nil) {
+    Class adSupportClass = [self adSupportManager];
+    if (adSupportClass == nil) {
         return @"";
     }
 #pragma clang diagnostic push
@@ -66,10 +125,10 @@
 
     NSString *keyManager = [NSString adtJoin:@"shared", @"manager", nil];
     SEL selManager = NSSelectorFromString(keyManager);
-    if (![class respondsToSelector:selManager]) {
+    if (![adSupportClass respondsToSelector:selManager]) {
         return @"";
     }
-    id manager = [class performSelector:selManager];
+    id manager = [adSupportClass performSelector:selManager];
 
     NSString *keyIdentifier = [NSString adtJoin:@"advertising", @"identifier", nil];
     SEL selIdentifier = NSSelectorFromString(keyIdentifier);
@@ -90,19 +149,37 @@
 #endif
 }
 
-- (NSString *)adtFbAttributionId {
-#if ADTUST_NO_UIPASTEBOARD || TARGET_OS_TV
+- (NSString *)adtFbAnonymousId {
+#if TARGET_OS_TV
     return @"";
 #else
-    __block NSString *result;
-    void(^resultRetrievalBlock)(void) = ^{
-        result = [UIPasteboard pasteboardWithName:@"fb_app_attribution" create:NO].string;
-        if (result == nil) {
-            result = @"";
+    // pre FB SDK v6.0.0
+    // return [FBSDKAppEventsUtility retrievePersistedAnonymousID];
+    // post FB SDK v6.0.0
+    // return [FBSDKBasicUtility retrievePersistedAnonymousID];
+    Class class = nil;
+    SEL selGetId = NSSelectorFromString(@"retrievePersistedAnonymousID");
+    class = NSClassFromString(@"FBSDKBasicUtility");
+    if (class != nil) {
+        if ([class respondsToSelector:selGetId]) {
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Warc-performSelector-leaks"
+            NSString *fbAnonymousId = (NSString *)[class performSelector:selGetId];
+            return fbAnonymousId;
+#pragma clang diagnostic pop
         }
-    };
-    [NSThread isMainThread] ? resultRetrievalBlock() : dispatch_sync(dispatch_get_main_queue(), resultRetrievalBlock);
-    return result;
+    }
+    class = NSClassFromString(@"FBSDKAppEventsUtility");
+    if (class != nil) {
+        if ([class respondsToSelector:selGetId]) {
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Warc-performSelector-leaks"
+            NSString *fbAnonymousId = (NSString *)[class performSelector:selGetId];
+            return fbAnonymousId;
+#pragma clang diagnostic pop
+        }
+    }
+    return @"";
 #endif
 }
 
@@ -114,7 +191,7 @@
 - (NSString *)adtDeviceName {
     size_t size;
     sysctlbyname("hw.machine", NULL, &size, NULL, 0);
-    char *name = malloc(size);
+    char *name = calloc(1, size);
     sysctlbyname("hw.machine", name, &size, NULL, 0);
     NSString *machine = [NSString stringWithUTF8String:name];
     free(name);
@@ -137,15 +214,15 @@
     return @"";
 }
 
-- (void)adtSetIad:(ADTActivityHandler *)activityHandler
-      triesV3Left:(int)triesV3Left {
+- (void)adtCheckForiAd:(ADTActivityHandler *)activityHandler queue:(dispatch_queue_t)queue {
+    // if no tries for iad v3 left, stop trying
     id<ADTLogger> logger = [ADTAdtraceFactory logger];
 
-#if ADTUST_NO_IAD || TARGET_OS_TV
-    [logger debug:@"ADTUST_NO_IAD or TARGET_OS_TV set"];
+#if ADTRACE_NO_IAD || TARGET_OS_TV
+    [logger debug:@"ADTRACE_NO_IAD or TARGET_OS_TV set"];
     return;
 #else
-    [logger debug:@"ADTUST_NO_IAD or TARGET_OS_TV not set"];
+    [logger debug:@"ADTRACE_NO_IAD or TARGET_OS_TV not set"];
 
     // [[ADClient sharedClient] ...]
     Class ADClientClass = NSClassFromString(@"ADClient");
@@ -167,43 +244,115 @@
     }
 
     [logger debug:@"iAd framework successfully found in user's app"];
-    [logger debug:@"iAd with %d tries to read v3", triesV3Left];
+    
+    BOOL iAdInformationAvailable = [self setiAdWithDetails:activityHandler
+                                   adcClientSharedInstance:ADClientSharedClientInstance
+                                    queue:queue];
 
-    // if no tries for iad v3 left, stop trying
-    if (triesV3Left == 0) {
-        [logger warn:@"Reached limit number of retry for iAd v3"];
-        return;
-    }
-
-    BOOL isIadV3Avaliable = [self adtSetIadWithDetails:activityHandler
-                          ADClientSharedClientInstance:ADClientSharedClientInstance
-                                           retriesLeft:(triesV3Left - 1)];
-
-    // if iad v3 not available
-    if (!isIadV3Avaliable) {
-        [logger warn:@"iAd v3 not available"];
+    if (!iAdInformationAvailable) {
+        [logger warn:@"iAd information not available"];
         return;
     }
 #pragma clang diagnostic pop
 #endif
 }
 
-- (BOOL)adtSetIadWithDetails:(ADTActivityHandler *)activityHandler
-ADClientSharedClientInstance:(id)ADClientSharedClientInstance
-                 retriesLeft:(int)retriesLeft {
-    SEL iadDetailsSelector = NSSelectorFromString(@"requestAttributionDetailsWithBlock:");
-    if (![ADClientSharedClientInstance respondsToSelector:iadDetailsSelector]) {
+- (NSString *)adtFetchAdServicesAttribution:(NSError **)errorPtr {
+    id<ADTLogger> logger = [ADTAdtraceFactory logger];
+    
+    // [AAAttribution attributionTokenWithError:...]
+    Class attributionClass = NSClassFromString(@"AAAttribution");
+    if (attributionClass == nil) {
+        [logger warn:@"AdServices framework not found in user's app (AAAttribution not found)"];
+        
+        if (errorPtr) {
+            *errorPtr = [NSError errorWithDomain:@"io.adtrace.sdk.adServices"
+                                            code:100
+                                        userInfo:@{@"Error reason": @"AdServices framework not found"}];
+        }
+        return nil;
+    }
+    
+    SEL attributionTokenSelector = NSSelectorFromString(@"attributionTokenWithError:");
+    if (![attributionClass respondsToSelector:attributionTokenSelector]) {
+        if (errorPtr) {
+            *errorPtr = [NSError errorWithDomain:@"io.adtrace.sdk.adServices"
+                                            code:100
+                                        userInfo:@{@"Error reason": @"AdServices framework not found"}];
+        }
+        return nil;
+    }
+    
+    NSMethodSignature *attributionTokenMethodSignature = [attributionClass methodSignatureForSelector:attributionTokenSelector];
+    NSInvocation *tokenInvocation = [NSInvocation invocationWithMethodSignature:attributionTokenMethodSignature];
+    [tokenInvocation setSelector:attributionTokenSelector];
+    [tokenInvocation setTarget:attributionClass];
+    
+    __autoreleasing NSError *error;
+    __autoreleasing NSError **errorPointer = &error;
+    [tokenInvocation setArgument:&errorPointer atIndex:2];
+    [tokenInvocation invoke];
+    
+    if (error) {
+        [logger error:@"Error while retrieving AdServices attribution token: %@", error];
+        if (errorPtr) {
+            *errorPtr = error;
+        }
+        return nil;
+    }
+    
+    NSString * __unsafe_unretained tmpToken = nil;
+    [tokenInvocation getReturnValue:&tmpToken];
+    
+    NSString *token = tmpToken;
+    return token;
+}
+
+- (BOOL)setiAdWithDetails:(ADTActivityHandler *)activityHandler
+  adcClientSharedInstance:(id)ADClientSharedClientInstance
+                    queue:(dispatch_queue_t)queue {
+    SEL iAdDetailsSelector = NSSelectorFromString(@"requestAttributionDetailsWithBlock:");
+    if (![ADClientSharedClientInstance respondsToSelector:iAdDetailsSelector]) {
         return NO;
     }
-
+    
+    __block Class lock = [ADTActivityHandler class];
+    __block BOOL completed = NO;
+    
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Warc-performSelector-leaks"
-    [ADClientSharedClientInstance performSelector:iadDetailsSelector
+    [ADClientSharedClientInstance performSelector:iAdDetailsSelector
                                        withObject:^(NSDictionary *attributionDetails, NSError *error) {
-                                           [activityHandler setAttributionDetails:attributionDetails error:error retriesLeft:retriesLeft];
-                                       }];
+        
+        @synchronized (lock) {
+            if (completed) {
+                return;
+            } else {
+                completed = YES;
+            }
+        }
+        
+        [activityHandler setAttributionDetails:attributionDetails
+                                         error:error];
+    }];
 #pragma clang diagnostic pop
-
+    
+    // 5 seconds of timeout
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(5.0 * NSEC_PER_SEC)), queue, ^{
+        @synchronized (lock) {
+            if (completed) {
+                return;
+            } else {
+                completed = YES;
+            }
+        }
+        
+        [activityHandler setAttributionDetails:nil
+                                         error:[NSError errorWithDomain:@"io.adtrace.sdk.iAd"
+                                                                   code:100
+                                                               userInfo:@{@"Error reason": @"iAd request timed out"}]];
+    });
+    
     return YES;
 }
 

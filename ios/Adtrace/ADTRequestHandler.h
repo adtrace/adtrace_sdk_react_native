@@ -2,25 +2,29 @@
 //  ADTRequestHandler.h
 //  Adtrace
 //
+//  Created by Nasser Amini (@namini40) on Jun 2022.
+//  Copyright © 2022 adtrace io. All rights reserved.
+//
 
 #import <Foundation/Foundation.h>
-#import "ADTPackageHandler.h"
+#import "ADTActivityPackage.h"
+#import "ADTUrlStrategy.h"
 
-@protocol ADTRequestHandler
-
-- (id)initWithPackageHandler:(id<ADTPackageHandler>)packageHandler
-          andActivityHandler:(id<ADTActivityHandler>)activityHandler;
-
-- (void)sendPackage:(ADTActivityPackage *)activityPackage
-          queueSize:(NSUInteger)queueSize;
-
-- (void)teardown;
-
+@protocol ADTResponseCallback <NSObject>
+- (void)responseCallback:(ADTResponseData *)responseData;
 @end
 
-@interface ADTRequestHandler : NSObject <ADTRequestHandler>
+@interface ADTRequestHandler : NSObject
 
-+ (id<ADTRequestHandler>)handlerWithPackageHandler:(id<ADTPackageHandler>)packageHandler
-                                andActivityHandler:(id<ADTActivityHandler>)activityHandler;
+- (id)initWithResponseCallback:(id<ADTResponseCallback>)responseCallback
+                   urlStrategy:(ADTUrlStrategy *)urlStrategy
+                     userAgent:(NSString *)userAgent
+                requestTimeout:(double)requestTimeout;
+
+- (void)sendPackageByPOST:(ADTActivityPackage *)activityPackage
+        sendingParameters:(NSDictionary *)sendingParameters;
+
+- (void)sendPackageByGET:(ADTActivityPackage *)activityPackage
+        sendingParameters:(NSDictionary *)sendingParameters;
 
 @end

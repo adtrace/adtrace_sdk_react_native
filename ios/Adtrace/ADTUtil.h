@@ -1,8 +1,10 @@
 //
 //  ADTUtil.h
-//  Adtrace
+//  Adtrace SDK
 //
-
+//  Created by Nasser Amini (@namini40) on Jun 2022.
+//  Copyright © 2022 adtrace io. All rights reserved.
+//
 
 #import <Foundation/Foundation.h>
 
@@ -12,8 +14,10 @@
 #import "ADTResponseData.h"
 #import "ADTActivityPackage.h"
 #import "ADTBackoffStrategy.h"
+#import "ADTActivityHandler.h"
 
 typedef void (^selfInjectedBlock)(id);
+typedef void (^synchronisedBlock)(void);
 typedef void (^isInactiveInjected)(BOOL);
 
 @interface ADTUtil : NSObject
@@ -22,17 +26,18 @@ typedef void (^isInactiveInjected)(BOOL);
 
 + (id)readObject:(NSString *)fileName
       objectName:(NSString *)objectName
-           class:(Class)classToRead;
+           class:(Class)classToRead
+      syncObject:(id)syncObject;
 
 + (void)excludeFromBackup:(NSString *)filename;
 
-+ (void)launchDeepLinkMain:(NSURL *)deepLinkUrl;
++ (void)launchDeepLinkMain:(NSURL *)deepLinkUrl NS_EXTENSION_UNAVAILABLE_IOS("");
 
 + (void)launchInMainThread:(dispatch_block_t)block;
 
 + (BOOL)isMainThread;
 
-+ (BOOL)isInactive;
++ (BOOL)isInactive NS_EXTENSION_UNAVAILABLE_IOS("");
 
 + (void)launchInMainThreadWithInactive:(isInactiveInjected)isInactiveblock;
 
@@ -40,7 +45,8 @@ typedef void (^isInactiveInjected)(BOOL);
 
 + (void)writeObject:(id)object
            fileName:(NSString *)fileName
-         objectName:(NSString *)objectName;
+         objectName:(NSString *)objectName
+         syncObject:(id)syncObject;
 
 + (void)launchInMainThread:(NSObject *)receiver
                   selector:(SEL)selector
@@ -50,26 +56,10 @@ typedef void (^isInactiveInjected)(BOOL);
            selfInject:(id)selfInject
                 block:(selfInjectedBlock)block;
 
-+ (void)sendGetRequest:(NSURL *)baseUrl
-              basePath:(NSString *)basePath
-    prefixErrorMessage:(NSString *)prefixErrorMessage
-       activityPackage:(ADTActivityPackage *)activityPackage
-   responseDataHandler:(void (^)(ADTResponseData *responseData))responseDataHandler;
-
-+ (void)sendPostRequest:(NSURL *)baseUrl
-              queueSize:(NSUInteger)queueSize
-     prefixErrorMessage:(NSString *)prefixErrorMessage
-     suffixErrorMessage:(NSString *)suffixErrorMessage
-        activityPackage:(ADTActivityPackage *)activityPackage
-    responseDataHandler:(void (^)(ADTResponseData *responseData))responseDataHandler;
-
-+ (NSString *)idfa;
++ (void)launchSynchronisedWithObject:(id)synchronisationObject
+                               block:(synchronisedBlock)block;
 
 + (NSString *)clientSdk;
-
-+ (NSString *)getUpdateTime;
-
-+ (NSString *)getInstallTime;
 
 + (NSString *)formatDate:(NSDate *)value;
 
@@ -78,6 +68,9 @@ typedef void (^isInactiveInjected)(BOOL);
 + (NSString *)secondsNumberFormat:(double)seconds;
 
 + (NSString *)queryString:(NSDictionary *)parameters;
+
++ (NSString *)queryString:(NSDictionary *)parameters
+                queueSize:(NSUInteger)queueSize;
 
 + (NSString *)convertDeviceToken:(NSData *)deviceToken;
 
@@ -95,10 +88,6 @@ typedef void (^isInactiveInjected)(BOOL);
 
 + (NSDictionary *)convertDictionaryValues:(NSDictionary *)dictionary;
 
-+ (NSDictionary *)buildJsonDict:(NSData *)jsonData
-                   exceptionPtr:(NSException **)exceptionPtr
-                       errorPtr:(NSError **)error;
-
 + (NSDictionary *)mergeParameters:(NSDictionary *)target
                            source:(NSDictionary *)source
                     parameterName:(NSString *)parameterName;
@@ -108,18 +97,56 @@ typedef void (^isInactiveInjected)(BOOL);
 + (NSTimeInterval)waitingTime:(NSInteger)retries
               backoffStrategy:(ADTBackoffStrategy *)backoffStrategy;
 
-+ (NSNumber *)readReachabilityFlags;
-
 + (BOOL)isDeeplinkValid:(NSURL *)url;
 
 + (NSString *)sdkVersion;
 
-#if !TARGET_OS_TV
-+ (NSString *)readMCC;
++ (void)updateSkAdNetworkConversionValue:(NSNumber *)conversionValue;
 
-+ (NSString *)readMNC;
++ (Class)adSupportManager;
 
-+ (NSString *)readCurrentRadioAccessTechnology;
-#endif
++ (Class)appTrackingManager;
+
++ (BOOL)trackingEnabled;
+
++ (NSString *)idfa;
+
++ (NSString *)idfv;
+
++ (NSString *)fbAnonymousId;
+
++ (NSString *)deviceType;
+
++ (NSString *)deviceName;
+
++ (NSUInteger)startedAt;
+
++ (int)attStatus;
+
++ (NSString *)fetchAdServicesAttribution:(NSError **)errorPtr;
+
++ (void)checkForiAd:(ADTActivityHandler *)activityHandler queue:(dispatch_queue_t)queue;
+
++ (BOOL)setiAdWithDetails:(ADTActivityHandler *)activityHandler
+   adClientSharedInstance:(id)ADClientSharedClientInstance
+                    queue:(dispatch_queue_t)queue;
+
++ (void)requestTrackingAuthorizationWithCompletionHandler:(void (^)(NSUInteger status))completion;
+
++ (NSString *)bundleIdentifier;
+
++ (NSString *)buildNumber;
+
++ (NSString *)versionNumber;
+
++ (NSString *)osVersion;
+
++ (NSString *)installedAt;
+
++ (NSString *)generateRandomUuid;
+
++ (NSString *)getPersistedRandomToken;
+
++ (BOOL)setPersistedRandomToken:(NSString *)randomToken;
 
 @end

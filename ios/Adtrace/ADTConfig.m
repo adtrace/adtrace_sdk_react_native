@@ -2,6 +2,9 @@
 //  AdtraceConfig.m
 //  adtrace
 //
+//  Created by Nasser Amini (@namini40) on Jun 2022.
+//  Copyright © 2022 adtrace io. All rights reserved.
+//
 
 #import "ADTConfig.h"
 #import "ADTAdtraceFactory.h"
@@ -24,14 +27,12 @@
 
 + (ADTConfig *)configWithAppToken:(NSString *)appToken
                       environment:(NSString *)environment
-             allowSuppressLogLevel:(BOOL)allowSuppressLogLevel
-{
+             allowSuppressLogLevel:(BOOL)allowSuppressLogLevel {
     return [[ADTConfig alloc] initWithAppToken:appToken environment:environment allowSuppressLogLevel:allowSuppressLogLevel];
 }
 
 - (id)initWithAppToken:(NSString *)appToken
-           environment:(NSString *)environment
-{
+           environment:(NSString *)environment {
     return [self initWithAppToken:appToken
                       environment:environment
              allowSuppressLogLevel:NO];
@@ -39,26 +40,37 @@
 
 - (id)initWithAppToken:(NSString *)appToken
            environment:(NSString *)environment
-  allowSuppressLogLevel:(BOOL)allowSuppressLogLevel
-{
+  allowSuppressLogLevel:(BOOL)allowSuppressLogLevel {
     self = [super init];
-    if (self == nil) return nil;
+    if (self == nil) {
+        return nil;
+    }
 
     self.logger = ADTAdtraceFactory.logger;
-    // default values
+
     if (allowSuppressLogLevel && [ADTEnvironmentProduction isEqualToString:environment]) {
         [self setLogLevel:ADTLogLevelSuppress environment:environment];
     } else {
         [self setLogLevel:ADTLogLevelInfo environment:environment];
     }
 
-    if (![self checkEnvironment:environment]) return self;
-    if (![self checkAppToken:appToken]) return self;
+    if (![self checkEnvironment:environment]) {
+        return self;
+    }
+    if (![self checkAppToken:appToken]) {
+        return self;
+    }
 
     _appToken = appToken;
     _environment = environment;
+    
     // default values
+    self.sendInBackground = NO;
     self.eventBufferingEnabled = NO;
+    self.allowIdfaReading = YES;
+    self.allowiAdInfoReading = YES;
+    self.allowAdServicesInfoReading = YES;
+    _isSKAdNetworkHandlingActive = YES;
 
     return self;
 }
@@ -68,10 +80,13 @@
 }
 
 - (void)setLogLevel:(ADTLogLevel)logLevel
-        environment:(NSString *)environment
-{
+        environment:(NSString *)environment {
     [self.logger setLogLevel:logLevel
      isProductionEnvironment:[ADTEnvironmentProduction isEqualToString:environment]];
+}
+
+- (void)deactivateSKAdNetworkHandling {
+    _isSKAdNetworkHandlingActive = NO;
 }
 
 - (void)setDelegate:(NSObject<AdtraceDelegate> *)delegate {
@@ -86,39 +101,38 @@
 
     if ([delegate respondsToSelector:@selector(adtraceAttributionChanged:)]) {
         [self.logger debug:@"Delegate implements adtraceAttributionChanged:"];
-
         hasResponseDelegate = YES;
     }
 
     if ([delegate respondsToSelector:@selector(adtraceEventTrackingSucceeded:)]) {
         [self.logger debug:@"Delegate implements adtraceEventTrackingSucceeded:"];
-
         hasResponseDelegate = YES;
     }
 
     if ([delegate respondsToSelector:@selector(adtraceEventTrackingFailed:)]) {
         [self.logger debug:@"Delegate implements adtraceEventTrackingFailed:"];
-
         hasResponseDelegate = YES;
     }
 
     if ([delegate respondsToSelector:@selector(adtraceSessionTrackingSucceeded:)]) {
         [self.logger debug:@"Delegate implements adtraceSessionTrackingSucceeded:"];
-
         hasResponseDelegate = YES;
     }
 
     if ([delegate respondsToSelector:@selector(adtraceSessionTrackingFailed:)]) {
         [self.logger debug:@"Delegate implements adtraceSessionTrackingFailed:"];
-
         hasResponseDelegate = YES;
     }
 
     if ([delegate respondsToSelector:@selector(adtraceDeeplinkResponse:)]) {
         [self.logger debug:@"Delegate implements adtraceDeeplinkResponse:"];
-
         // does not enable hasDelegate flag
         implementsDeeplinkCallback = YES;
+    }
+    
+    if ([delegate respondsToSelector:@selector(adtraceConversionValueUpdated:)]) {
+        [self.logger debug:@"Delegate implements adtraceConversionValueUpdated:"];
+        hasResponseDelegate = YES;
     }
 
     if (!(hasResponseDelegate || implementsDeeplinkCallback)) {
@@ -130,8 +144,7 @@
     _delegate = delegate;
 }
 
-- (BOOL)checkEnvironment:(NSString *)environment
-{
+- (BOOL)checkEnvironment:(NSString *)environment {
     if ([ADTUtil isNull:environment]) {
         [self.logger error:@"Missing environment"];
         return NO;
@@ -176,9 +189,8 @@
                    (unsigned long)info4];
 }
 
--(id)copyWithZone:(NSZone *)zone
-{
-    ADTConfig* copy = [[[self class] allocWithZone:zone] init];
+- (id)copyWithZone:(NSZone *)zone {
+    ADTConfig *copy = [[[self class] allocWithZone:zone] init];
     if (copy) {
         copy->_appToken = [self.appToken copyWithZone:zone];
         copy->_environment = [self.environment copyWithZone:zone];
@@ -187,11 +199,18 @@
         copy.defaultTracker = [self.defaultTracker copyWithZone:zone];
         copy.eventBufferingEnabled = self.eventBufferingEnabled;
         copy.sendInBackground = self.sendInBackground;
+        copy.allowIdfaReading = self.allowIdfaReading;
+        copy.allowiAdInfoReading = self.allowiAdInfoReading;
+        copy.allowAdServicesInfoReading = self.allowAdServicesInfoReading;
         copy.delayStart = self.delayStart;
         copy.userAgent = [self.userAgent copyWithZone:zone];
+        copy.externalDeviceId = [self.externalDeviceId copyWithZone:zone];
         copy.isDeviceKnown = self.isDeviceKnown;
+        copy.needsCost = self.needsCost;
         copy->_secretId = [self.secretId copyWithZone:zone];
         copy->_appSecret = [self.appSecret copyWithZone:zone];
+        copy->_isSKAdNetworkHandlingActive = self.isSKAdNetworkHandlingActive;
+        copy->_urlStrategy = [self.urlStrategy copyWithZone:zone];
         // adtrace delegate not copied
     }
 
