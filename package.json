@@ -1,22 +1,30 @@
 {
-    "name": "react-native-adtrace",
-    "description": "AdTrace React Native SDK",
-    "version": "2.0.1",
-    "main": "index.js",
-    "author": "AdTrace io (@namini40)",
-    "license": "MIT",
-    "keywords": [
-        "react-native",
-        "ios",
-        "android",
-        "adtrace"
-    ],
-    "homepage": "https://github.com/adtrace/adtrace_sdk_react_native",
-    "bugs": {
-        "url": "https://github.com/adtrace/adtrace_sdk_react_native/issues"
-    },
-    "repository": {
-        "type": "git",
-        "url": "git://github.com/adtrace/adtrace_sdk_react_native.git"
-    }
+  "name": "react-native-adtrace",
+  "private": false,
+  "description": "AdTrace React Native SDK",
+  "version": "2.0.2",
+  "main": "index.js",
+  "types": "index.d.ts",
+  "author": "AdTrace io (@namini40)",
+  "license": "MIT",
+  "keywords": [
+    "react-native",
+    "ios",
+    "android",
+    "adtrace"
+  ],
+  "homepage": "https://github.com/adtrace/adtrace_sdk_react_native",
+  "bugs": {
+    "url": "https://github.com/adtrace/adtrace_sdk_react_native/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/adtrace/adtrace_sdk_react_native.git"
+  },
+  "directories": {
+    "example": "example"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  }
 }
