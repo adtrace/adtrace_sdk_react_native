@@ -236,7 +236,7 @@ AdTrace.onPause = function(testParam) {
 // AdTraceConfig
 
 var AdTraceConfig = function(appToken, environment) {
-    this.sdkPrefix = "react-native2.0.2";
+    this.sdkPrefix = "react-native2.0.3";
     this.appToken = appToken;
     this.environment = environment;
     this.logLevel = null;
