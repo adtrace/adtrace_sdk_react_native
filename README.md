@@ -79,6 +79,11 @@ First, download the library from `npm`:
 ```
 $ npm install react-native-adtrace --save
 ```
+or
+
+```
+$ yarn add react-native-adtrace
+```
  
 
 
