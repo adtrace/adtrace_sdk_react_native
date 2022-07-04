@@ -807,6 +807,7 @@ AdTrace.setPushToken("YourPushNotificationToken");
 ```
 
 Push tokens are used for Audience Builder and client callbacks, and they are required for the upcoming uninstall tracking feature.
+**Note:** in order to handle the case where a silent push sent, check [this link](https://github.com/adtrace/adtrace_sdk_android#uninstall-tracking).
 
 ### <a id="track-additional-ids"></a>Track additional device identifiers
 
