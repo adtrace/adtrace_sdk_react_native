@@ -1,11 +1,9 @@
 {
   "name": "react-native-adtrace",
-  "private": false,
   "description": "AdTrace React Native SDK",
   "version": "2.0.3",
   "main": "index.js",
-  "types": "index.d.ts",
-  "author": "AdTrace io (@namini40)",
+  "author": "AdTrace (@namini40)",
   "license": "MIT",
   "keywords": [
     "react-native",
@@ -20,11 +18,5 @@
   "repository": {
     "type": "git",
     "url": "git://github.com/adtrace/adtrace_sdk_react_native.git"
-  },
-  "directories": {
-    "example": "example"
-  },
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
   }
 }

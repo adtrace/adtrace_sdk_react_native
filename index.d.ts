@@ -59,7 +59,13 @@ declare module 'react-native-adtrace' {
     conversionValue: number
   }
 
-  export class AdTraceConfig {
+  interface AdTraceSkad4Data {
+    fineValue: number
+    coarseValue: string
+    lockWindow: boolean
+  }
+
+  export class AdjustConfig {
     constructor(appToken: string, environment: Environment)
     public setLogLevel(level: LogLevel): void
     public setEventBufferingEnabled(eventBufferingEnabled: boolean): void
@@ -80,12 +86,15 @@ declare module 'react-native-adtrace' {
     public setNeedsCost(needsCost: boolean): void
     public setPreinstallTrackingEnabled(preinstallTrackingEnabled: boolean): void
     public setPreinstallFilePath(preinstallFilePath: string): void
+    public setCoppaCompliantEnabled(coppaCompliantEnabled: boolean): void
+    public setPlayStoreKidsAppEnabled(playStoreKidsAppEnabled: boolean): void
     public setAllowiAdInfoReading(allowiAdInfoReading: boolean): void
     public setAllowAdServicesInfoReading(allowAdServicesInfoReading: boolean): void
     public setAllowIdfaReading(allowIdfaReading: boolean): void
     public setSdkPrefix(sdkPrefix: string): void
     public setShouldLaunchDeeplink(shouldLaunchDeeplink: boolean): void
     public deactivateSKAdNetworkHandling(): void;
+    public setLinkMeEnabled(linkMeEnabled: boolean): void;
 
     public setAttributionCallbackListener(
       callback: (attribution: AdTraceAttribution) => void
@@ -113,6 +122,10 @@ declare module 'react-native-adtrace' {
 
     public setConversionValueUpdatedCallbackListener(
       callback: (conversionValue: AdTraceConversionValue) => void
+    ): void
+
+    public setSkad4ConversionValueUpdatedCallbackListener(
+      callback: (skad4Data: AdTraceSkad4Data) => void
     ): void
 
     static LogLevelVerbose: LogLevel
@@ -164,6 +177,7 @@ declare module 'react-native-adtrace' {
   export class AdTraceThirdPartySharing {
     constructor(isEnabled: boolean)
     public addGranularOption(partnerName: string, key: string, value: string): void
+    public addPartnerSharingSetting(partnerName: string, key: string, value: boolean): void
   }
 
   export class AdTraceAdRevenue {
@@ -208,6 +222,8 @@ declare module 'react-native-adtrace' {
     convertUniversalLink: (url: string, scheme: string, callback: (convertedUrl: string) => void) => void
     requestTrackingAuthorizationWithCompletionHandler: (handler: (status: number) => void) => void
     updateConversionValue: (conversionValue: number) => void
+    updateConversionValueWithErrorCallback: (conversionValue: number, callback: (error: string) => void) => void
+    updateConversionValueWithSkad4ErrorCallback: (conversionValue: number, coarseValue: string, lockWindow: boolean, callback: (error: string) => void) => void
     getAppTrackingAuthorizationStatus: (callback: (authorizationStatus: number) => void) => void
     trackThirdPartySharing: (adtraceThirdPartySharing: AdTraceThirdPartySharing) => void
     trackMeasurementConsent: (measurementConsent: boolean) => void
