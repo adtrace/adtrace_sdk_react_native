@@ -1,3 +1,11 @@
+/**
+ * Sample React Native App
+ * https://github.com/facebook/react-native
+ *
+ * @format
+ * @flow strict-local
+ */
+
 import React from 'react';
 import {
   SafeAreaView,
@@ -16,33 +24,41 @@ import {
   DebugInstructions,
   ReloadInstructions,
 } from 'react-native/Libraries/NewAppScreen';
-import {AdTrace,AdTraceConfig,AdTraceEvent} from 'react-native-adtrace'
-export default function App() {
-  AdTrace.getSdkVersion(function(sdkVersion){
-    console.log('AdTrace SDK Version: ' + sdkVersion);
+import {
+  AdTrace,
+  AdTraceEvent,
+  AdTraceConfig
+} from 'react-native-adtrace';
+import { AdTraceOaid } from 'react-native-adtrace-oaid';
+
+const App: () => React$Node = () => {
+  AdTrace.getSdkVersion(function(sdkVersion) {
+    console.log("AdTrace SDK version: " + sdkVersion);
   });
-  const adtraceConfig = new AdTraceConfig("caedfdq89t1t",AdTraceConfig.EnvironmentSandbox);
+
+  const adtraceConfig = new AdTraceConfig("2fm9gkqubvpc", AdTraceConfig.EnvironmentSandbox);
   adtraceConfig.setLogLevel(AdTraceConfig.LogLevelVerbose);
-  // adtraceConfig.setDelayStart(5.0);
+  // adtraceConfig.setDelayStart(6.0);
   // adtraceConfig.setEventBufferingEnabled(true);
-  // adtraceConfig.setUserAgent("Custom User Agent");
+  // adtraceConfig.setUserAgent("Custom AdTrace User Agent");
+  // adtraceConfig.setUrlStrategy(AdTraceConfig.UrlStrategyChina);
   // adtraceConfig.deactivateSKAdNetworkHandling();
-  // adtraceConfig.setNeedsCost(true);
+  adtraceConfig.setNeedsCost(true);
 
   adtraceConfig.setAttributionCallbackListener(function(attribution) {
     console.log("Attribution callback received");
-    console.log("Tracker Token: " + attribution.trackerToken);
-    console.log("Tracker name: " + attribution.trackerName);
-    console.log("Network: " + attribution.network);
-    console.log("Compaign: " + attribution.campaign);
-    console.log("Adgroup: " + attribution.adgroup);
-    console.log("Creative: " + attribution.creative);
-    console.log("Click label: " + attribution.clickLabel);
-    console.log("Adid: " + attribution.adid);
-    console.log("Cost type: " + attribution.costType);
-    console.log("Cost amount: " + attribution.costAmount);
-    console.log("Cost currency: " + attribution.costCurrency);
-   });
+    console.log("Tracker token = " + attribution.trackerToken);
+    console.log("Tracker name = " + attribution.trackerName);
+    console.log("Network = " + attribution.network);
+    console.log("Campaign = " + attribution.campaign);
+    console.log("Adgroup = " + attribution.adgroup);
+    console.log("Creative = " + attribution.creative);
+    console.log("Click label = " + attribution.clickLabel);
+    console.log("Adid = " + attribution.adid);
+    console.log("Cost type = " + attribution.costType);
+    console.log("Cost amount = " + attribution.costAmount);
+    console.log("Cost currency = " + attribution.costCurrency);
+  });
 
   adtraceConfig.setEventTrackingSucceededCallbackListener(function(eventSuccess) {
     console.log("Event tracking succeeded callback received");
@@ -126,6 +142,9 @@ export default function App() {
   //   }
   // });
 
+  if (Platform.OS === "android") {
+    AdTraceOaid.readOaid();
+  }
   AdTrace.create(adtraceConfig);
 
   function componentDidMount() {
@@ -339,4 +358,4 @@ const styles = StyleSheet.create({
   },
 });
 
- 
+export default App;
