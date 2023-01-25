@@ -125,6 +125,8 @@ public class AdTrace extends ReactContextBaseJavaModule implements LifecycleEven
         boolean readMobileEquipmentIdentity = false;
         boolean preinstallTrackingEnabled = false;
         boolean needsCost = false;
+        boolean playStoreKidsAppEnabled = false;
+        boolean coppaCompliantEnabled = false;
 
         // Suppress log level.
         if (checkKey(mapConfig, "logLevel")) {
@@ -223,6 +225,7 @@ public class AdTrace extends ReactContextBaseJavaModule implements LifecycleEven
             adtraceConfig.setUserAgent(userAgent);
         }
 
+        // Preinstall file path.
         if (checkKey(mapConfig, "preinstallFilePath")) {
             preinstallFilePath = mapConfig.getString("preinstallFilePath");
             adtraceConfig.setPreinstallFilePath(preinstallFilePath);
@@ -275,6 +278,12 @@ public class AdTrace extends ReactContextBaseJavaModule implements LifecycleEven
             adtraceConfig.setNeedsCost(needsCost);
         }
 
+        // Google Play Store kids app.
+        if (checkKey(mapConfig, "playStoreKidsAppEnabled")) {
+            playStoreKidsAppEnabled = mapConfig.getBoolean("playStoreKidsAppEnabled");
+            adtraceConfig.setPlayStoreKidsAppEnabled(playStoreKidsAppEnabled);
+        }
+
         // Launching deferred deep link.
         if (checkKey(mapConfig, "shouldLaunchDeeplink")) {
             shouldLaunchDeeplink = mapConfig.getBoolean("shouldLaunchDeeplink");
@@ -285,6 +294,12 @@ public class AdTrace extends ReactContextBaseJavaModule implements LifecycleEven
         if (checkKey(mapConfig, "delayStart")) {
             delayStart = mapConfig.getDouble("delayStart");
             adtraceConfig.setDelayStart(delayStart);
+        }
+
+        // COPPA compliance.
+        if (checkKey(mapConfig, "coppaCompliantEnabled")) {
+            coppaCompliantEnabled = mapConfig.getBoolean("coppaCompliantEnabled");
+            adtraceConfig.setCoppaCompliantEnabled(coppaCompliantEnabled);
         }
 
         // Attribution callback.
@@ -725,6 +740,7 @@ public class AdTrace extends ReactContextBaseJavaModule implements LifecycleEven
 
         Boolean isEnabled = null;
         List<Object> granularOptions = null;
+        List<Object> partnerSharingSettings = null;
 
         // Enabled.
         if (checkKey(mapThirdPartySharing, "isEnabled")) {
@@ -746,6 +762,19 @@ public class AdTrace extends ReactContextBaseJavaModule implements LifecycleEven
             }
         }
 
+        // Partner sharing settings.
+        if (checkKey(mapThirdPartySharing, "partnerSharingSettings")) {
+            partnerSharingSettings = AdTraceUtil.toList(mapThirdPartySharing.getArray("partnerSharingSettings"));
+            if (null != partnerSharingSettings) {
+                for (int i = 0; i < partnerSharingSettings.size(); i += 3) {
+                    thirdPartySharing.addPartnerSharingSetting(
+                        partnerSharingSettings.get(i).toString(),
+                        partnerSharingSettings.get(i+1).toString(),
+                        Boolean.parseBoolean(partnerSharingSettings.get(i+2).toString()));
+                }
+            }
+        }
+
         // Track third party sharing.
         io.adtrace.sdk.AdTrace.trackThirdPartySharing(thirdPartySharing);
     }
@@ -753,6 +782,16 @@ public class AdTrace extends ReactContextBaseJavaModule implements LifecycleEven
     @ReactMethod
     public void trackMeasurementConsent(boolean measurementConsent) {
         io.adtrace.sdk.AdTrace.trackMeasurementConsent(measurementConsent);
+    }
+
+    @ReactMethod
+    public void checkForNewAttStatus() {
+        // do nothing
+    }
+
+    @ReactMethod
+    public void getLastDeeplink(Callback callback) {
+        callback.invoke("");
     }
 
     @ReactMethod
