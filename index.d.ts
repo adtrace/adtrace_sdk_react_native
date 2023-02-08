@@ -65,7 +65,7 @@ declare module 'react-native-adtrace' {
     lockWindow: boolean
   }
 
-  export class AdjustConfig {
+  export class AdTraceConfig {
     constructor(appToken: string, environment: Environment)
     public setLogLevel(level: LogLevel): void
     public setEventBufferingEnabled(eventBufferingEnabled: boolean): void

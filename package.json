@@ -1,7 +1,7 @@
 {
   "name": "react-native-adtrace",
   "description": "AdTrace React Native SDK",
-  "version": "2.0.3",
+  "version": "2.1.0",
   "main": "index.js",
   "author": "AdTrace (@namini40)",
   "license": "MIT",
