@@ -1,0 +1,22 @@
+{
+    "name": "react-native-adtrace-oaid",
+    "description": "AdTrace React Native OAID plugin",
+    "version": "2.1.0",
+    "main": "index.js",
+    "author": "AdTrace (@namini40)",
+    "license": "MIT",
+    "keywords": [
+        "react-native",
+        "android",
+        "adtrace",
+        "oaid"
+    ],
+    "homepage": "https://github.com/adtrace/adtrace_sdk_react_native",
+    "bugs": {
+        "url": "https://github.com/adtrace/adtrace_sdk_react_native/issues"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git@github.com:adtrace/adtrace_sdk_react_native.git"
+    }
+}
