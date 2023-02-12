@@ -427,22 +427,21 @@ You can read more about using URL callbacks, including a full list of available 
 
 **Note**: **Both** parameters in this method must be **strings**. If either of the passed parameters is not a string, the key-value pair will not be added to the parameters list.
 
-### <a id="partner-parameters"></a>Partner parameters
+### <a id="event-parameters"></a>Event Parameters
 
-Similarly to the callback parameters mentioned above, you can also add parameters that AdTrace will transmit to the network partners of your choice. You can activate these networks in your [panel].
+Similarly to the callback parameters mentioned above, you can also add parameters that AdTrace will transmit to the adtrace backend of your choice. You can export these values in the [panel].
 
-This works similarly to the callback parameters mentioned above, but can be added by calling the `addPartnerParameter` method on your `AdTraceEvent` instance.
+This works similarly to the callback parameters mentioned above, but can be added by calling the `addEventParameter` method on your `AdTraceEvent` instance.
 
 ```js
 var adtraceEvent = new AdTraceEvent("abc123");
 
-adtraceEvent.addPartnerParameter("key", "value");
-adtraceEvent.addPartnerParameter("foo", "bar");
+adtraceEvent.addEventParameter("key", "value");
+adtraceEvent.addEventParameter("foo", "bar");
 
 AdTrace.trackEvent(adtraceEvent);
 ```
 
-You can read more about special partners and networks in our [guide to special partners][special-partners].
 
 **Note**: **Both** parameters in this method must be **strings**. If either of the passed parameters is not a string, the key-value pair will not be added to the parameters list.
 

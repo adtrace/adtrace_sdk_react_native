@@ -134,7 +134,7 @@ AdTrace.getAttribution = function(callback) {
 // };
 
 AdTrace.getSdkVersion = function(callback) {
-    module_adtrace.getSdkVersion("react-native2.0.1", callback);
+    module_adtrace.getSdkVersion("react-native2.1.1", callback);
 };
 
 AdTrace.setReferrer = function(referrer) {
@@ -148,6 +148,22 @@ AdTrace.convertUniversalLink = function(url, scheme, callback) {
         return;
     }
     module_adtrace.convertUniversalLink(url, scheme, callback);
+};
+
+AdTrace.requestTrackingAuthorizationWithCompletionHandler = function(callback) {
+    module_adtrace.requestTrackingAuthorizationWithCompletionHandler(callback);
+};
+
+AdTrace.updateConversionValue = function(conversionValue) {
+    module_adtrace.updateConversionValue(conversionValue);
+};
+
+AdTrace.updateConversionValueWithErrorCallback = function(conversionValue, callback) {
+    module_adtrace.updateConversionValueWithErrorCallback(conversionValue, callback);
+};
+
+AdTrace.updateConversionValueWithSkad4ErrorCallback = function(conversionValue, coarseValue, lockWindow, callback) {
+    module_adtrace.updateConversionValueWithSkad4ErrorCallback(conversionValue, coarseValue, lockWindow, callback);
 };
 
 AdTrace.requestTrackingAuthorizationWithCompletionHandler = function(callback) {
@@ -236,7 +252,7 @@ AdTrace.onPause = function(testParam) {
 // AdTraceConfig
 
 var AdTraceConfig = function(appToken, environment) {
-    this.sdkPrefix = "react-native2.0.3";
+    this.sdkPrefix = "react-native2.1.1";
     this.appToken = appToken;
     this.environment = environment;
     this.logLevel = null;
@@ -255,16 +271,19 @@ var AdTraceConfig = function(appToken, environment) {
     this.info3 = null;
     this.info4 = null;
     this.urlStrategy = null;
+    this.coppaCompliantEnabled = null;
     // Android only
     this.processName = null;
     this.readMobileEquipmentIdentity = null;
     this.preinstallTrackingEnabled = null;
     this.preinstallFilePath = null;
+    this.playStoreKidsAppEnabled = null;
     // iOS only
     this.allowiAdInfoReading = null;
     this.allowAdServicesInfoReading = null;
     this.allowIdfaReading = null;
     this.skAdNetworkHandling = null;
+    this.linkMeEnabled = null;
 };
 
 AdTraceConfig.EnvironmentSandbox = "sandbox";
@@ -285,6 +304,7 @@ AdTraceConfig.SessionTrackingSucceededSubscription = null;
 AdTraceConfig.SessionTrackingFailedSubscription = null;
 AdTraceConfig.DeferredDeeplinkSubscription = null;
 AdTraceConfig.ConversionValueUpdatedSubscription = null;
+AdTraceConfig.Skad4ConversionValueUpdatedSubscription = null;
 
 AdTraceConfig.UrlStrategyChina = "china";
 AdTraceConfig.UrlStrategyIndia = "india";
@@ -298,6 +318,7 @@ AdTraceConfig.AdRevenueSourceMopub = "mopub";
 AdTraceConfig.AdRevenueSourceAdmob = "admob_sdk";
 AdTraceConfig.AdRevenueSourceIronSource = "ironsource_sdk";
 AdTraceConfig.AdRevenueSourceAdmost = "admost_sdk";
+AdTraceConfig.AdRevenueSourcePublisher = "publisher_sdk";
 
 AdTraceConfig.prototype.setEventBufferingEnabled = function(isEnabled) {
     this.eventBufferingEnabled = isEnabled;
@@ -365,6 +386,10 @@ AdTraceConfig.prototype.setUrlStrategy = function(urlStrategy) {
     this.urlStrategy = urlStrategy;
 };
 
+AdTraceConfig.prototype.setCoppaCompliantEnabled = function(coppaCompliantEnabled) {
+    this.coppaCompliantEnabled = coppaCompliantEnabled;
+};
+
 AdTraceConfig.prototype.setReadMobileEquipmentIdentity = function(readMobileEquipmentIdentity) {
     // this.readMobileEquipmentIdentity = readMobileEquipmentIdentity;
 };
@@ -375,6 +400,10 @@ AdTraceConfig.prototype.setPreinstallTrackingEnabled = function(isEnabled) {
 
 AdTraceConfig.prototype.setPreinstallFilePath = function(preinstallFilePath) {
     this.preinstallFilePath = preinstallFilePath;
+};
+
+AdTraceConfig.prototype.setPlayStoreKidsAppEnabled = function(isEnabled) {
+    this.playStoreKidsAppEnabled = isEnabled;
 };
 
 AdTraceConfig.prototype.setAllowiAdInfoReading = function(allowiAdInfoReading) {
@@ -395,6 +424,10 @@ AdTraceConfig.prototype.setShouldLaunchDeeplink = function(shouldLaunchDeeplink)
 
 AdTraceConfig.prototype.deactivateSKAdNetworkHandling = function() {
     this.skAdNetworkHandling = false;
+};
+
+AdTraceConfig.prototype.setLinkMeEnabled = function(linkMeEnabled) {
+    this.linkMeEnabled = linkMeEnabled;
 };
 
 AdTraceConfig.prototype.setAttributionCallbackListener = function(attributionCallbackListener) {
@@ -452,6 +485,17 @@ AdTraceConfig.prototype.setDeferredDeeplinkCallbackListener = function(deferredD
 };
 
 AdTraceConfig.prototype.setConversionValueUpdatedCallbackListener = function(conversionValueUpdatedCallbackListener) {
+    if (Platform.OS === "ios") {
+        if (null == AdTraceConfig.ConversionValueUpdatedSubscription) {
+            module_adtrace.setConversionValueUpdatedCallbackListener();
+            AdTraceConfig.ConversionValueUpdatedSubscription = module_adtrace_emitter.addListener(
+                'adtrace_conversionValueUpdated', conversionValueUpdatedCallbackListener
+            );
+        }
+    }
+};
+
+AdTraceConfig.prototype.setSkad4ConversionValueUpdatedCallbackListener = function(skad4ConversionValueUpdatedCallbackListener) {
     if (Platform.OS === "ios") {
         if (null == AdTraceConfig.ConversionValueUpdatedSubscription) {
             module_adtrace.setConversionValueUpdatedCallbackListener();
@@ -575,6 +619,7 @@ AdTracePlayStoreSubscription.prototype.addPartnerParameter = function(key, value
 var AdTraceThirdPartySharing = function(isEnabled) {
     this.isEnabled = isEnabled;
     this.granularOptions = [];
+    this.partnerSharingSettings = [];
 };
 
 AdTraceThirdPartySharing.prototype.addGranularOption = function(partnerName, key, value) {
@@ -584,6 +629,15 @@ AdTraceThirdPartySharing.prototype.addGranularOption = function(partnerName, key
     this.granularOptions.push(partnerName);
     this.granularOptions.push(key);
     this.granularOptions.push(value);
+};
+
+AdTraceThirdPartySharing.prototype.addPartnerSharingSetting = function(partnerName, key, value) {
+    if (typeof partnerName !== 'string' || typeof key !== 'string' || typeof value !== 'boolean') {
+        return;
+    }
+    this.partnerSharingSettings.push(partnerName);
+    this.partnerSharingSettings.push(key);
+    this.partnerSharingSettings.push(value);
 };
 
 // AdTraceAdRevenue
