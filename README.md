@@ -808,26 +808,6 @@ AdTrace.setPushToken("YourPushNotificationToken");
 Push tokens are used for Audience Builder and client callbacks, and they are required for the upcoming uninstall tracking feature.
 **Note:** in order to handle the case where a silent push sent, check [this link](https://github.com/adtrace/adtrace_sdk_android#uninstall-tracking).
 
-### <a id="track-additional-ids"></a>Track additional device identifiers
-
-If you are distributing your Android app **outside of the Google Play Store** and would like to track additional device identifiers (IMEI and MEID), you need to explicitly instruct the AdTrace SDK to do so. You can do that by calling the `setReadMobileEquipmentIdentity` method of the `AdTraceConfig` instance. **The AdTrace SDK does not collect these identifiers by default**.
-
-```js
-var adtraceConfig = new AdTraceConfig(appToken, environment);
-
-adtraceConfig.setReadMobileEquipmentIdentity(true);
-
-AdTrace.create(adtraceConfig);
-```
-
-You will also need to add the `READ_PHONE_STATE` permission to your `AndroidManifest.xml` file:
-
-```xml
-<uses-permission android:name="android.permission.READ_PHONE_STATE"/>
-```
-
-In order to use this feature, additional steps are required within your AdTrace Dashboard. For more information, please contact your dedicated account manager or contact our support.
-
 ### <a id="pre-installed-trackers"></a>Pre-installed trackers
 
 If you want to use the AdTrace SDK to recognize users that found your app pre-installed on their device, follow these steps.
