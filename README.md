@@ -28,23 +28,15 @@ This is the React Native SDK of AdTrace. You can read more about AdTrace at [adt
    * [Event tracking](#event-tracking)
       * [Revenue tracking](#revenue-tracking)
       * [Revenue deduplication](#revenue-deduplication)
-      * [Callback parameters](#callback-parameters)
-      * [Partner parameters](#partner-parameters)
       * [Callback identifier](#callback-id)
    * [Subscription tracking](#subscription-tracking)
    * [Session parameters](#session-parameters)
-      * [Session callback parameters](#session-callback-parameters)
-      * [Session partner parameters](#session-partner-parameters)
       * [Delay start](#delay-start)
    * [Attribution callback](#attribution-callback)
    * [Session and event callbacks](#session-event-callbacks)
    * [Disable tracking](#disable-tracking)
    * [Offline mode](#offline-mode)
    * [Event buffering](#event-buffering)
-   * [GDPR right to be forgotten](#gdpr-forget-me)
-   * [Third-party sharing](#third-party-sharing)
-      * [Disable third-party sharing](#disable-third-party-sharing)
-      * [Enable third-party sharing](#enable-third-party-sharing)
    * [Measurement consent](#measurement-consent)
    * [SDK signature](#sdk-signature)
    * [Background tracking](#background-tracking)
@@ -61,7 +53,6 @@ This is the React Native SDK of AdTrace. You can read more about AdTrace at [adt
       * [Standard deep linking](#deeplinking-standard)
       * [Deferred deep linking](#deeplinking-deferred)
       * [Reattribution via deep links](#deeplinking-reattribution)
-   * [Data residency](#data-residency)
 * [License](#license)
 
 ## <a id="example-app"></a>Example app
@@ -351,33 +342,6 @@ In case you don't want the Adtrace SDK to automatically communicate with SKAdNet
 adtraceConfig.deactivateSKAdNetworkHandling();
 ```
 
-### <a id="skadn-update-conversion-value"></a>Update SKAdNetwork conversion value
-
-**Note**: This feature exists only in iOS platform.
-
-You can use Adtrace SDK wrapper method `updateConversionValue` to update SKAdNetwork conversion value for your user:
-
-```js
-AdTrace.updateConversionValue(6);
-```
-
-### <a id="af-skadn-cv-updated-callback"></a>Conversion value updated callback
-
-**Note**: This feature exists only in iOS platform.
-
-You can register callback to get notified each time when Adtrace SDK updates conversion value for the user.
-
-```js
-var adtraceConfig = new AdTraceConfig(appToken, environment);
-
-adtraceConfig.setConversionValueUpdatedCallbackListener(function(conversionValue) {
-    console.log("Conversion value updated callback recveived");
-    console.log("Conversion value: " + conversionValue.conversionValue);
-  });
-
-AdTrace.create(adtraceConfig);
-```
-
 ### <a id="event-tracking"></a>Event tracking
 
 You can use AdTrace to track all kinds of events. Let's say you want to track every tap on a button. Simply create a new event token in your [dashboard]. Let's say that event token is `abc123`. You can add the following line in your button’s click handler method to track the click:
@@ -393,39 +357,25 @@ If your users can generate revenue by tapping on advertisements or making In-App
 
 ```js
 var adtraceEvent = new AdTraceEvent("abc123");
-
-adtraceEvent.setRevenue(2000, "Toman");
-
+adtraceEvent.setRevenue(2000.0, "Toman");
 AdTrace.trackEvent(adtraceEvent);
 ```
+### <a id="revenue-deduplication"></a>Revenue deduplication
 
-### <a id="callback-parameters"></a>Callback parameters
+You can also add an optional transaction ID to avoid tracking duplicate revenues. The last ten transaction IDs are remembered, and revenue events with duplicate transaction IDs are skipped. This is especially useful for In-App Purchase tracking. You can see an example below.
 
-You can also register a callback URL for that event in your [dashboard][dashboard] and we will send a GET request to that URL whenever the event gets tracked. In that case you can also put some key-value pairs in an object and pass it to the `trackEvent` method. We will then append these named parameters to your callback URL.
-
-For example, suppose you have registered the URL `https://www.adtrace.io/callback` for your event with event token `abc123` and execute the following lines:
+If you want to track in-app purchases, please make sure to call the `trackEvent` only if the transaction is finished and an item is purchased. That way you can avoid tracking revenue that is not actually being generated.
 
 ```js
 var adtraceEvent = new AdTraceEvent("abc123");
 
-adtraceEvent.addCallbackParameter("key", "value");
-adtraceEvent.addCallbackParameter("foo", "bar");
+adtraceEvent.setRevenue(2000.0, "Toman");
+adtraceEvent.setTransactionId("{YourTransactionId}");
 
 AdTrace.trackEvent(adtraceEvent);
 ```
 
-In that case we would track the event and send a request to:
-
-```
-https://www.adtrace.io/callback?key=value&foo=bar
-```
-
-It should be mentioned that we support a variety of placeholders like `{idfa}` for iOS or `{gps_adid}` for Android that can be used as parameter values. In the resulting callback the `{idfa}` placeholder would be replaced with the ID for Advertisers of the current device for iOS and the `{gps_adid}` would be replaced with the Google Advertising ID of the current device for Android. Also note that we don't store any of your custom parameters, but only append them to your callbacks. If you haven't registered a callback for an event, these parameters won't even be read.
-
-You can read more about using URL callbacks, including a full list of available values, in our
-[callbacks guide][callbacks-guide].
-
-**Note**: **Both** parameters in this method must be **strings**. If either of the passed parameters is not a string, the key-value pair will not be added to the parameters list.
+**Note**: Transaction ID is the iOS term, unique identifier for successfully finished Android In-App-Purchases is named **Order ID**.
 
 ### <a id="event-parameters"></a>Event Parameters
 
@@ -463,60 +413,6 @@ AdTrace.trackEvent(adtraceEvent);
 Some parameters are saved to be sent in every event and session of the AdTrace SDK. Once you have added any of these parameters, you don't need to add them every time, since they will be saved locally. If you add the same parameter twice, there will be no effect.
 
 These session parameters can be called before the AdTrace SDK is launched to make sure they are sent even on install. If you need to send them with an install, but can only obtain the needed values after launch, it's possible to [delay](#delay-start) the first launch of the AdTrace SDK to allow this behaviour.
-
-### <a id="session-callback-parameters"></a>Session callback parameters
-
-The same callback parameters that are registered for [events](#callback-parameters) can be also saved to be sent in every event or session of the AdTrace SDK.
-
-The session callback parameters have a similar interface of the event callback parameters. Instead of adding the key and its value to an event, it's added through a call to method `addSessionCallbackParameter` of the `AdTrace` instance:
-
-```js
-AdTrace.addSessionCallbackParameter("foo", "bar");
-```
-
-The session callback parameters will be merged with the callback parameters and added to an event. The callback parameters added to an event have precedence over the session callback parameters. Meaning that, when adding a callback parameter to an event with the same key to one added from the session, the value that prevails is the callback parameter added to the event.
-
-**Note**: **Both** parameters in this method must be **strings**. If either of the passed parameters is not a string, the key-value pair will not be added to the parameters list.
-
-It's possible to remove a specific session callback parameter by passing the desiring key to the method `removeSessionCallbackParameter` of the `AdTrace` instance:
-
-```js
-AdTrace.removeSessionCallbackParameter("foo");
-```
-
-If you wish to remove all key and values from the session callback parameters, you can reset it with the method `resetSessionCallbackParameters` of the `AdTrace` instance:
-
-```js
-AdTrace.resetSessionCallbackParameters();
-```
-
-### <a id="session-partner-parameters"></a>Session partner parameters
-
-In the same way that there are [session callback parameters](#session-callback-parameters) that are sent for every event or session of the AdTrace SDK, there are also session partner parameters.
-
-These will be transmitted to network partners, for the integrations that have been activated in your AdTrace [panel].
-
-The session partner parameters have a similar interface to the event partner parameters. Instead of adding the key and its value to an event, it's added through a call to method `addSessionPartnerParameter` of the `AdTrace` instance:
-
-```js
-AdTrace.addSessionPartnerParameter("foo", "bar");
-```
-
-The session partner parameters will be merged with the partner parameters and added to an event. The partner parameters added to an event have precedence over the session partner parameters. Meaning that, when adding a partner parameter to an event with the same key to one added from the session, the value that prevails is the partner parameter added to the event.
-
-**Note**: **Both** parameters in this method must be **strings**. If either of the passed parameters is not a string, the key-value pair will not be added to the parameters list.
-
-It's possible to remove a specific session partner parameter by passing the desiring key to the method `removeSessionPartnerParameter` of the `AdTrace` instance:
-
-```js
-AdTrace.removeSessionPartnerParameter("foo");
-```
-
-If you wish to remove all keys and values from the session partner parameters, you can reset it with the method `resetSessionPartnerParameters` of the `AdTrace` instance:
-
-```js
-AdTrace.resetSessionPartnerParameters();
-```
 
 ### <a id="delay-start"></a>Delay start
 
@@ -908,15 +804,6 @@ handleDeepLink(event) {
 }
 ```
 
-### <a id="data-residency"></a>Data residency
-
-In order to enable data residency feature, make sure to call `setUrlStrategy` method of the `AdTraceConfig` instance with one of the following constants:
-
-```js
-adtraceConfig.setUrlStrategy(AdTraceConfig.DataResidencyEU); // for EU data residency region
-adtraceConfig.setUrlStrategy(AdTraceConfig.DataResidencyTR); // for Turkey data residency region
-adtraceConfig.setUrlStrategy(AdTraceConfig.DataResidencyUS); // for US data residency region
-```
 
 [panel]:    https://panel.adtrace.io
 [adtrace.io]:   https://adtrace.io
