@@ -8,6 +8,8 @@ import {
 
 const module_adtrace_oaid = NativeModules.AdTraceOaid;
 
+// AdTraceOaid
+
 var AdTraceOaid = {};
 
 AdTraceOaid.readOaid = function() {

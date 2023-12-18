@@ -3,7 +3,7 @@
     "description": "AdTrace React Native OAID plugin",
     "version": "2.1.1",
     "main": "index.js",
-    "author": "AdTrace (@namini40)",
+    "author": "AdTrace",
     "license": "MIT",
     "keywords": [
         "react-native",
