@@ -134,7 +134,7 @@ AdTrace.getAttribution = function(callback) {
 // };
 
 AdTrace.getSdkVersion = function(callback) {
-    module_adtrace.getSdkVersion("react-native2.1.1", callback);
+    module_adtrace.getSdkVersion("react-native2.2.0", callback);
 };
 
 AdTrace.setReferrer = function(referrer) {
