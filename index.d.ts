@@ -157,6 +157,7 @@ declare module 'react-native-adtrace' {
     constructor(eventToken: string)
     public setRevenue(revenue: number, currency: string): void
     public addCallbackParameter(key: string, value: string): void
+    // public addPartnerParameter(key: string, value: string): void
     public addEventParameter(key: string, value: string): void
     public setTransactionId(transactionId: string): void
     public setCallbackId(callbackId: string): void
