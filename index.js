@@ -186,12 +186,16 @@ AdTrace.getAppTrackingAuthorizationStatus = function(callback) {
     module_adtrace.getAppTrackingAuthorizationStatus(callback);
 };
 
-AdTrace.trackThirdPartySharing = function(adtraceThirdPartySharing) {
-    module_adtrace.trackThirdPartySharing(adtraceThirdPartySharing);
+AdTrace.verifyAppStorePurchase = function(purchase, callback) {
+    if (Platform.OS === "ios") {
+        module_adtrace.verifyAppStorePurchase(purchase, callback);
+    }
 };
 
-AdTrace.trackMeasurementConsent = function(measurementConsent) {
-    module_adtrace.trackMeasurementConsent(measurementConsent);
+AdTrace.verifyPlayStorePurchase = function(purchase, callback) {
+    if (Platform.OS === "android") {
+        module_adtrace.verifyPlayStorePurchase(purchase, callback);
+    }
 };
 
 AdTrace.componentWillUnmount = function() {
@@ -286,12 +290,14 @@ var AdTraceConfig = function(appToken, environment) {
     this.preinstallTrackingEnabled = null;
     this.preinstallFilePath = null;
     this.playStoreKidsAppEnabled = null;
+    this.finalAndroidAttributionEnabled = null;
     // iOS only
     this.allowiAdInfoReading = null;
     this.allowAdServicesInfoReading = null;
     this.allowIdfaReading = null;
     this.skAdNetworkHandling = null;
     this.linkMeEnabled = null;
+    this.attConsentWaitingInterval = null;
 };
 
 AdTraceConfig.EnvironmentSandbox = "sandbox";
@@ -414,6 +420,10 @@ AdTraceConfig.prototype.setPlayStoreKidsAppEnabled = function(isEnabled) {
     this.playStoreKidsAppEnabled = isEnabled;
 };
 
+AdTraceConfig.prototype.setFinalAndroidAttributionEnabled = function(isEnabled) {
+    this.finalAndroidAttributionEnabled = isEnabled;
+};
+
 AdTraceConfig.prototype.setAllowiAdInfoReading = function(allowiAdInfoReading) {
     this.allowiAdInfoReading = allowiAdInfoReading;
 };
@@ -436,6 +446,10 @@ AdTraceConfig.prototype.deactivateSKAdNetworkHandling = function() {
 
 AdTraceConfig.prototype.setLinkMeEnabled = function(linkMeEnabled) {
     this.linkMeEnabled = linkMeEnabled;
+};
+
+AdTraceConfig.prototype.setAttConsentWaitingInterval = function(attConsentWaitingInterval) {
+    this.attConsentWaitingInterval = attConsentWaitingInterval;
 };
 
 AdTraceConfig.prototype.setAttributionCallbackListener = function(attributionCallbackListener) {
@@ -520,7 +534,10 @@ var AdTraceEvent = function(eventToken) {
     this.eventToken = eventToken;
     this.revenue = null;
     this.currency = null;
+    this.receipt = null;
+    this.productId = null;
     this.transactionId = null;
+    this.purchaseToken = null;
     this.callbackId = null;
     this.callbackParameters = {};
     this.valueParameters = {};
@@ -547,8 +564,20 @@ AdTraceEvent.prototype.addEventParameter = function(key, value) {
          this.valueParameters[key] = value;
 };
 
+AdTraceEvent.prototype.setReceipt = function(receipt) {
+    this.receipt = receipt;
+};
+
+AdTraceEvent.prototype.setProductId = function(productId) {
+    this.productId = productId;
+};
+
 AdTraceEvent.prototype.setTransactionId = function(transactionId) {
     this.transactionId = transactionId;
+};
+
+AdTraceEvent.prototype.setPurchaseToken = function(purchaseToken) {
+    this.purchaseToken = purchaseToken;
 };
 
 AdTraceEvent.prototype.setCallbackId = function(callbackId) {
@@ -699,6 +728,21 @@ AdTraceAdRevenue.prototype.addPartnerParameter = function(key, value) {
     this.partnerParameters[key] = value;
 };
 
+// AdTraceAppStorePurchase
+
+var AdTraceAppStorePurchase = function(receipt, productId, transactionId) {
+    this.receipt = receipt;
+    this.productId = productId;
+    this.transactionId = transactionId;
+};
+
+// AdTracePlayStorePurchase
+
+var AdTracePlayStorePurchase = function(productId, purchaseToken) {
+    this.productId = productId;
+    this.purchaseToken = purchaseToken;
+};
+
 module.exports = {
     AdTrace,
     AdTraceEvent,
@@ -706,5 +750,7 @@ module.exports = {
     AdTraceAppStoreSubscription,
     AdTracePlayStoreSubscription,
     AdTraceThirdPartySharing,
-    AdTraceAdRevenue
+    AdTraceAdRevenue,
+    AdTraceAppStorePurchase,
+    AdTracePlayStorePurchase
 }
