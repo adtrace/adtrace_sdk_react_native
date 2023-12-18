@@ -166,6 +166,14 @@ AdTrace.updateConversionValueWithSkad4ErrorCallback = function(conversionValue, 
     module_adtrace.updateConversionValueWithSkad4ErrorCallback(conversionValue, coarseValue, lockWindow, callback);
 };
 
+AdTrace.getAppTrackingAuthorizationStatus = function(callback) {
+    module_adtrace.getAppTrackingAuthorizationStatus(callback);
+};
+
+AdTrace.trackThirdPartySharing = function(adtraceThirdPartySharing) {
+    module_adtrace.trackThirdPartySharing(adtraceThirdPartySharing);
+};
+
 AdTrace.requestTrackingAuthorizationWithCompletionHandler = function(callback) {
     module_adtrace.requestTrackingAuthorizationWithCompletionHandler(callback);
 };
