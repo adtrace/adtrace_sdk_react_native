@@ -104,6 +104,8 @@ declare module 'react-native-adtrace' {
     public setLinkMeEnabled(linkMeEnabled: boolean): void
     public setFinalAndroidAttributionEnabled(finalAndroidAttributionEnabled: boolean): void
     public setAttConsentWaitingInterval(attConsentWaitingInterval: number): void
+    public setReadDeviceInfoOnceEnabled(readDeviceInfoOnceEnabled: boolean): void
+    public setFbAppId(fbAppId: string): void
 
     public setAttributionCallbackListener(
       callback: (attribution: AdTraceAttribution) => void
@@ -149,16 +151,25 @@ declare module 'react-native-adtrace' {
     static UrlStrategyChina: UrlStrategy
     static UrlStrategyIndia: UrlStrategy
     static UrlStrategyCn: UrlStrategy
+    static UrlStrategyCnOnly: UrlStrategy
     static DataResidencyEU: UrlStrategy
     static DataResidencyTR: UrlStrategy
     static DataResidencyUS: UrlStrategy
+    static AdRevenueSourceAppLovinMAX: string
+    static AdRevenueSourceMopub: string
+    static AdRevenueSourceAdmob: string
+    static AdRevenueSourceIronSource: string
+    static AdRevenueSourceAdmost: string
+    static AdRevenueSourcePublisher: string
+    static AdRevenueSourceTopOn: string
+    static AdRevenueSourceAdx: string
   }
 
   export class AdTraceEvent {
     constructor(eventToken: string)
     public setRevenue(revenue: number, currency: string): void
     public addCallbackParameter(key: string, value: string): void
-    // public addPartnerParameter(key: string, value: string): void
+    public addPartnerParameter(key: string, value: string): void
     public addEventParameter(key: string, value: string): void
     public setTransactionId(transactionId: string): void
     public setCallbackId(callbackId: string): void
@@ -235,10 +246,11 @@ declare module 'react-native-adtrace' {
     gdprForgetMe: () => void
     disableThirdPartySharing: () => void
     getIdfa: (callback: (idfa: string) => void) => void
+    getIdfv: (callback: (idfv: string) => void) => void
     getGoogleAdId: (callback: (adid: string) => void) => void
     getAdid: (callback: (adid: string) => void) => void
     getAttribution: (callback: (attribution: AdTraceAttribution) => void) => void
-    // getAmazonAdId: (callback: (adid: string) => void) => void
+    getAmazonAdId: (callback: (adid: string) => void) => void
     getSdkVersion: (callback: (sdkVersion: string) => void) => void
     setReferrer: (referrer: string) => void
     convertUniversalLink: (url: string, scheme: string, callback: (convertedUrl: string) => void) => void
@@ -253,6 +265,6 @@ declare module 'react-native-adtrace' {
     getLastDeeplink: (callback: (lastDeeplink: string) => void) => void
     verifyAppStorePurchase: (purchase: AdTraceAppStorePurchase, callback: (verificationInfo: AdTracePurchaseVerificationInfo) => void) => void
     verifyPlayStorePurchase: (purchase: AdTracePlayStorePurchase, callback: (verificationInfo: AdTracePurchaseVerificationInfo) => void) => void
-
+    processDeeplink: (deeplink: string, callback: (resolvedLink: string) => void) => void
   }
 }
