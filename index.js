@@ -343,6 +343,7 @@ AdTraceConfig.Skad4ConversionValueUpdatedSubscription = null;
 AdTraceConfig.UrlStrategyChina = "china";
 AdTraceConfig.UrlStrategyIndia = "india";
 AdTraceConfig.UrlStrategyCn = "cn";
+AdTraceConfig.UrlStrategyCnOnly = "cn-only";
 
 AdTraceConfig.DataResidencyEU = "data-residency-eu";
 AdTraceConfig.DataResidencyTR = "data-residency-tr";
