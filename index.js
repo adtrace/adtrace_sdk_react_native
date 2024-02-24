@@ -236,6 +236,16 @@ AdTrace.componentWillUnmount = function() {
         AdTraceConfig.DeferredDeeplinkSubscription.remove();
         AdTraceConfig.DeferredDeeplinkSubscription = null;
     }
+
+    if (AdTraceConfig.ConversionValueUpdatedSubscription != null) {
+        AdTraceConfig.ConversionValueUpdatedSubscription.remove();
+        AdTraceConfig.ConversionValueUpdatedSubscription = null;
+    }
+
+    if (AdTraceConfig.Skad4ConversionValueUpdatedSubscription != null) {
+        AdTraceConfig.Skad4ConversionValueUpdatedSubscription.remove();
+        AdTraceConfig.Skad4ConversionValueUpdatedSubscription = null;
+    }
 };
 
 // =========================================== //
@@ -342,6 +352,8 @@ AdTraceConfig.AdRevenueSourceAdmob = "admob_sdk";
 AdTraceConfig.AdRevenueSourceIronSource = "ironsource_sdk";
 AdTraceConfig.AdRevenueSourceAdmost = "admost_sdk";
 AdTraceConfig.AdRevenueSourcePublisher = "publisher_sdk";
+AdTraceConfig.AdRevenueSourceTopOn = "topon_sdk";
+AdTraceConfig.AdRevenueSourceAdx = "adx_sdk";
 
 AdTraceConfig.prototype.setEventBufferingEnabled = function(isEnabled) {
     this.eventBufferingEnabled = isEnabled;
@@ -528,10 +540,10 @@ AdTraceConfig.prototype.setConversionValueUpdatedCallbackListener = function(con
 
 AdTraceConfig.prototype.setSkad4ConversionValueUpdatedCallbackListener = function(skad4ConversionValueUpdatedCallbackListener) {
     if (Platform.OS === "ios") {
-        if (null == AdTraceConfig.ConversionValueUpdatedSubscription) {
-            module_adtrace.setConversionValueUpdatedCallbackListener();
-            AdTraceConfig.ConversionValueUpdatedSubscription = module_adtrace_emitter.addListener(
-                'adtrace_conversionValueUpdated', conversionValueUpdatedCallbackListener
+        if (null == AdTraceConfig.Skad4ConversionValueUpdatedSubscription) {
+            module_adtrace.setSkad4ConversionValueUpdatedCallbackListener();
+            AdTraceConfig.Skad4ConversionValueUpdatedSubscription = module_adtrace_emitter.addListener(
+                'adtrace_skad4ConversionValueUpdated', skad4ConversionValueUpdatedCallbackListener
             );
         }
     }
