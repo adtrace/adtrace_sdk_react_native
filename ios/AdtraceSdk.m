@@ -48,6 +48,10 @@ RCT_EXPORT_METHOD(create:(NSDictionary *)dict) {
     NSNumber *allowAdServicesInfoReading = dict[@"allowAdServicesInfoReading"];
     NSNumber *allowIdfaReading = dict[@"allowIdfaReading"];
     NSNumber *skAdNetworkHandling = dict[@"skAdNetworkHandling"];
+    NSNumber *coppaCompliantEnabled = dict[@"coppaCompliantEnabled"];
+    NSNumber *linkMeEnabled = dict[@"linkMeEnabled"];
+    NSNumber *attConsentWaitingInterval = dict[@"attConsentWaitingInterval"];
+    NSNumber *readDeviceInfoOnceEnabled = dict[@"readDeviceInfoOnceEnabled"];
     BOOL allowSuppressLogLevel = NO;
 
     // Suppress log level.
@@ -93,6 +97,10 @@ RCT_EXPORT_METHOD(create:(NSDictionary *)dict) {
             [adtraceConfig setUrlStrategy:ADTUrlStrategyChina];
         } else if ([urlStrategy isEqualToString:@"india"]) {
             [adtraceConfig setUrlStrategy:ADTUrlStrategyIndia];
+        } else if ([urlStrategy isEqualToString:@"cn"]) {
+            [adtraceConfig setUrlStrategy:ADTUrlStrategyCn];
+        } else if ([urlStrategy isEqualToString:@"cn-only"]) {
+            [adtraceConfig setUrlStrategy:ADTUrlStrategyCnOnly];
         } else if ([urlStrategy isEqualToString:@"data-residency-eu"]) {
             [adtraceConfig setUrlStrategy:ADTDataResidencyEU];
         } else if ([urlStrategy isEqualToString:@"data-residency-tr"]) {
@@ -182,6 +190,26 @@ RCT_EXPORT_METHOD(create:(NSDictionary *)dict) {
     // Delay start.
     if ([self isFieldValid:delayStart]) {
         [adtraceConfig setDelayStart:[delayStart doubleValue]];
+    }
+
+    // COPPA compliance.
+    if ([self isFieldValid:coppaCompliantEnabled]) {
+        [adtraceConfig setCoppaCompliantEnabled:[coppaCompliantEnabled boolValue]];
+    }
+
+    // LinkMe.
+    if ([self isFieldValid:linkMeEnabled]) {
+        [adtraceConfig setLinkMeEnabled:[linkMeEnabled boolValue]];
+    }
+
+    // ATT consent delay.
+    if ([self isFieldValid:attConsentWaitingInterval]) {
+        [adtraceConfig setAttConsentWaitingInterval:[attConsentWaitingInterval intValue]];
+    }
+
+    // Read device info just once.
+    if ([self isFieldValid:readDeviceInfoOnceEnabled]) {
+        [adtraceConfig setReadDeviceInfoOnceEnabled:[readDeviceInfoOnceEnabled boolValue]];
     }
 
     // Start SDK.
@@ -378,7 +406,7 @@ RCT_EXPORT_METHOD(trackAppStoreSubscription:(NSDictionary *)dict) {
 
     // Transaction date.
     if ([self isFieldValid:transactionDate]) {
-        NSTimeInterval transactionDateInterval = [transactionDate doubleValue];
+        NSTimeInterval transactionDateInterval = [transactionDate doubleValue] / 1000.0;
         NSDate *oTransactionDate = [NSDate dateWithTimeIntervalSince1970:transactionDateInterval];
         [subscription setTransactionDate:oTransactionDate];
     }
@@ -525,6 +553,11 @@ RCT_EXPORT_METHOD(setReferrer:(NSString *)referrer) {}
 
 RCT_EXPORT_METHOD(trackPlayStoreSubscription:(NSDictionary *)dict) {}
 
+RCT_EXPORT_METHOD(verifyPlayStorePurchase:(NSDictionary *)dict callback:(RCTResponseSenderBlock)callback) {
+    NSMutableDictionary *dictionary = [NSMutableDictionary dictionary];
+    callback(@[dictionary]);
+}
+
 RCT_EXPORT_METHOD(getAttribution:(RCTResponseSenderBlock)callback) {
     ADTAttribution *attribution = [Adtrace attribution];
     NSMutableDictionary *dictionary = [NSMutableDictionary dictionary];
@@ -541,6 +574,9 @@ RCT_EXPORT_METHOD(getAttribution:(RCTResponseSenderBlock)callback) {
     [self addValueOrEmpty:dictionary key:@"adgroup" value:attribution.adgroup];
     [self addValueOrEmpty:dictionary key:@"clickLabel" value:attribution.clickLabel];
     [self addValueOrEmpty:dictionary key:@"adid" value:attribution.adid];
+    [self addValueOrEmpty:dictionary key:@"costType" value:attribution.costType];
+    [self addValueOrEmpty:dictionary key:@"costAmount" value:attribution.costAmount];
+    [self addValueOrEmpty:dictionary key:@"costCurrency" value:attribution.costCurrency];
     callback(@[dictionary]);
 }
 
@@ -574,12 +610,93 @@ RCT_EXPORT_METHOD(trackThirdPartySharing:(NSDictionary *)dict) {
         }
     }
 
+    // Partner sharing settings.
+    if ([self isFieldValid:partnerSharingSettings]) {
+        for (int i = 0; i < [partnerSharingSettings count]; i += 3) {
+            NSString *partnerName = [partnerSharingSettings objectAtIndex:i];
+            NSString *key = [partnerSharingSettings objectAtIndex:i+1];
+            NSString *value = [partnerSharingSettings objectAtIndex:i+2];
+            [adtraceThirdPartySharing addPartnerSharingSetting:partnerName key:key value:[value boolValue]];
+        }
+    }
+
     // Track third party sharing.
     [Adtrace trackThirdPartySharing:adtraceThirdPartySharing];
 }
 
 RCT_EXPORT_METHOD(trackMeasurementConsent:(NSNumber * _Nonnull)measurementConsent) {
     [Adtrace trackMeasurementConsent:[measurementConsent boolValue]];
+}
+
+RCT_EXPORT_METHOD(checkForNewAttStatus) {
+    [Adtrace checkForNewAttStatus];
+}
+
+RCT_EXPORT_METHOD(getLastDeeplink:(RCTResponseSenderBlock)callback) {
+    NSURL *lastDeeplink = [Adtrace lastDeeplink];
+    if (nil == lastDeeplink) {
+        callback(@[@""]);
+    } else {
+        callback(@[[lastDeeplink absoluteString]]);
+    }
+}
+
+RCT_EXPORT_METHOD(verifyAppStorePurchase:(NSDictionary *)dict callback:(RCTResponseSenderBlock)callback) {
+    NSString *receipt = dict[@"receipt"];
+    NSString *productId = dict[@"productId"];
+    NSString *transactionId = dict[@"transactionId"];
+
+    // Receipt.
+    NSData *receiptValue;
+    if ([self isFieldValid:receipt]) {
+        receiptValue = [receipt dataUsingEncoding:NSUTF8StringEncoding];
+    }
+
+    // Create purchase instance.
+    ADTPurchase *purchase = [[ADTPurchase alloc] initWithTransactionId:transactionId
+                                                             productId:productId
+                                                            andReceipt:receiptValue];
+
+    // Verify purchase.
+    [Adtrace verifyPurchase:purchase
+         completionHandler:^(ADTPurchaseVerificationResult * _Nonnull verificationResult) {
+        NSMutableDictionary *dictionary = [NSMutableDictionary dictionary];
+        if (verificationResult == nil) {
+            callback(@[dictionary]);
+            return;
+        }
+
+        [self addValueOrEmpty:dictionary key:@"verificationStatus" value:verificationResult.verificationStatus];
+        [self addValueOrEmpty:dictionary key:@"code" value:[NSString stringWithFormat:@"%d", verificationResult.code]];
+        [self addValueOrEmpty:dictionary key:@"message" value:verificationResult.message];
+
+        callback(@[dictionary]);
+    }];
+}
+
+RCT_EXPORT_METHOD(processDeeplink:(NSString *)urlStr callback:(RCTResponseSenderBlock)callback) {
+    if (urlStr == nil) {
+        return;
+    }
+
+    NSURL *url;
+    if ([NSString instancesRespondToSelector:@selector(stringByAddingPercentEncodingWithAllowedCharacters:)]) {
+        url = [NSURL URLWithString:[urlStr stringByAddingPercentEncodingWithAllowedCharacters:[NSCharacterSet URLFragmentAllowedCharacterSet]]];
+    } else {
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+        url = [NSURL URLWithString:[urlStr stringByAddingPercentEscapesUsingEncoding:NSUTF8StringEncoding]];
+    }
+#pragma clang diagnostic pop
+
+    // Process deeplink.
+    [Adtrace processDeeplink:url completionHandler:^(NSString * _Nonnull resolvedLink) {
+        if (resolvedLink == nil) {
+            callback(@[@""]);
+        } else {
+            callback(@[resolvedLink]);
+        }
+    }];
 }
 
 RCT_EXPORT_METHOD(setAttributionCallbackListener) {
@@ -638,6 +755,12 @@ RCT_EXPORT_METHOD(setTestOptions:(NSDictionary *)dict) {
         NSString *value = dict[@"subscriptionUrl"];
         if ([self isFieldValid:value]) {
             testOptions.subscriptionUrl = value;
+        }
+    }
+    if ([dict objectForKey:@"purchaseVerificationUrl"]) {
+        NSString *value = dict[@"purchaseVerificationUrl"];
+        if ([self isFieldValid:value]) {
+            testOptions.purchaseVerificationUrl = value;
         }
     }
     if ([dict objectForKey:@"extraPath"]) {
