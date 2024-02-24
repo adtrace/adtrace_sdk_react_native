@@ -111,6 +111,7 @@ public class AdTrace extends ReactContextBaseJavaModule implements LifecycleEven
         String externalDeviceId = null;
         String urlStrategy = null;
         String preinstallFilePath = null;
+        String fbAppId = null;
         long secretId  = 0L;
         long info1 = 0L;
         long info2 = 0L;
@@ -232,6 +233,12 @@ public class AdTrace extends ReactContextBaseJavaModule implements LifecycleEven
         if (checkKey(mapConfig, "preinstallFilePath")) {
             preinstallFilePath = mapConfig.getString("preinstallFilePath");
             adtraceConfig.setPreinstallFilePath(preinstallFilePath);
+        }
+
+        // FB app ID (meta install referrer).
+        if (checkKey(mapConfig, "fbAppId")) {
+            fbAppId = mapConfig.getString("fbAppId");
+            adtraceConfig.setFbAppId(fbAppId);
         }
 
         // App secret.
