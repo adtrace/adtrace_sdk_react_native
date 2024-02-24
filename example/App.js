@@ -149,28 +149,27 @@ function _onPress_trackSimpleEvent() {
 }
 
 function _onPress_trackRevenueEvent() {
-  var adtraceEvent = new AdTraceEvent("8faipx");
+  var adtraceEvent = new AdTraceEvent("udugd8");
   adtraceEvent.setRevenue(10.0, "USD");
   adtraceEvent.setTransactionId("DUMMY_TRANSACTION_ID");
   AdTrace.trackEvent(adtraceEvent);
 }
 
 function _onPress_trackCallbackEvent() {
-  var adtraceEvent = new AdTraceEvent("ujmt8x");
+  var adtraceEvent = new AdTraceEvent("udugd8");
   adtraceEvent.addCallbackParameter("DUMMY_KEY_1", "DUMMY_VALUE_1");
   adtraceEvent.addCallbackParameter("DUMMY_KEY_2", "DUMMY_VALUE_2");
   AdTrace.trackEvent(adtraceEvent);
 }
 
-//function _onPress_trackPartnerEvent() {
-//  var adtraceEvent = new AdTraceEvent("i9o1vr");
-//  adtraceEvent.addPartnerParameter("DUMMY_KEY_1", "DUMMY_VALUE_1");
-//  adtraceEvent.addPartnerParameter("DUMMY_KEY_2", "DUMMY_VALUE_2");
-//  AdTrace.trackEvent(adtraceEvent);
-//}
-
-function _onPress_trackEventParams() {
-  var adtraceEvent = new AdTraceEvent("ft4r6f");
+function _onPress_trackPartnerEvent() {
+  var adtraceEvent = new AdTraceEvent("udugd8");
+  adtraceEvent.addPartnerParameter("DUMMY_KEY_1", "DUMMY_VALUE_1");
+  adtraceEvent.addPartnerParameter("DUMMY_KEY_2", "DUMMY_VALUE_2");
+  AdTrace.trackEvent(adtraceEvent);
+}
+function _onPress_trackValueEvent() {
+  var adtraceEvent = new AdTraceEvent("udugd8");
   adtraceEvent.addEventParameter("DUMMY_KEY_1", "DUMMY_VALUE_1");
   adtraceEvent.addEventParameter("DUMMY_KEY_2", "DUMMY_VALUE_2");
   AdTrace.trackEvent(adtraceEvent);
@@ -249,8 +248,13 @@ return (
       </TouchableHighlight>
       <TouchableHighlight
         style={styles.button}
-        onPress={_onPress_trackEventParams}>
-        <Text>Track Event Value</Text>
+        onPress={_onPress_trackPartnerEvent}>
+        <Text>Track Partner Event</Text>
+      </TouchableHighlight>
+      <TouchableHighlight
+        style={styles.button}
+        onPress={_onPress_trackValueEvent}>
+        <Text>Track Value Event</Text>
       </TouchableHighlight>
       <TouchableHighlight
         style={styles.button}
