@@ -573,6 +573,7 @@ var AdTraceEvent = function(eventToken) {
     this.callbackId = null;
     this.callbackParameters = {};
     this.valueParameters = {};
+    this.partnerParameters = {};
 };
 
 AdTraceEvent.prototype.setRevenue = function(revenue, currency) {
@@ -589,12 +590,12 @@ AdTraceEvent.prototype.addCallbackParameter = function(key, value) {
     this.callbackParameters[key] = value;
 };
 
-// AdTraceEvent.prototype.addPartnerParameter = function(key, value) {
-//     if (typeof key !== 'string' || typeof value !== 'string') {
-//         return;
-//     }
-//     this.partnerParameters[key] = value;
-// };
+AdTraceEvent.prototype.addPartnerParameter = function(key, value) {
+    if (typeof key !== 'string' || typeof value !== 'string') {
+        return;
+    }
+    this.partnerParameters[key] = value;
+};
 
 AdTraceEvent.prototype.addEventParameter = function(key, value) {
     if (typeof key !== 'string' || typeof value !== 'string') {
