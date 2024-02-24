@@ -129,6 +129,7 @@ public class AdTrace extends ReactContextBaseJavaModule implements LifecycleEven
         boolean playStoreKidsAppEnabled = false;
         boolean coppaCompliantEnabled = false;
         boolean finalAndroidAttributionEnabled = false;
+        boolean readDeviceInfoOnceEnabled = false;
 
         // Suppress log level.
         if (checkKey(mapConfig, "logLevel")) {
@@ -214,6 +215,8 @@ public class AdTrace extends ReactContextBaseJavaModule implements LifecycleEven
                 adtraceConfig.setUrlStrategy(AdTraceConfig.URL_STRATEGY_INDIA);
             } else if (urlStrategy.equalsIgnoreCase("cn")) {
                 adtraceConfig.setUrlStrategy(AdTraceConfig.URL_STRATEGY_CN);
+            } else if (urlStrategy.equalsIgnoreCase("cn-only")) {
+//                adtraceConfig.setUrlStrategy(AdTraceConfig.URL_STRATEGY_CN_ONLY);
             } else if (urlStrategy.equalsIgnoreCase("data-residency-eu")) {
                 adtraceConfig.setUrlStrategy(AdTraceConfig.DATA_RESIDENCY_EU);
             } else if (urlStrategy.equalsIgnoreCase("data-residency-us")) {
@@ -316,6 +319,12 @@ public class AdTrace extends ReactContextBaseJavaModule implements LifecycleEven
         if (checkKey(mapConfig, "finalAndroidAttributionEnabled")) {
             finalAndroidAttributionEnabled = mapConfig.getBoolean("finalAndroidAttributionEnabled");
             adtraceConfig.setFinalAttributionEnabled(finalAndroidAttributionEnabled);
+        }
+
+        // Read device info only once.
+        if (checkKey(mapConfig, "readDeviceInfoOnceEnabled")) {
+            readDeviceInfoOnceEnabled = mapConfig.getBoolean("readDeviceInfoOnceEnabled");
+//            adtraceConfig.setReadDeviceInfoOnceEnabled(readDeviceInfoOnceEnabled);
         }
 
         // Attribution callback.
@@ -717,7 +726,12 @@ public class AdTrace extends ReactContextBaseJavaModule implements LifecycleEven
     }
 
     @ReactMethod
-    public void getIdfa(Callback callback) {
+    public void getIdfa(final Callback callback) {
+        callback.invoke("");
+    }
+
+    @ReactMethod
+    public void getIdfv(final Callback callback) {
         callback.invoke("");
     }
 
@@ -870,6 +884,19 @@ public class AdTrace extends ReactContextBaseJavaModule implements LifecycleEven
     }
 
     @ReactMethod
+    public void processDeeplink(final String strUri, final Callback callback) {
+        // final Uri uri = Uri.parse(strUri);
+
+        // Process deeplink.
+//        io.adtrace.sdk.AdTrace.processDeeplink(uri, getReactApplicationContext(), new OnDeeplinkResolvedListener() {
+//            @Override
+//            public void onDeeplinkResolved(String resolvedLink) {
+//                callback.invoke(resolvedLink);
+//            }
+//        });
+    }
+
+    @ReactMethod
     public void checkForNewAttStatus() {
         // do nothing
     }
@@ -964,10 +991,10 @@ public class AdTrace extends ReactContextBaseJavaModule implements LifecycleEven
             String value = mapTest.getString("purchaseVerificationPath");
             testOptions.purchaseVerificationPath = value;
         }
-        // if (checkKey(mapTest, "useTestConnectionOptions")) {
-        //     boolean value = mapTest.getBoolean("useTestConnectionOptions");
-        //     testOptions.useTestConnectionOptions = value;
-        // }
+        if (checkKey(mapTest, "useTestConnectionOptions")) {
+            boolean value = mapTest.getBoolean("useTestConnectionOptions");
+            // testOptions.useTestConnectionOptions = value;
+        }
         if (checkKey(mapTest, "timerIntervalInMilliseconds")) {
             try {
                 Long value = Long.parseLong(mapTest.getString("timerIntervalInMilliseconds"));
