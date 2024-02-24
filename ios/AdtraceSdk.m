@@ -221,6 +221,8 @@ RCT_EXPORT_METHOD(trackEvent:(NSDictionary *)dict) {
     NSString *eventToken = dict[@"eventToken"];
     NSString *revenue = dict[@"revenue"];
     NSString *currency = dict[@"currency"];
+    NSString *receipt = dict[@"receipt"];
+    NSString *productId = dict[@"productId"];
     NSString *transactionId = dict[@"transactionId"];
     NSString *callbackId = dict[@"callbackId"];
     NSDictionary *callbackParameters = dict[@"callbackParameters"];
@@ -261,6 +263,21 @@ RCT_EXPORT_METHOD(trackEvent:(NSDictionary *)dict) {
     // Callback ID.
     if ([self isFieldValid:callbackId]) {
         [adtraceEvent setCallbackId:callbackId];
+    }
+
+    // Receipt.
+    if ([self isFieldValid:receipt]) {
+        [adtraceEvent setReceipt:[receipt dataUsingEncoding:NSUTF8StringEncoding]];
+    }
+
+    // Product ID.
+    if ([self isFieldValid:productId]) {
+        [adtraceEvent setProductId:productId];
+    }
+
+    // Transaction ID.
+    if ([self isFieldValid:transactionId]) {
+        [adtraceEvent setTransactionId:transactionId];
     }
 
     // Track event.
