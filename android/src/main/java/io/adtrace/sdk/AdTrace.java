@@ -96,7 +96,7 @@ public class AdTrace extends ReactContextBaseJavaModule implements LifecycleEven
     }
 
     @ReactMethod
-    public void create(ReadableMap mapConfig) {
+    public void create(final ReadableMap mapConfig) {
         if (mapConfig == null) {
             return;
         }
@@ -363,7 +363,7 @@ public class AdTrace extends ReactContextBaseJavaModule implements LifecycleEven
     }
 
     @ReactMethod
-    public void trackEvent(ReadableMap mapEvent) {
+    public void trackEvent(final ReadableMap mapEvent) {
         if (mapEvent == null) {
             return;
         }
@@ -465,32 +465,32 @@ public class AdTrace extends ReactContextBaseJavaModule implements LifecycleEven
     }
 
     @ReactMethod
-    public void setEnabled(Boolean enabled) {
+    public void setEnabled(final Boolean enabled) {
         io.adtrace.sdk.AdTrace.setEnabled(enabled);
     }
 
     @ReactMethod
-    public void isEnabled(Callback callback) {
+    public void isEnabled(final Callback callback) {
         callback.invoke(io.adtrace.sdk.AdTrace.isEnabled());
     }
 
     @ReactMethod
-    public void setReferrer(String referrer) {
+    public void setReferrer(final String referrer) {
         io.adtrace.sdk.AdTrace.setReferrer(referrer, getReactApplicationContext());
     }
 
     @ReactMethod
-    public void setOfflineMode(Boolean enabled) {
+    public void setOfflineMode(final Boolean enabled) {
         io.adtrace.sdk.AdTrace.setOfflineMode(enabled);
     }
 
     @ReactMethod
-    public void setPushToken(String token) {
+    public void setPushToken(final String token) {
         io.adtrace.sdk.AdTrace.setPushToken(token, getReactApplicationContext());
     }
 
     @ReactMethod
-    public void appWillOpenUrl(String strUri) {
+    public void appWillOpenUrl(final String strUri) {
         final Uri uri = Uri.parse(strUri);
         io.adtrace.sdk.AdTrace.appWillOpenUrl(uri, getReactApplicationContext());
     }
@@ -501,7 +501,7 @@ public class AdTrace extends ReactContextBaseJavaModule implements LifecycleEven
     }
 
     @ReactMethod
-    public void trackAdRevenue(String source, String payload) {
+    public void trackAdRevenue(final String source, final String payload) {
         try {
             JSONObject jsonPayload = new JSONObject(payload);
             io.adtrace.sdk.AdTrace.trackAdRevenue(source, jsonPayload);
@@ -511,7 +511,7 @@ public class AdTrace extends ReactContextBaseJavaModule implements LifecycleEven
     }
 
     @ReactMethod
-    public void trackAdRevenueNew(ReadableMap mapAdRevenue) {
+    public void trackAdRevenueNew(final ReadableMap mapAdRevenue) {
         if (mapAdRevenue == null) {
             return;
         }
@@ -599,7 +599,7 @@ public class AdTrace extends ReactContextBaseJavaModule implements LifecycleEven
     }
 
     @ReactMethod
-    public void trackPlayStoreSubscription(ReadableMap mapEvent) {
+    public void trackPlayStoreSubscription(final ReadableMap mapEvent) {
         if (mapEvent == null) {
             return;
         }
@@ -687,22 +687,22 @@ public class AdTrace extends ReactContextBaseJavaModule implements LifecycleEven
     }
 
     @ReactMethod
-    public void addSessionCallbackParameter(String key, String value) {
+    public void addSessionCallbackParameter(final String key, final String value) {
         io.adtrace.sdk.AdTrace.addSessionCallbackParameter(key, value);
     }
 
     @ReactMethod
-    public void addSessionPartnerParameter(String key, String value) {
+    public void addSessionPartnerParameter(final String key, final String value) {
         io.adtrace.sdk.AdTrace.addSessionPartnerParameter(key, value);
     }
 
     @ReactMethod
-    public void removeSessionCallbackParameter(String key) {
+    public void removeSessionCallbackParameter(final String key) {
         io.adtrace.sdk.AdTrace.removeSessionCallbackParameter(key);
     }
 
     @ReactMethod
-    public void removeSessionPartnerParameter(String key) {
+    public void removeSessionPartnerParameter(final String key) {
         io.adtrace.sdk.AdTrace.removeSessionPartnerParameter(key);
     }
 
@@ -747,22 +747,22 @@ public class AdTrace extends ReactContextBaseJavaModule implements LifecycleEven
     }
 
     @ReactMethod
-    public void getAdid(Callback callback) {
+    public void getAdid(final Callback callback) {
         callback.invoke(io.adtrace.sdk.AdTrace.getAdid());
     }
 
     @ReactMethod
-    public void getAmazonAdId(Callback callback) {
+    public void getAmazonAdId(final Callback callback) {
         callback.invoke(io.adtrace.sdk.AdTrace.getAmazonAdId(getReactApplicationContext()));
     }
 
     @ReactMethod
-    public void getAttribution(Callback callback) {
+    public void getAttribution(final Callback callback) {
         callback.invoke(AdTraceUtil.attributionToMap(io.adtrace.sdk.AdTrace.getAttribution()));
     }
 
     @ReactMethod
-    public void getSdkVersion(String sdkPrefix, Callback callback) {
+    public void getSdkVersion(final String sdkPrefix, final Callback callback) {
         String sdkVersion = io.adtrace.sdk.AdTrace.getSdkVersion();
         if (sdkVersion == null) {
             callback.invoke("");
@@ -777,22 +777,22 @@ public class AdTrace extends ReactContextBaseJavaModule implements LifecycleEven
     }
 
     @ReactMethod
-    public void requestTrackingAuthorizationWithCompletionHandler(Callback callback) {
+    public void requestTrackingAuthorizationWithCompletionHandler(final Callback callback) {
         callback.invoke("");
     }
 
     @ReactMethod
-    public void updateConversionValue(int conversionValue) {
+    public void updateConversionValue(final int conversionValue) {
         // do nothing
     }
 
     @ReactMethod
-    public void getAppTrackingAuthorizationStatus(Callback callback) {
-        callback.invoke("-1");
+    public void getAppTrackingAuthorizationStatus(final Callback callback) {
+        callback.invoke(-1);
     }
 
     @ReactMethod
-    public void trackThirdPartySharing(ReadableMap mapThirdPartySharing) {
+    public void trackThirdPartySharing(final ReadableMap mapThirdPartySharing) {
         if (mapThirdPartySharing == null) {
             return;
         }
@@ -839,12 +839,12 @@ public class AdTrace extends ReactContextBaseJavaModule implements LifecycleEven
     }
 
     @ReactMethod
-    public void trackMeasurementConsent(boolean measurementConsent) {
+    public void trackMeasurementConsent(final boolean measurementConsent) {
         io.adtrace.sdk.AdTrace.trackMeasurementConsent(measurementConsent);
     }
 
     @ReactMethod
-    public void verifyPlayStorePurchase(ReadableMap mapEvent, Callback callback) {
+    public void verifyPlayStorePurchase(final ReadableMap mapEvent, final Callback callback) {
         if (mapEvent == null) {
             return;
         }
@@ -903,7 +903,7 @@ public class AdTrace extends ReactContextBaseJavaModule implements LifecycleEven
     }
 
     @ReactMethod
-    public void getLastDeeplink(Callback callback) {
+    public void getLastDeeplink(final Callback callback) {
         callback.invoke("");
     }
 
@@ -948,7 +948,7 @@ public class AdTrace extends ReactContextBaseJavaModule implements LifecycleEven
     }
 
     @ReactMethod
-    public void setTestOptions(ReadableMap mapTest) {
+    public void setTestOptions(final ReadableMap mapTest) {
         if (mapTest == null) {
             return;
         }
@@ -1054,13 +1054,13 @@ public class AdTrace extends ReactContextBaseJavaModule implements LifecycleEven
         io.adtrace.sdk.AdTrace.onPause();
     }
 
-    private void sendEvent(ReactContext reactContext, String eventName, @Nullable WritableMap params) {
+    private void sendEvent(final ReactContext reactContext, final String eventName, final @Nullable WritableMap params) {
         reactContext
             .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
             .emit(eventName, params);
     }
 
-    private boolean checkKey(ReadableMap map, String key) {
+    private boolean checkKey(final ReadableMap map, final String key) {
         return map.hasKey(key) && !map.isNull(key);
     }
 
