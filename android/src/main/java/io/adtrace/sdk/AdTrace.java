@@ -377,6 +377,7 @@ public class AdTrace extends ReactContextBaseJavaModule implements LifecycleEven
         String callbackId = null;
         Map<String, Object> callbackParameters = null;
         Map<String, Object> eventParameters = null;
+        Map<String, Object> partnerParameters = null;
 
         // Event token.
         if (checkKey(mapEvent, "eventToken")) {
@@ -408,14 +409,14 @@ public class AdTrace extends ReactContextBaseJavaModule implements LifecycleEven
         }
 
         // Partner parameters.
-        // if (checkKey(mapEvent, "partnerParameters")) {
-        //     partnerParameters = AdTraceUtil.toMap(mapEvent.getMap("partnerParameters"));
-        //     if (null != partnerParameters) {
-        //         for (Map.Entry<String, Object> entry : partnerParameters.entrySet()) {
-        //             event.addPartnerParameter(entry.getKey(), entry.getValue().toString());
-        //         }
-        //     }
-        // }
+        if (checkKey(mapEvent, "partnerParameters")) {
+            partnerParameters = AdTraceUtil.toMap(mapEvent.getMap("partnerParameters"));
+            if (null != partnerParameters) {
+                for (Map.Entry<String, Object> entry : partnerParameters.entrySet()) {
+                    event.addPartnerParameter(entry.getKey(), entry.getValue().toString());
+                }
+            }
+        }
 
         // Value parameters.
         if (checkKey(mapEvent, "valueParameters")) {
