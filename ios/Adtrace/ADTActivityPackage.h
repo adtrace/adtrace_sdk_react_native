@@ -22,6 +22,10 @@
 
 @property (nonatomic, strong) NSDictionary *callbackParameters;
 
+@property (nonatomic, strong) NSDictionary *eventValueParameters;
+
+@property (nonatomic, copy) void (^purchaseVerificationCallback)(id);
+
 // Logs
 
 @property (nonatomic, copy) NSString *suffix;

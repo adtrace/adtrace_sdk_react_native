@@ -54,12 +54,12 @@ static const char * const kInternalQueueName    = "io.adtrace.PackageQueue";
     [ADTUtil launchInQueue:self.internalQueue
                 selfInject:self
                      block:^(ADTPackageHandler * selfI) {
-                         [selfI initI:selfI
-                     activityHandler:activityHandler
-                       startsSending:startsSending
-                          userAgent:userAgent
-                          urlStrategy:urlStrategy];
-                     }];
+        [selfI initI:selfI
+     activityHandler:activityHandler
+       startsSending:startsSending
+           userAgent:userAgent
+         urlStrategy:urlStrategy];
+    }];
 
     return self;
 }
@@ -68,16 +68,16 @@ static const char * const kInternalQueueName    = "io.adtrace.PackageQueue";
     [ADTUtil launchInQueue:self.internalQueue
                 selfInject:self
                      block:^(ADTPackageHandler* selfI) {
-                         [selfI addI:selfI package:package];
-                     }];
+        [selfI addI:selfI package:package];
+    }];
 }
 
 - (void)sendFirstPackage {
     [ADTUtil launchInQueue:self.internalQueue
                 selfInject:self
                      block:^(ADTPackageHandler* selfI) {
-                         [selfI sendFirstI:selfI];
-                     }];
+        [selfI sendFirstI:selfI];
+    }];
 }
 
 - (void)responseCallback:(ADTResponseData *)responseData {
@@ -105,8 +105,8 @@ static const char * const kInternalQueueName    = "io.adtrace.PackageQueue";
     [ADTUtil launchInQueue:self.internalQueue
                 selfInject:self
                      block:^(ADTPackageHandler* selfI) {
-                         [selfI sendNextI:selfI];
-                     }];
+        [selfI sendNextI:selfI];
+    }];
 
     [self.activityHandler finishedTracking:responseData];
 }
@@ -127,16 +127,11 @@ static const char * const kInternalQueueName    = "io.adtrace.PackageQueue";
     NSString *waitTimeFormatted = [ADTUtil secondsNumberFormat:waitTime];
 
     [self.logger verbose:@"Waiting for %@ seconds before retrying the %d time", waitTimeFormatted, self.lastPackageRetriesCount];
-    dispatch_after
-        (dispatch_time(DISPATCH_TIME_NOW, (int64_t)(waitTime * NSEC_PER_SEC)),
-         self.internalQueue,
-         ^{
-            [self.logger verbose:@"Package handler finished waiting"];
-
-            dispatch_semaphore_signal(self.sendingSemaphore);
-
-            [self sendFirstPackage];
-        });
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(waitTime * NSEC_PER_SEC)), self.internalQueue, ^{
+        [self.logger verbose:@"Package handler finished waiting"];
+        dispatch_semaphore_signal(self.sendingSemaphore);
+        [self sendFirstPackage];
+    });
 }
 
 - (void)pauseSending {
@@ -147,16 +142,23 @@ static const char * const kInternalQueueName    = "io.adtrace.PackageQueue";
     self.paused = NO;
 }
 
-- (void)updatePackages:(ADTSessionParameters *)sessionParameters
-{
+- (void)updatePackagesWithSessionParams:(ADTSessionParameters *)sessionParameters {
     // make copy to prevent possible Activity Handler changes of it
     ADTSessionParameters * sessionParametersCopy = [sessionParameters copy];
 
     [ADTUtil launchInQueue:self.internalQueue
                 selfInject:self
                      block:^(ADTPackageHandler* selfI) {
-                         [selfI updatePackagesI:selfI sessionParameters:sessionParametersCopy];
-                     }];
+        [selfI updatePackagesI:selfI sessionParameters:sessionParametersCopy];
+    }];
+}
+
+- (void)updatePackagesWithIdfaAndAttStatus {
+    [ADTUtil launchInQueue:self.internalQueue
+                selfInject:self
+                     block:^(ADTPackageHandler* selfI) {
+        [selfI updatePackagesWithIdfaAndAttStatusI:selfI];
+    }];
 }
 
 - (void)flush {
@@ -188,20 +190,19 @@ static const char * const kInternalQueueName    = "io.adtrace.PackageQueue";
 }
 
 #pragma mark - internal
-- (void)
-    initI:(ADTPackageHandler *)selfI
-        activityHandler:(id<ADTActivityHandler>)activityHandler
-        startsSending:(BOOL)startsSending
-        userAgent:(NSString *)userAgent
-        urlStrategy:(ADTUrlStrategy *)urlStrategy
-{
+- (void)initI:(ADTPackageHandler *)selfI
+activityHandler:(id<ADTActivityHandler>)activityHandler
+startsSending:(BOOL)startsSending
+    userAgent:(NSString *)userAgent
+  urlStrategy:(ADTUrlStrategy *)urlStrategy {
+
     selfI.activityHandler = activityHandler;
     selfI.paused = !startsSending;
     selfI.requestHandler = [[ADTRequestHandler alloc]
-                                initWithResponseCallback:self
-                                urlStrategy:urlStrategy
-                                userAgent:userAgent
-                                requestTimeout:[ADTAdtraceFactory requestTimeout]];
+                            initWithResponseCallback:self
+                            urlStrategy:urlStrategy
+                            userAgent:userAgent
+                            requestTimeout:[ADTAdtraceFactory requestTimeout]];
     selfI.logger = ADTAdtraceFactory.logger;
     selfI.sendingSemaphore = dispatch_semaphore_create(1);
     [selfI readPackageQueueI:selfI];
@@ -265,32 +266,57 @@ static const char * const kInternalQueueName    = "io.adtrace.PackageQueue";
 }
 
 - (void)updatePackagesI:(ADTPackageHandler *)selfI
-      sessionParameters:(ADTSessionParameters *)sessionParameters
-{
+      sessionParameters:(ADTSessionParameters *)sessionParameters {
     [selfI.logger debug:@"Updating package handler queue"];
     [selfI.logger verbose:@"Session callback parameters: %@", sessionParameters.callbackParameters];
     [selfI.logger verbose:@"Session partner parameters: %@", sessionParameters.partnerParameters];
 
-    for (ADTActivityPackage * activityPackage in selfI.packageQueue) {
-        // callback parameters
-        NSDictionary * mergedCallbackParameters = [ADTUtil mergeParameters:sessionParameters.callbackParameters
-                                                                    source:activityPackage.callbackParameters
-                                                             parameterName:@"Callback"];
+    // create package queue copy for new state of array
+    NSMutableArray *packageQueueCopy = [NSMutableArray array];
 
+    for (ADTActivityPackage *activityPackage in selfI.packageQueue) {
+        // callback parameters
+        NSDictionary *mergedCallbackParameters = [ADTUtil mergeParameters:sessionParameters.callbackParameters
+                                                                   source:activityPackage.callbackParameters
+                                                            parameterName:@"Callback"];
         [ADTPackageBuilder parameters:activityPackage.parameters
                         setDictionary:mergedCallbackParameters
                                forKey:@"callback_params"];
 
         // partner parameters
-        NSDictionary * mergedPartnerParameters = [ADTUtil mergeParameters:sessionParameters.partnerParameters
-                                                                   source:activityPackage.partnerParameters
-                                                            parameterName:@"Partner"];
-
+        NSDictionary *mergedPartnerParameters = [ADTUtil mergeParameters:sessionParameters.partnerParameters
+                                                                  source:activityPackage.partnerParameters
+                                                           parameterName:@"Partner"];
         [ADTPackageBuilder parameters:activityPackage.parameters
                         setDictionary:mergedPartnerParameters
                                forKey:@"partner_params"];
+        // add to copy queue
+        [packageQueueCopy addObject:activityPackage];
     }
 
+    // write package queue copy
+    selfI.packageQueue = packageQueueCopy;
+    [selfI writePackageQueueS:selfI];
+}
+
+- (void)updatePackagesWithIdfaAndAttStatusI:(ADTPackageHandler *)selfI {
+    int attStatus = [ADTUtil attStatus];
+    [selfI.logger debug:@"Updating package queue with idfa and att_status: %d", (long)attStatus];
+    // create package queue copy for new state of array
+    NSMutableArray *packageQueueCopy = [NSMutableArray array];
+
+    for (ADTActivityPackage *activityPackage in selfI.packageQueue) {
+        [ADTPackageBuilder parameters:activityPackage.parameters setInt:attStatus forKey:@"att_status"];
+        [ADTPackageBuilder addIdfaToParameters:activityPackage.parameters
+                                    withConfig:self.activityHandler.adtraceConfig
+                                        logger:[ADTAdtraceFactory logger]
+                                 packageParams:self.activityHandler.packageParams];
+        // add to copy queue
+        [packageQueueCopy addObject:activityPackage];
+    }
+
+    // write package queue copy
+    selfI.packageQueue = packageQueueCopy;
     [selfI writePackageQueueS:selfI];
 }
 

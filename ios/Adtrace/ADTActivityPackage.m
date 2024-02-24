@@ -15,7 +15,13 @@
 
 - (NSString *)extendedString {
     NSMutableString *builder = [NSMutableString string];
-    NSArray *excludedKeys = @[@"secret_id", @"app_secret", @"signature", @"headers_id", @"native_version", @"event_callback_id"];
+    NSArray *excludedKeys = @[
+        @"secret_id",
+        @"app_secret",
+        @"signature",
+        @"headers_id",
+        @"native_version",
+        @"adt_signing_id"];
 
     [builder appendFormat:@"Path:      %@\n", self.path];
     [builder appendFormat:@"ClientSdk: %@\n", self.clientSdk];
@@ -69,6 +75,7 @@
     self.parameters = [decoder decodeObjectForKey:@"parameters"];
     self.partnerParameters = [decoder decodeObjectForKey:@"partnerParameters"];
     self.callbackParameters = [decoder decodeObjectForKey:@"callbackParameters"];
+    self.eventValueParameters = [decoder decodeObjectForKey:@"eventValueParameters"];
 
     NSString *kindString = [decoder decodeObjectForKey:@"kind"];
     self.activityKind = [ADTActivityKindUtil activityKindFromString:kindString];
@@ -84,8 +91,9 @@
     [encoder encodeObject:self.suffix forKey:@"suffix"];
     [encoder encodeObject:self.clientSdk forKey:@"clientSdk"];
     [encoder encodeObject:self.parameters forKey:@"parameters"];
-    [encoder encodeObject:self.callbackParameters forKey:@"callbackParameters"];
     [encoder encodeObject:self.partnerParameters forKey:@"partnerParameters"];
+    [encoder encodeObject:self.callbackParameters forKey:@"callbackParameters"];
+    [encoder encodeObject:self.eventValueParameters forKey:@"eventValueParameters"];
 }
 
 @end

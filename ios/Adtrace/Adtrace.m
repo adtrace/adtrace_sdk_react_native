@@ -12,10 +12,11 @@
 #import "ADTUserDefaults.h"
 #import "ADTAdtraceFactory.h"
 #import "ADTActivityHandler.h"
+#import "ADTSKAdNetwork.h"
 
 #if !__has_feature(objc_arc)
 #error Adtrace requires ARC
-// See README for details: https://github.com/adtrace/
+// See README for details: https://github.com/adtrace/ios_sdk/blob/master/README.md
 #endif
 
 NSString * const ADTEnvironmentSandbox = @"sandbox";
@@ -26,9 +27,16 @@ NSString * const ADTAdRevenueSourceMopub = @"mopub";
 NSString * const ADTAdRevenueSourceAdMob = @"admob_sdk";
 NSString * const ADTAdRevenueSourceIronSource = @"ironsource_sdk";
 NSString * const ADTAdRevenueSourceAdMost = @"admost_sdk";
+NSString * const ADTAdRevenueSourceUnity = @"unity_sdk";
+NSString * const ADTAdRevenueSourceHeliumChartboost = @"helium_chartboost_sdk";
+NSString * const ADTAdRevenueSourcePublisher = @"publisher_sdk";
+NSString * const ADTAdRevenueSourceTopOn = @"topon_sdk";
+NSString * const ADTAdRevenueSourceADX = @"adx_sdk";
 
 NSString * const ADTUrlStrategyIndia = @"UrlStrategyIndia";
 NSString * const ADTUrlStrategyChina = @"UrlStrategyChina";
+NSString * const ADTUrlStrategyCn = @"UrlStrategyCn";
+NSString * const ADTUrlStrategyCnOnly = @"UrlStrategyCnOnly";
 
 NSString * const ADTDataResidencyEU = @"DataResidencyEU";
 NSString * const ADTDataResidencyTR = @"DataResidencyTR";
@@ -44,6 +52,8 @@ NSString * const ADTDataResidencyUS = @"DataResidencyUS";
 @property (nonatomic, strong) id<ADTActivityHandler> activityHandler;
 
 @property (nonatomic, strong) ADTSavedPreLaunch *savedPreLaunch;
+
+@property (nonatomic) AdtraceResolvedDeeplinkBlock cachedResolvedDeeplinkBlock;
 
 @end
 
@@ -70,6 +80,7 @@ static dispatch_once_t onceToken = 0;
     self.activityHandler = nil;
     self.logger = [ADTAdtraceFactory logger];
     self.savedPreLaunch = [[ADTSavedPreLaunch alloc] init];
+    self.cachedResolvedDeeplinkBlock = nil;
     return self;
 }
 
@@ -118,6 +129,13 @@ static dispatch_once_t onceToken = 0;
     }
 }
 
++ (void)processDeeplink:(nonnull NSURL *)deeplink
+      completionHandler:(void (^_Nonnull)(NSString * _Nonnull resolvedLink))completionHandler {
+    @synchronized (self) {
+        [[Adtrace getInstance] processDeeplink:deeplink completionHandler:completionHandler];
+    }
+}
+
 + (void)setDeviceToken:(NSData *)deviceToken {
     @synchronized (self) {
         [[Adtrace getInstance] setDeviceToken:[deviceToken copy]];
@@ -143,6 +161,12 @@ static dispatch_once_t onceToken = 0;
 + (NSString *)idfa {
     @synchronized (self) {
         return [[Adtrace getInstance] idfa];
+    }
+}
+
++ (NSString *)idfv {
+    @synchronized (self) {
+        return [[Adtrace getInstance] idfv];
     }
 }
 
@@ -254,6 +278,36 @@ static dispatch_once_t onceToken = 0;
     }
 }
 
++ (void)updatePostbackConversionValue:(NSInteger)conversionValue
+                    completionHandler:(void (^_Nullable)(NSError *_Nullable error))completion {
+    @synchronized (self) {
+        [[Adtrace getInstance] updatePostbackConversionValue:conversionValue
+                                          completionHandler:completion];
+    }
+}
+
++ (void)updatePostbackConversionValue:(NSInteger)fineValue
+                          coarseValue:(nonnull NSString *)coarseValue
+                    completionHandler:(void (^_Nullable)(NSError *_Nullable error))completion {
+    @synchronized (self) {
+        [[Adtrace getInstance] updatePostbackConversionValue:fineValue
+                                                coarseValue:coarseValue
+                                          completionHandler:completion];
+    }
+}
+
++ (void)updatePostbackConversionValue:(NSInteger)fineValue
+                          coarseValue:(nonnull NSString *)coarseValue
+                           lockWindow:(BOOL)lockWindow
+                    completionHandler:(void (^_Nullable)(NSError *_Nullable error))completion {
+    @synchronized (self) {
+        [[Adtrace getInstance] updatePostbackConversionValue:fineValue
+                                                coarseValue:coarseValue
+                                                 lockWindow:lockWindow
+                                          completionHandler:completion];
+    }
+}
+
 + (void)trackAdRevenue:(ADTAdRevenue *)adRevenue {
     @synchronized (self) {
         [[Adtrace getInstance] trackAdRevenue:adRevenue];
@@ -269,6 +323,25 @@ static dispatch_once_t onceToken = 0;
 + (NSString *)adid {
     @synchronized (self) {
         return [[Adtrace getInstance] adid];
+    }
+}
+
++ (void)checkForNewAttStatus {
+    @synchronized (self) {
+        [[Adtrace getInstance] checkForNewAttStatus];
+    }
+}
+
++ (NSURL *)lastDeeplink {
+    @synchronized (self) {
+        return [[Adtrace getInstance] lastDeeplink];
+    }
+}
+
++ (void)verifyPurchase:(nonnull ADTPurchase *)purchase
+     completionHandler:(void (^_Nonnull)(ADTPurchaseVerificationResult * _Nonnull verificationResult))completionHandler {
+    @synchronized (self) {
+        [[Adtrace getInstance] verifyPurchase:purchase completionHandler:completionHandler];
     }
 }
 
@@ -293,9 +366,9 @@ static dispatch_once_t onceToken = 0;
         [self.logger error:@"Adtrace already initialized"];
         return;
     }
-    self.activityHandler = [[ADTActivityHandler alloc]
-                                initWithConfig:adtraceConfig
-                                savedPreLaunch:self.savedPreLaunch];
+    self.activityHandler = [[ADTActivityHandler alloc] initWithConfig:adtraceConfig
+                                                       savedPreLaunch:self.savedPreLaunch
+                                           deeplinkResolutionCallback:self.cachedResolvedDeeplinkBlock];
 }
 
 - (void)trackEvent:(ADTEvent *)event {
@@ -337,12 +410,34 @@ static dispatch_once_t onceToken = 0;
 }
 
 - (void)appWillOpenUrl:(NSURL *)url {
+    [ADTUserDefaults cacheDeeplinkUrl:url];
     NSDate *clickTime = [NSDate date];
     if (![self checkActivityHandler]) {
         [ADTUserDefaults saveDeeplinkUrl:url andClickTime:clickTime];
         return;
     }
     [self.activityHandler appWillOpenUrl:url withClickTime:clickTime];
+}
+
+- (void)processDeeplink:(nonnull NSURL *)deeplink
+      completionHandler:(void (^_Nonnull)(NSString * _Nonnull resolvedLink))completionHandler {
+    // if resolution result is not wanted, fallback to default method
+    if (completionHandler == nil) {
+        [self appWillOpenUrl:deeplink];
+        return;
+    }
+    // if deep link processing is triggered prior to SDK being initialized
+    [ADTUserDefaults cacheDeeplinkUrl:deeplink];
+    NSDate *clickTime = [NSDate date];
+    if (![self checkActivityHandler]) {
+        [ADTUserDefaults saveDeeplinkUrl:deeplink andClickTime:clickTime];
+        self.cachedResolvedDeeplinkBlock = completionHandler;
+        return;
+    }
+    // if deep link processing was triggered with SDK being initialized
+    [self.activityHandler processDeeplink:deeplink
+                                clickTime:clickTime
+                        completionHandler:completionHandler];
 }
 
 - (void)setDeviceToken:(NSData *)deviceToken {
@@ -377,6 +472,10 @@ static dispatch_once_t onceToken = 0;
 
 - (NSString *)idfa {
     return [ADTUtil idfa];
+}
+
+- (NSString *)idfv {
+    return [ADTUtil idfv];
 }
 
 - (NSURL *)convertUniversalLink:(NSURL *)url scheme:(NSString *)scheme {
@@ -536,7 +635,31 @@ static dispatch_once_t onceToken = 0;
 }
 
 - (void)updateConversionValue:(NSInteger)conversionValue {
-    [ADTUtil updateSkAdNetworkConversionValue:[NSNumber numberWithInteger:conversionValue]];
+    [[ADTSKAdNetwork getInstance] updateConversionValue:conversionValue];
+}
+
+- (void)updatePostbackConversionValue:(NSInteger)conversionValue
+                    completionHandler:(void (^_Nullable)(NSError *_Nullable error))completion {
+    [[ADTSKAdNetwork getInstance] updatePostbackConversionValue:conversionValue
+                                              completionHandler:completion];
+}
+
+- (void)updatePostbackConversionValue:(NSInteger)fineValue
+                          coarseValue:(nonnull NSString *)coarseValue
+                    completionHandler:(void (^_Nullable)(NSError *_Nullable error))completion {
+    [[ADTSKAdNetwork getInstance] updatePostbackConversionValue:fineValue
+                                                    coarseValue:coarseValue
+                                              completionHandler:completion];
+}
+
+- (void)updatePostbackConversionValue:(NSInteger)fineValue
+                          coarseValue:(nonnull NSString *)coarseValue
+                           lockWindow:(BOOL)lockWindow
+                    completionHandler:(void (^_Nullable)(NSError *_Nullable error))completion {
+    [[ADTSKAdNetwork getInstance] updatePostbackConversionValue:fineValue
+                                                    coarseValue:coarseValue
+                                                     lockWindow:lockWindow
+                                              completionHandler:completion];
 }
 
 - (void)trackAdRevenue:(ADTAdRevenue *)adRevenue {
@@ -564,6 +687,33 @@ static dispatch_once_t onceToken = 0;
     return [ADTUtil sdkVersion];
 }
 
+- (void)checkForNewAttStatus {
+    if (![self checkActivityHandler]) {
+        return;
+    }
+
+    [self.activityHandler checkForNewAttStatus];
+}
+
+- (NSURL *)lastDeeplink {
+    return [ADTUserDefaults getCachedDeeplinkUrl];
+}
+
+- (void)verifyPurchase:(nonnull ADTPurchase *)purchase
+     completionHandler:(void (^_Nonnull)(ADTPurchaseVerificationResult * _Nonnull verificationResult))completionHandler {
+    if (![self checkActivityHandler]) {
+        if (completionHandler != nil) {
+            ADTPurchaseVerificationResult *result = [[ADTPurchaseVerificationResult alloc] init];
+            result.verificationStatus = @"not_verified";
+            result.code = 100;
+            result.message = @"SDK needs to be initialized before making purchase verification request";
+            completionHandler(result);
+        }
+        return;
+    }
+    [self.activityHandler verifyPurchase:purchase completionHandler:completionHandler];
+}
+
 - (void)teardown {
     if (self.activityHandler == nil) {
         [self.logger error:@"Adtrace already down or not initialized"];
@@ -585,6 +735,9 @@ static dispatch_once_t onceToken = 0;
     }
     if (testOptions.subscriptionUrl != nil) {
         [ADTAdtraceFactory setSubscriptionUrl:testOptions.subscriptionUrl];
+    }
+    if (testOptions.purchaseVerificationUrl != nil) {
+        [ADTAdtraceFactory setPurchaseVerificationUrl:testOptions.purchaseVerificationUrl];
     }
     if (testOptions.timerIntervalInMilliseconds != nil) {
         NSTimeInterval timerIntervalInSeconds = [testOptions.timerIntervalInMilliseconds intValue] / 1000.0;
@@ -613,7 +766,6 @@ static dispatch_once_t onceToken = 0;
         [ADTAdtraceFactory disableSigning];
     }
 
-    [ADTAdtraceFactory setiAdFrameworkEnabled:testOptions.iAdFrameworkEnabled];
     [ADTAdtraceFactory setAdServicesFrameworkEnabled:testOptions.adServicesFrameworkEnabled];
 }
 

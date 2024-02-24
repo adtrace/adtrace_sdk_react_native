@@ -47,12 +47,6 @@
 
 + (void)clearAdtraceStuff;
 
-+ (void)saveiAdErrorKey:(NSString *)key;
-
-+ (NSDictionary<NSString *, NSNumber *> *)getiAdErrors;
-
-+ (void)cleariAdErrors;
-
 + (void)setAdServicesTracked;
 
 + (BOOL)getAdServicesTracked;
@@ -60,5 +54,22 @@
 + (void)saveSkadRegisterCallTimestamp:(NSDate *)callTime;
 
 + (NSDate *)getSkadRegisterCallTimestamp;
+
++ (void)setLinkMeChecked;
+
++ (BOOL)getLinkMeChecked;
+
++ (void)cacheDeeplinkUrl:(NSURL *)deeplink;
+
++ (NSURL *)getCachedDeeplinkUrl;
+
++ (BOOL)attWaitingRemainingSecondsKeyExists;
+
++ (void)setAttWaitingRemainingSeconds:(NSUInteger)seconds;
+
++ (NSUInteger)getAttWaitingRemainingSeconds;
+
++ (void)removeAttWaitingRemainingSeconds;
+
 
 @end

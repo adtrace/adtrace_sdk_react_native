@@ -1,9 +1,9 @@
 //
-//  ADTSdkClickHandler.h
-//  Adtrace SDK
+//  ADTPurchaseVerificationHandler.h
+//  Adtrace
 //
-//  Created by Nasser Amini (@namini40) on Jun 2022.
-//  Copyright © 2022 adtrace io. All rights reserved.
+//  Created by Uglješa Erceg (@uerceg) on May 25th 2023.
+//  Copyright © 2023 Adtrace. All rights reserved.
 //
 
 #import <Foundation/Foundation.h>
@@ -12,7 +12,9 @@
 #import "ADTRequestHandler.h"
 #import "ADTUrlStrategy.h"
 
-@interface ADTSdkClickHandler : NSObject <ADTResponseCallback>
+NS_ASSUME_NONNULL_BEGIN
+
+@interface ADTPurchaseVerificationHandler : NSObject <ADTResponseCallback>
 
 - (id)initWithActivityHandler:(id<ADTActivityHandler>)activityHandler
                 startsSending:(BOOL)startsSending
@@ -20,8 +22,10 @@
                   urlStrategy:(ADTUrlStrategy *)urlStrategy;
 - (void)pauseSending;
 - (void)resumeSending;
-- (void)sendSdkClick:(ADTActivityPackage *)sdkClickPackage;
+- (void)sendPurchaseVerificationPackage:(ADTActivityPackage *)purchaseVerificationPackage;
 - (void)updatePackagesWithIdfaAndAttStatus;
 - (void)teardown;
 
 @end
+
+NS_ASSUME_NONNULL_END

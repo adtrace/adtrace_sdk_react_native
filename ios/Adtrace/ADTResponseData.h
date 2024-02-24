@@ -45,6 +45,8 @@ typedef NS_ENUM(int, ADTTrackingState) {
 
 @property (nonatomic, strong) ADTActivityPackage *sdkPackage;
 
+@property (nonatomic, strong) ADTActivityPackage *purchaseVerificationPackage;
+
 + (id)buildResponseData:(ADTActivityPackage *)activityPackage;
 
 @end
@@ -58,6 +60,12 @@ typedef NS_ENUM(int, ADTTrackingState) {
 @end
 
 @interface ADTSdkClickResponseData : ADTResponseData
+
+@property (nonatomic, copy) NSString *resolvedDeeplink;
+
+@end
+
+@interface ADTPurchaseVerificationResponseData : ADTResponseData
 @end
 
 @interface ADTEventResponseData : ADTResponseData

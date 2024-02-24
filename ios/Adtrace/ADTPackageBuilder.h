@@ -20,6 +20,8 @@
 
 @property (nonatomic, copy) NSString * _Nullable deeplink;
 
+@property (nonatomic, copy) NSString * _Nullable reftag;
+
 @property (nonatomic, copy) NSDate * _Nullable clickTime;
 
 @property (nonatomic, copy) NSDate * _Nullable purchaseTime;
@@ -40,7 +42,7 @@
 - (ADTActivityPackage * _Nullable)buildSessionPackage:(BOOL)isInDelay;
 
 - (ADTActivityPackage * _Nullable)buildEventPackage:(ADTEvent * _Nullable)event
-                                isInDelay:(BOOL)isInDelay;
+                                          isInDelay:(BOOL)isInDelay;
 
 - (ADTActivityPackage * _Nullable)buildInfoPackage:(NSString * _Nullable)infoSource;
 
@@ -52,6 +54,11 @@
 - (ADTActivityPackage * _Nullable)buildClickPackage:(NSString * _Nullable)clickSource
                                               token:(NSString * _Nullable)token
                                     errorCodeNumber:(NSNumber * _Nullable)errorCodeNumber;
+
+- (ADTActivityPackage * _Nullable)buildClickPackage:(NSString * _Nullable)clickSource
+                                          linkMeUrl:(NSString * _Nullable)linkMeUrl;
+
+- (ADTActivityPackage * _Nullable)buildPurchaseVerificationPackage:(ADTPurchase * _Nullable)purchase;
 
 - (ADTActivityPackage * _Nullable)buildAttributionPackage:(NSString * _Nullable)initiatedBy;
 
@@ -87,6 +94,10 @@
 
 + (BOOL)isAdServicesPackage:(ADTActivityPackage * _Nullable)activityPackage;
 
++ (void)addIdfaToParameters:(NSMutableDictionary * _Nullable)parameters
+                 withConfig:(ADTConfig * _Nullable)adtConfig
+                     logger:(id<ADTLogger> _Nullable)logger
+              packageParams:(ADTPackageParams * _Nullable)packageParams;
 @end
-// TODO change to ADT...
+
 extern NSString * _Nullable const ADTAttributionTokenParameter;
