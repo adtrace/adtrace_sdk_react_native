@@ -174,16 +174,16 @@ AdTrace.trackThirdPartySharing = function(adtraceThirdPartySharing) {
     module_adtrace.trackThirdPartySharing(adtraceThirdPartySharing);
 };
 
-AdTrace.requestTrackingAuthorizationWithCompletionHandler = function(callback) {
-    module_adtrace.requestTrackingAuthorizationWithCompletionHandler(callback);
+AdTrace.trackMeasurementConsent = function(measurementConsent) {
+    module_adtrace.trackMeasurementConsent(measurementConsent);
 };
 
-AdTrace.updateConversionValue = function(conversionValue) {
-    module_adtrace.updateConversionValue(conversionValue);
+AdTrace.checkForNewAttStatus = function() {
+    module_adtrace.checkForNewAttStatus();
 };
 
-AdTrace.getAppTrackingAuthorizationStatus = function(callback) {
-    module_adtrace.getAppTrackingAuthorizationStatus(callback);
+AdTrace.getLastDeeplink = function(callback) {
+    module_adtrace.getLastDeeplink(callback);
 };
 
 AdTrace.verifyAppStorePurchase = function(purchase, callback) {
@@ -196,6 +196,10 @@ AdTrace.verifyPlayStorePurchase = function(purchase, callback) {
     if (Platform.OS === "android") {
         module_adtrace.verifyPlayStorePurchase(purchase, callback);
     }
+};
+
+AdTrace.processDeeplink = function(deeplink, callback) {
+    module_adtrace.processDeeplink(deeplink, callback);
 };
 
 AdTrace.componentWillUnmount = function() {
