@@ -160,4 +160,3 @@ vendor/
 
 # android studio
 /.idea/
-/yarn.lock

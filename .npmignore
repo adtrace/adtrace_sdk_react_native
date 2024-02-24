@@ -12,7 +12,7 @@ node_modules
 
 # AdTrace SDK
 ext/
-scripts/
 example/
 test/
-
+plugins/
+docs/
