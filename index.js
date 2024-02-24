@@ -117,6 +117,10 @@ AdTrace.getIdfa = function(callback) {
     module_adtrace.getIdfa(callback);
 };
 
+AdTrace.getIdfv = function(callback) {
+    module_adtrace.getIdfv(callback);
+};
+
 AdTrace.getGoogleAdId = function(callback) {
     module_adtrace.getGoogleAdId(callback);
 };
