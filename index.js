@@ -302,6 +302,7 @@ var AdTraceConfig = function(appToken, environment) {
     this.info4 = null;
     this.urlStrategy = null;
     this.coppaCompliantEnabled = null;
+    this.readDeviceInfoOnceEnabled = null;
     // Android only
     this.processName = null;
     this.readMobileEquipmentIdentity = null;
@@ -423,6 +424,10 @@ AdTraceConfig.prototype.setUrlStrategy = function(urlStrategy) {
 
 AdTraceConfig.prototype.setCoppaCompliantEnabled = function(coppaCompliantEnabled) {
     this.coppaCompliantEnabled = coppaCompliantEnabled;
+};
+
+AdTraceConfig.prototype.setReadDeviceInfoOnceEnabled = function(readDeviceInfoOnceEnabled) {
+    this.readDeviceInfoOnceEnabled = readDeviceInfoOnceEnabled;
 };
 
 AdTraceConfig.prototype.setReadMobileEquipmentIdentity = function(readMobileEquipmentIdentity) {
