@@ -310,6 +310,7 @@ var AdTraceConfig = function(appToken, environment) {
     this.preinstallFilePath = null;
     this.playStoreKidsAppEnabled = null;
     this.finalAndroidAttributionEnabled = null;
+    this.fbAppId;
     // iOS only
     this.allowiAdInfoReading = null;
     this.allowAdServicesInfoReading = null;
@@ -448,6 +449,10 @@ AdTraceConfig.prototype.setPlayStoreKidsAppEnabled = function(isEnabled) {
 
 AdTraceConfig.prototype.setFinalAndroidAttributionEnabled = function(isEnabled) {
     this.finalAndroidAttributionEnabled = isEnabled;
+};
+
+AdTraceConfig.prototype.setFbAppId = function(fbAppId) {
+    this.fbAppId = fbAppId;
 };
 
 AdTraceConfig.prototype.setAllowiAdInfoReading = function(allowiAdInfoReading) {
