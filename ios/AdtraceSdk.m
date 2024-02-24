@@ -20,6 +20,7 @@ BOOL _isSessionTrackingSucceededCallbackImplemented;
 BOOL _isSessionTrackingFailedCallbackImplemented;
 BOOL _isDeferredDeeplinkCallbackImplemented;
 BOOL _isConversionValueUpdatedCallbackImplemented;
+BOOL _isSkad4ConversionValueUpdatedCallbackImplemented;
 
 #pragma mark - Public methods
 
@@ -109,7 +110,8 @@ RCT_EXPORT_METHOD(create:(NSDictionary *)dict) {
         || _isSessionTrackingSucceededCallbackImplemented
         || _isSessionTrackingFailedCallbackImplemented
         || _isDeferredDeeplinkCallbackImplemented
-        || _isConversionValueUpdatedCallbackImplemented) {
+        || _isConversionValueUpdatedCallbackImplemented
+        || _isSkad4ConversionValueUpdatedCallbackImplemented) {
         [adtraceConfig setDelegate:
          [AdtraceSdkDelegate getInstanceWithSwizzleOfAttributionCallback:_isAttributionCallbackImplemented
                                                  eventSucceededCallback:_isEventTrackingSucceededCallbackImplemented
@@ -118,6 +120,7 @@ RCT_EXPORT_METHOD(create:(NSDictionary *)dict) {
                                                   sessionFailedCallback:_isSessionTrackingFailedCallbackImplemented
                                                deferredDeeplinkCallback:_isDeferredDeeplinkCallbackImplemented
                                          conversionValueUpdatedCallback:_isConversionValueUpdatedCallbackImplemented
+                                    skad4ConversionValueUpdatedCallback:_isSkad4ConversionValueUpdatedCallbackImplemented
                                            shouldLaunchDeferredDeeplink:shouldLaunchDeferredDeeplink]];
     }
 
@@ -459,6 +462,26 @@ RCT_EXPORT_METHOD(updateConversionValue:(NSNumber * _Nonnull)conversionValue) {
     [Adtrace updateConversionValue:[conversionValue intValue]];
 }
 
+RCT_EXPORT_METHOD(updateConversionValueWithErrorCallback:(NSNumber * _Nonnull)conversionValue
+                                           errorCallback:(RCTResponseSenderBlock)callback) {
+    [Adtrace updatePostbackConversionValue:[conversionValue intValue]
+                        completionHandler:^(NSError * _Nullable error) {
+        callback(@[[error localizedDescription]]);
+    }];
+}
+
+RCT_EXPORT_METHOD(updateConversionValueWithSkad4ErrorCallback:(NSNumber * _Nonnull)conversionValue
+                                                  coarseValue:(NSString * _Nonnull)coarseValue
+                                                   lockWindow:(NSNumber * _Nonnull)lockWindow
+                                                errorCallback:(RCTResponseSenderBlock)callback) {
+    [Adtrace updatePostbackConversionValue:[conversionValue intValue]
+                              coarseValue:coarseValue
+                               lockWindow:[lockWindow boolValue]
+                        completionHandler:^(NSError * _Nullable error) {
+        callback(@[[error localizedDescription]]);
+    }];
+}
+
 RCT_EXPORT_METHOD(getAppTrackingAuthorizationStatus:(RCTResponseSenderBlock)callback) {
     callback(@[@([Adtrace appTrackingAuthorizationStatus])]);
 }
@@ -587,6 +610,10 @@ RCT_EXPORT_METHOD(setConversionValueUpdatedCallbackListener) {
     _isConversionValueUpdatedCallbackImplemented = YES;
 }
 
+RCT_EXPORT_METHOD(setSkad4ConversionValueUpdatedCallbackListener) {
+    _isSkad4ConversionValueUpdatedCallbackImplemented = YES;
+}
+
 RCT_EXPORT_METHOD(setTestOptions:(NSDictionary *)dict) {
     AdtraceTestOptions *testOptions = [[AdtraceTestOptions alloc] init];
     if ([dict objectForKey:@"hasContext"]) {
@@ -655,12 +682,6 @@ RCT_EXPORT_METHOD(setTestOptions:(NSDictionary *)dict) {
             testOptions.noBackoffWait = [value boolValue];
         }
     }
-    if ([dict objectForKey:@"iAdFrameworkEnabled"]) {
-        NSString *value = dict[@"iAdFrameworkEnabled"];
-        if ([self isFieldValid:value]) {
-            testOptions.iAdFrameworkEnabled = [value boolValue];
-        }
-    }
     if ([dict objectForKey:@"adServicesFrameworkEnabled"]) {
         NSString *value = dict[@"adServicesFrameworkEnabled"];
         if ([self isFieldValid:value]) {
@@ -679,6 +700,7 @@ RCT_EXPORT_METHOD(teardown) {
     _isSessionTrackingFailedCallbackImplemented = NO;
     _isDeferredDeeplinkCallbackImplemented = NO;
     _isConversionValueUpdatedCallbackImplemented = NO;
+    _isSkad4ConversionValueUpdatedCallbackImplemented = NO;
     [AdtraceSdkDelegate teardown];
 }
 

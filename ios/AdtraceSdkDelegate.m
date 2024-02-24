@@ -39,6 +39,7 @@ static AdtraceSdkDelegate *defaultInstance = nil;
                             sessionFailedCallback:(BOOL)swizzleSessionFailedCallback
                          deferredDeeplinkCallback:(BOOL)swizzleDeferredDeeplinkCallback
                    conversionValueUpdatedCallback:(BOOL)swizzleConversionValueUpdatedCallback
+              skad4ConversionValueUpdatedCallback:(BOOL)swizzleSkad4ConversionValueUpdatedCallback
                      shouldLaunchDeferredDeeplink:(BOOL)shouldLaunchDeferredDeeplink {
     dispatch_once(&onceToken, ^{
         defaultInstance = [[AdtraceSdkDelegate alloc] init];
@@ -71,6 +72,10 @@ static AdtraceSdkDelegate *defaultInstance = nil;
         if (swizzleConversionValueUpdatedCallback) {
             [defaultInstance swizzleCallbackMethod:@selector(adtraceConversionValueUpdated:)
                                   swizzledSelector:@selector(adtraceConversionValueUpdatedWannabe:)];
+        }
+        if (swizzleSkad4ConversionValueUpdatedCallback) {
+            [defaultInstance swizzleCallbackMethod:@selector(adtraceConversionValueUpdated:coarseValue:lockWindow:)
+                                  swizzledSelector:@selector(adtraceConversionValueUpdatedWannabe:coarseValue:lockWindow:)];
         }
         [defaultInstance setShouldLaunchDeferredDeeplink:shouldLaunchDeferredDeeplink];
     });
@@ -197,6 +202,17 @@ static AdtraceSdkDelegate *defaultInstance = nil;
 - (void)adtraceConversionValueUpdatedWannabe:(NSNumber *)conversionValue {
     // NSString *strConversionValue = [conversionValue stringValue];
     [AdtraceEventEmitter dispatchEvent:@"adtrace_conversionValueUpdated" withDictionary:@{@"conversionValue": conversionValue}];
+}
+
+
+- (void)adtraceConversionValueUpdatedWannabe:(nullable NSNumber *)fineValue
+                                coarseValue:(nullable NSString *)coarseValue
+                                 lockWindow:(nullable NSNumber *)lockWindow {
+    NSMutableDictionary *dictionary = [NSMutableDictionary dictionary];
+    [self addValueOrEmpty:dictionary key:@"fineValue" value:[fineValue stringValue]];
+    [self addValueOrEmpty:dictionary key:@"coarseValue" value:coarseValue];
+    [self addValueOrEmpty:dictionary key:@"lockWindow" value:[lockWindow stringValue]];
+    [AdtraceEventEmitter dispatchEvent:@"adtrace_skad4ConversionValueUpdated" withDictionary:dictionary];
 }
 
 - (void)swizzleCallbackMethod:(SEL)originalSelector
