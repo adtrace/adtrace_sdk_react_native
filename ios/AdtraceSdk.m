@@ -226,7 +226,7 @@ RCT_EXPORT_METHOD(trackEvent:(NSDictionary *)dict) {
     NSString *transactionId = dict[@"transactionId"];
     NSString *callbackId = dict[@"callbackId"];
     NSDictionary *callbackParameters = dict[@"callbackParameters"];
-    NSDictionary *valueParameters = dict[@"valueParameters"];
+    NSDictionary *partnerParameters = dict[@"partnerParameters"];
 
     ADTEvent *adtraceEvent = [ADTEvent eventWithEventToken:eventToken];
     if (![adtraceEvent isValid]) {
@@ -247,11 +247,11 @@ RCT_EXPORT_METHOD(trackEvent:(NSDictionary *)dict) {
         }
     }
 
-    // value parameters.
-    if ([self isFieldValid:valueParameters]) {
-        for (NSString *key in valueParameters) {
-            NSString *value = [valueParameters objectForKey:key];
-            [adtraceEvent addEventValueParameter:key value:value];
+    // Partner parameters.
+    if ([self isFieldValid:partnerParameters]) {
+        for (NSString *key in partnerParameters) {
+            NSString *value = [partnerParameters objectForKey:key];
+            [adtraceEvent addPartnerParameter:key value:value];
         }
     }
 
@@ -611,6 +611,7 @@ RCT_EXPORT_METHOD(convertUniversalLink:(NSString *)urlString scheme:(NSString *)
 RCT_EXPORT_METHOD(trackThirdPartySharing:(NSDictionary *)dict) {
     NSNumber *isEnabled = dict[@"isEnabled"];
     NSArray *granularOptions = dict[@"granularOptions"];
+    NSArray *partnerSharingSettings = dict[@"partnerSharingSettings"];
 
     if (isEnabled != nil && [isEnabled isKindOfClass:[NSNull class]]) {
         isEnabled = nil;
