@@ -1,3 +1,10 @@
+## Version 2.2.1
+### Added:
+for more information see **native SDKs:**
+- [android v2.5.1](https://github.com/adtrace/adtrace_sdk_android/releases)
+- [iOS v2.2.1](https://github.com/adtrace/adtrace_sdk_iOS/releases/tag/v2.1.0)
+
+
 ## Version 2.2.0
 ### Added:
 - updated to latest version of Android SDK
