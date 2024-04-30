@@ -54,7 +54,7 @@ This is the React Native SDK of AdTrace. You can read more about AdTrace at [adt
       * [Amazon advertising identifier](#di-fire-adid)
       * [AdTrace device identifier](#di-adid)
    * [Set external device ID](#set-external-device-id)
-   * [Push token](#push-token)
+   * [Push token (Uninstall Tracking)](#push-token)
    * [Track additional device identifiers](#track-additional-ids)
    * [Pre-installed trackers](#pre-installed-trackers)
    * [Deep linking](#deeplinking)
@@ -797,7 +797,15 @@ AdTrace.getAttribution((attribution) => {
 
 **Note**: Information about a user's current attribution status is only available after an app installation has been tracked by the AdTrace backend and the attribution callback has been triggered. From that moment on, the AdTrace SDK has information about a user's attribution status and you can access it with this method. So, **it is not possible** to access a user's attribution value before the SDK has been initialized and an attribution callback has been triggered.
 
-### <a id="push-token"></a>Push token
+### <a id="push-token"></a>Push token (Uninstall Tracking)
+
+**Important**: 
+
+[Firebase Cloud Messaging Legacy APIs is deprecated and will be removed in June 2024](https://firebase.google.com/docs/cloud-messaging/migrate-v1). in order to enable AdTrace to actively measure uninstalls, you need to Migrate to HTTP V1. in order to do that [apply REQUIRED steps](https://github.com/adtrace/adtrace_sdk_android?tab=readme-ov-file#af-uninstall-tracking) and upload the **JSON** file containing required information to AdTrace panel.
+
+
+Push tokens are used for uninstall and reinstall tracking.
+
 
 To send us the push notification token, add the following call to AdTrace **whenever you get your token in the app or when it gets updated**:
 
