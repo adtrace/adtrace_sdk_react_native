@@ -138,7 +138,7 @@ AdTrace.getAttribution = function(callback) {
 // };
 
 AdTrace.getSdkVersion = function(callback) {
-    module_adtrace.getSdkVersion("react-native2.1.1", callback);
+    module_adtrace.getSdkVersion("react-native2.3.0", callback);
 };
 
 AdTrace.setReferrer = function(referrer) {
@@ -282,7 +282,7 @@ AdTrace.onPause = function(testParam) {
 // AdTraceConfig
 
 var AdTraceConfig = function(appToken, environment) {
-    this.sdkPrefix = "react-native2.1.1";
+    this.sdkPrefix = "react-native2.3.0";
     this.appToken = appToken;
     this.environment = environment;
     this.logLevel = null;
