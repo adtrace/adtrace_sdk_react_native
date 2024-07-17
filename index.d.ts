@@ -15,6 +15,7 @@ declare module 'react-native-adtrace' {
     costType: string
     costAmount: number
     costCurrency: string
+    fbInstallReferrer: string
   }
 
   interface AdTraceEventTrackingSuccess {
@@ -65,6 +66,12 @@ declare module 'react-native-adtrace' {
     lockWindow: boolean
   }
 
+  interface AdTracePurchaseVerificationInfo {
+    verificationStatus: string
+    code: number
+    message: string
+  }
+
   export class AdTraceConfig {
     constructor(appToken: string, environment: Environment)
     public setLogLevel(level: LogLevel): void
@@ -93,8 +100,12 @@ declare module 'react-native-adtrace' {
     public setAllowIdfaReading(allowIdfaReading: boolean): void
     public setSdkPrefix(sdkPrefix: string): void
     public setShouldLaunchDeeplink(shouldLaunchDeeplink: boolean): void
-    public deactivateSKAdNetworkHandling(): void;
-    public setLinkMeEnabled(linkMeEnabled: boolean): void;
+    public deactivateSKAdNetworkHandling(): void
+    public setLinkMeEnabled(linkMeEnabled: boolean): void
+    public setFinalAndroidAttributionEnabled(finalAndroidAttributionEnabled: boolean): void
+    public setAttConsentWaitingInterval(attConsentWaitingInterval: number): void
+    public setReadDeviceInfoOnceEnabled(readDeviceInfoOnceEnabled: boolean): void
+    public setFbAppId(fbAppId: string): void
 
     public setAttributionCallbackListener(
       callback: (attribution: AdTraceAttribution) => void
@@ -148,9 +159,13 @@ declare module 'react-native-adtrace' {
     constructor(eventToken: string)
     public setRevenue(revenue: number, currency: string): void
     public addCallbackParameter(key: string, value: string): void
+    public addPartnerParameter(key: string, value: string): void
     public addEventParameter(key: string, value: string): void
     public setTransactionId(transactionId: string): void
     public setCallbackId(callbackId: string): void
+    public setReceipt(receipt: string): void
+    public setProductId(productId: string): void
+    public setPurchaseToken(purchaseToken: string): void
   }
 
   export class AdTraceAppStoreSubscription {
@@ -191,6 +206,14 @@ declare module 'react-native-adtrace' {
     public addPartnerParameter(key: string, value: string): void
   }
 
+  export class AdTraceAppStorePurchase {
+    constructor(receipt: string, productId: string, transactionId: string)
+  }
+
+  export class AdTracePlayStorePurchase {
+    constructor(productId: string, purchaseToken: string)
+  }
+
   export const AdTrace: {
     componentWillUnmount: () => void
     create: (adtraceConfig: AdTraceConfig) => void
@@ -213,10 +236,11 @@ declare module 'react-native-adtrace' {
     gdprForgetMe: () => void
     disableThirdPartySharing: () => void
     getIdfa: (callback: (idfa: string) => void) => void
+    getIdfv: (callback: (idfv: string) => void) => void
     getGoogleAdId: (callback: (adid: string) => void) => void
     getAdid: (callback: (adid: string) => void) => void
     getAttribution: (callback: (attribution: AdTraceAttribution) => void) => void
-    // getAmazonAdId: (callback: (adid: string) => void) => void
+    getAmazonAdId: (callback: (adid: string) => void) => void
     getSdkVersion: (callback: (sdkVersion: string) => void) => void
     setReferrer: (referrer: string) => void
     convertUniversalLink: (url: string, scheme: string, callback: (convertedUrl: string) => void) => void
@@ -227,5 +251,10 @@ declare module 'react-native-adtrace' {
     getAppTrackingAuthorizationStatus: (callback: (authorizationStatus: number) => void) => void
     trackThirdPartySharing: (adtraceThirdPartySharing: AdTraceThirdPartySharing) => void
     trackMeasurementConsent: (measurementConsent: boolean) => void
+    checkForNewAttStatus: () => void
+    getLastDeeplink: (callback: (lastDeeplink: string) => void) => void
+    verifyAppStorePurchase: (purchase: AdTraceAppStorePurchase, callback: (verificationInfo: AdTracePurchaseVerificationInfo) => void) => void
+    verifyPlayStorePurchase: (purchase: AdTracePlayStorePurchase, callback: (verificationInfo: AdTracePurchaseVerificationInfo) => void) => void
+    processDeeplink: (deeplink: string, callback: (resolvedLink: string) => void) => void
   }
 }

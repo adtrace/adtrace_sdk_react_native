@@ -117,6 +117,10 @@ AdTrace.getIdfa = function(callback) {
     module_adtrace.getIdfa(callback);
 };
 
+AdTrace.getIdfv = function(callback) {
+    module_adtrace.getIdfv(callback);
+};
+
 AdTrace.getGoogleAdId = function(callback) {
     module_adtrace.getGoogleAdId(callback);
 };
@@ -166,14 +170,6 @@ AdTrace.updateConversionValueWithSkad4ErrorCallback = function(conversionValue, 
     module_adtrace.updateConversionValueWithSkad4ErrorCallback(conversionValue, coarseValue, lockWindow, callback);
 };
 
-AdTrace.requestTrackingAuthorizationWithCompletionHandler = function(callback) {
-    module_adtrace.requestTrackingAuthorizationWithCompletionHandler(callback);
-};
-
-AdTrace.updateConversionValue = function(conversionValue) {
-    module_adtrace.updateConversionValue(conversionValue);
-};
-
 AdTrace.getAppTrackingAuthorizationStatus = function(callback) {
     module_adtrace.getAppTrackingAuthorizationStatus(callback);
 };
@@ -184,6 +180,30 @@ AdTrace.trackThirdPartySharing = function(adtraceThirdPartySharing) {
 
 AdTrace.trackMeasurementConsent = function(measurementConsent) {
     module_adtrace.trackMeasurementConsent(measurementConsent);
+};
+
+AdTrace.checkForNewAttStatus = function() {
+    module_adtrace.checkForNewAttStatus();
+};
+
+AdTrace.getLastDeeplink = function(callback) {
+    module_adtrace.getLastDeeplink(callback);
+};
+
+AdTrace.verifyAppStorePurchase = function(purchase, callback) {
+    if (Platform.OS === "ios") {
+        module_adtrace.verifyAppStorePurchase(purchase, callback);
+    }
+};
+
+AdTrace.verifyPlayStorePurchase = function(purchase, callback) {
+    if (Platform.OS === "android") {
+        module_adtrace.verifyPlayStorePurchase(purchase, callback);
+    }
+};
+
+AdTrace.processDeeplink = function(deeplink, callback) {
+    module_adtrace.processDeeplink(deeplink, callback);
 };
 
 AdTrace.componentWillUnmount = function() {
@@ -215,6 +235,16 @@ AdTrace.componentWillUnmount = function() {
     if (AdTraceConfig.DeferredDeeplinkSubscription != null) {
         AdTraceConfig.DeferredDeeplinkSubscription.remove();
         AdTraceConfig.DeferredDeeplinkSubscription = null;
+    }
+
+    if (AdTraceConfig.ConversionValueUpdatedSubscription != null) {
+        AdTraceConfig.ConversionValueUpdatedSubscription.remove();
+        AdTraceConfig.ConversionValueUpdatedSubscription = null;
+    }
+
+    if (AdTraceConfig.Skad4ConversionValueUpdatedSubscription != null) {
+        AdTraceConfig.Skad4ConversionValueUpdatedSubscription.remove();
+        AdTraceConfig.Skad4ConversionValueUpdatedSubscription = null;
     }
 };
 
@@ -272,18 +302,22 @@ var AdTraceConfig = function(appToken, environment) {
     this.info4 = null;
     this.urlStrategy = null;
     this.coppaCompliantEnabled = null;
+    this.readDeviceInfoOnceEnabled = null;
     // Android only
     this.processName = null;
     this.readMobileEquipmentIdentity = null;
     this.preinstallTrackingEnabled = null;
     this.preinstallFilePath = null;
     this.playStoreKidsAppEnabled = null;
+    this.finalAndroidAttributionEnabled = null;
+    this.fbAppId;
     // iOS only
     this.allowiAdInfoReading = null;
     this.allowAdServicesInfoReading = null;
     this.allowIdfaReading = null;
     this.skAdNetworkHandling = null;
     this.linkMeEnabled = null;
+    this.attConsentWaitingInterval = null;
 };
 
 AdTraceConfig.EnvironmentSandbox = "sandbox";
@@ -390,6 +424,10 @@ AdTraceConfig.prototype.setCoppaCompliantEnabled = function(coppaCompliantEnable
     this.coppaCompliantEnabled = coppaCompliantEnabled;
 };
 
+AdTraceConfig.prototype.setReadDeviceInfoOnceEnabled = function(readDeviceInfoOnceEnabled) {
+    this.readDeviceInfoOnceEnabled = readDeviceInfoOnceEnabled;
+};
+
 AdTraceConfig.prototype.setReadMobileEquipmentIdentity = function(readMobileEquipmentIdentity) {
     // this.readMobileEquipmentIdentity = readMobileEquipmentIdentity;
 };
@@ -404,6 +442,14 @@ AdTraceConfig.prototype.setPreinstallFilePath = function(preinstallFilePath) {
 
 AdTraceConfig.prototype.setPlayStoreKidsAppEnabled = function(isEnabled) {
     this.playStoreKidsAppEnabled = isEnabled;
+};
+
+AdTraceConfig.prototype.setFinalAndroidAttributionEnabled = function(isEnabled) {
+    this.finalAndroidAttributionEnabled = isEnabled;
+};
+
+AdTraceConfig.prototype.setFbAppId = function(fbAppId) {
+    this.fbAppId = fbAppId;
 };
 
 AdTraceConfig.prototype.setAllowiAdInfoReading = function(allowiAdInfoReading) {
@@ -428,6 +474,10 @@ AdTraceConfig.prototype.deactivateSKAdNetworkHandling = function() {
 
 AdTraceConfig.prototype.setLinkMeEnabled = function(linkMeEnabled) {
     this.linkMeEnabled = linkMeEnabled;
+};
+
+AdTraceConfig.prototype.setAttConsentWaitingInterval = function(attConsentWaitingInterval) {
+    this.attConsentWaitingInterval = attConsentWaitingInterval;
 };
 
 AdTraceConfig.prototype.setAttributionCallbackListener = function(attributionCallbackListener) {
@@ -497,10 +547,10 @@ AdTraceConfig.prototype.setConversionValueUpdatedCallbackListener = function(con
 
 AdTraceConfig.prototype.setSkad4ConversionValueUpdatedCallbackListener = function(skad4ConversionValueUpdatedCallbackListener) {
     if (Platform.OS === "ios") {
-        if (null == AdTraceConfig.ConversionValueUpdatedSubscription) {
-            module_adtrace.setConversionValueUpdatedCallbackListener();
-            AdTraceConfig.ConversionValueUpdatedSubscription = module_adtrace_emitter.addListener(
-                'adtrace_conversionValueUpdated', conversionValueUpdatedCallbackListener
+        if (null == AdTraceConfig.Skad4ConversionValueUpdatedSubscription) {
+            module_adtrace.setSkad4ConversionValueUpdatedCallbackListener();
+            AdTraceConfig.Skad4ConversionValueUpdatedSubscription = module_adtrace_emitter.addListener(
+                'adtrace_skad4ConversionValueUpdated', skad4ConversionValueUpdatedCallbackListener
             );
         }
     }
@@ -512,10 +562,14 @@ var AdTraceEvent = function(eventToken) {
     this.eventToken = eventToken;
     this.revenue = null;
     this.currency = null;
+    this.receipt = null;
+    this.productId = null;
     this.transactionId = null;
+    this.purchaseToken = null;
     this.callbackId = null;
     this.callbackParameters = {};
     this.valueParameters = {};
+    this.partnerParameters = {};
 };
 
 AdTraceEvent.prototype.setRevenue = function(revenue, currency) {
@@ -532,6 +586,13 @@ AdTraceEvent.prototype.addCallbackParameter = function(key, value) {
     this.callbackParameters[key] = value;
 };
 
+AdTraceEvent.prototype.addPartnerParameter = function(key, value) {
+    if (typeof key !== 'string' || typeof value !== 'string') {
+        return;
+    }
+    this.partnerParameters[key] = value;
+};
+
 AdTraceEvent.prototype.addEventParameter = function(key, value) {
     if (typeof key !== 'string' || typeof value !== 'string') {
         return;
@@ -539,8 +600,20 @@ AdTraceEvent.prototype.addEventParameter = function(key, value) {
          this.valueParameters[key] = value;
 };
 
+AdTraceEvent.prototype.setReceipt = function(receipt) {
+    this.receipt = receipt;
+};
+
+AdTraceEvent.prototype.setProductId = function(productId) {
+    this.productId = productId;
+};
+
 AdTraceEvent.prototype.setTransactionId = function(transactionId) {
     this.transactionId = transactionId;
+};
+
+AdTraceEvent.prototype.setPurchaseToken = function(purchaseToken) {
+    this.purchaseToken = purchaseToken;
 };
 
 AdTraceEvent.prototype.setCallbackId = function(callbackId) {
@@ -691,6 +764,21 @@ AdTraceAdRevenue.prototype.addPartnerParameter = function(key, value) {
     this.partnerParameters[key] = value;
 };
 
+// AdTraceAppStorePurchase
+
+var AdTraceAppStorePurchase = function(receipt, productId, transactionId) {
+    this.receipt = receipt;
+    this.productId = productId;
+    this.transactionId = transactionId;
+};
+
+// AdTracePlayStorePurchase
+
+var AdTracePlayStorePurchase = function(productId, purchaseToken) {
+    this.productId = productId;
+    this.purchaseToken = purchaseToken;
+};
+
 module.exports = {
     AdTrace,
     AdTraceEvent,
@@ -698,5 +786,7 @@ module.exports = {
     AdTraceAppStoreSubscription,
     AdTracePlayStoreSubscription,
     AdTraceThirdPartySharing,
-    AdTraceAdRevenue
+    AdTraceAdRevenue,
+    AdTraceAppStorePurchase,
+    AdTracePlayStorePurchase
 }
