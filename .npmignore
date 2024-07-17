@@ -10,9 +10,9 @@ node_modules
 /ios/**/*xcuserdata*
 /ios/**/*xcshareddata*
 
-# AdTrace SDK
+# Adtrace SDK
 ext/
-scripts/
 example/
 test/
-
+plugins/
+docs/
