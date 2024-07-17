@@ -1,32 +1,26 @@
 {
-  "name": "adtraceexample",
-  "version": "0.0.1",
-  "private": true,
+  "name": "example",
+  "version": "1.0.0",
+  "main": "index.js",
   "scripts": {
-    "android": "react-native run-android",
-    "ios": "react-native run-ios",
-    "start": "react-native start",
-    "pods": "pod-install --quiet",
-    "test": "jest",
-    "lint": "eslint ."
+    "start": "expo start --dev-client",
+    "android": "expo run:android",
+    "ios": "expo run:ios",
+    "web": "expo start --web",
+    "clean-android": "rm -rf node_modules;cd android;rm -rf build;rm -rf app/build;./gradlew app:installDebug;cd ..;react-native run-android;",
+    "clean-ios": "yarn install;rm -rf node_modules;rm -rf ../node_modules;rm -rf android/app/build;cd ios;rm -rf build;rm -rf Pods;rm -f Podfile.lock;cd ..;yarn install;cd ios;pod install;cd ..;react-native run-ios;"
   },
   "dependencies": {
-    "react": "18.0.0",
-    "react-native": "0.69.4",
-    "react-native-adtrace": "../temp",
+    "expo": "~49.0.15",
+    "expo-splash-screen": "~0.20.5",
+    "expo-status-bar": "~1.6.0",
+    "react": "18.2.0",
+    "react-native": "0.72.6",
+    "react-native-adtrace": "../",
     "react-native-adtrace-oaid": "../plugins/oaid"
   },
   "devDependencies": {
-    "@babel/core": "^7.12.9",
-    "@babel/runtime": "^7.12.5",
-    "@react-native-community/eslint-config": "^2.0.0",
-    "babel-jest": "^26.6.3",
-    "eslint": "^7.32.0",
-    "jest": "^26.6.3",
-    "metro-react-native-babel-preset": "^0.70.3",
-    "react-test-renderer": "18.0.0"
+    "@babel/core": "^7.20.0"
   },
-  "jest": {
-    "preset": "react-native"
-  }
+  "private": true
 }
