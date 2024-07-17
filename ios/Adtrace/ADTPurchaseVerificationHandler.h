@@ -5,7 +5,9 @@
 #import "ADTRequestHandler.h"
 #import "ADTUrlStrategy.h"
 
-@interface ADTSdkClickHandler : NSObject <ADTResponseCallback>
+NS_ASSUME_NONNULL_BEGIN
+
+@interface ADTPurchaseVerificationHandler : NSObject <ADTResponseCallback>
 
 - (id)initWithActivityHandler:(id<ADTActivityHandler>)activityHandler
                 startsSending:(BOOL)startsSending
@@ -13,8 +15,10 @@
                   urlStrategy:(ADTUrlStrategy *)urlStrategy;
 - (void)pauseSending;
 - (void)resumeSending;
-- (void)sendSdkClick:(ADTActivityPackage *)sdkClickPackage;
+- (void)sendPurchaseVerificationPackage:(ADTActivityPackage *)purchaseVerificationPackage;
 - (void)updatePackagesWithAttStatus:(int)attStatus;
 - (void)teardown;
 
 @end
+
+NS_ASSUME_NONNULL_END

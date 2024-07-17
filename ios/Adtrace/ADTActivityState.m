@@ -1,10 +1,3 @@
-//
-//  ADTActivityState.m
-//  Adtrace
-//
-//  Created by Nasser Amini (@namini40) on Jun 2022.
-//  Copyright © 2022 adtrace io. All rights reserved.
-//
 
 #import "ADTAdtraceFactory.h"
 #import "ADTActivityState.h"
@@ -37,9 +30,11 @@ static NSString *appToken = nil;
     self.isGdprForgotten = NO;
     self.askingAttribution = NO;
     self.isThirdPartySharingDisabled = NO;
+    self.isThirdPartySharingDisabledForCoppa = NO;
     self.deviceToken = nil;
     self.transactionIds = [NSMutableArray arrayWithCapacity:kTransactionIdCount];
     self.updatePackages = NO;
+    self.updatePackagesAttData = NO;
     self.trackingManagerAuthorizationStatus = -1;
 
     return self;
@@ -98,11 +93,11 @@ static NSString *appToken = nil;
 }
 
 - (NSString *)description {
-    return [NSString stringWithFormat:@"ec:%d sc:%d ssc:%d ask:%d sl:%.1f ts:%.1f la:%.1f dt:%@ gdprf:%d dtps:%d att:%d",
+    return [NSString stringWithFormat:@"ec:%d sc:%d ssc:%d ask:%d sl:%.1f ts:%.1f la:%.1f dt:%@ gdprf:%d dtps:%d dtpsc:%d att:%d",
             self.eventCount, self.sessionCount,
             self.subsessionCount, self.askingAttribution, self.sessionLength,
             self.timeSpent, self.lastActivity, self.deviceToken,
-            self.isGdprForgotten, self.isThirdPartySharingDisabled, self.trackingManagerAuthorizationStatus];
+            self.isGdprForgotten, self.isThirdPartySharingDisabled, self.isThirdPartySharingDisabledForCoppa, self.trackingManagerAuthorizationStatus];
 }
 
 #pragma mark - NSCoding protocol methods
@@ -159,6 +154,12 @@ static NSString *appToken = nil;
         self.isThirdPartySharingDisabled = NO;
     }
 
+    if ([decoder containsValueForKey:@"isThirdPartySharingDisabledForCoppa"]) {
+        self.isThirdPartySharingDisabledForCoppa = [decoder decodeBoolForKey:@"isThirdPartySharingDisabledForCoppa"];
+    } else {
+        self.isThirdPartySharingDisabledForCoppa = NO;
+    }
+
     if ([decoder containsValueForKey:@"deviceToken"]) {
         self.deviceToken = [decoder decodeObjectForKey:@"deviceToken"];
     }
@@ -167,6 +168,12 @@ static NSString *appToken = nil;
         self.updatePackages = [decoder decodeBoolForKey:@"updatePackages"];
     } else {
         self.updatePackages = NO;
+    }
+
+    if ([decoder containsValueForKey:@"updatePackagesAttData"]) {
+        self.updatePackagesAttData = [decoder decodeBoolForKey:@"updatePackagesAttData"];
+    } else {
+        self.updatePackagesAttData = NO;
     }
 
     if ([decoder containsValueForKey:@"adid"]) {
@@ -202,8 +209,10 @@ static NSString *appToken = nil;
     [encoder encodeBool:self.isGdprForgotten forKey:@"isGdprForgotten"];
     [encoder encodeBool:self.askingAttribution forKey:@"askingAttribution"];
     [encoder encodeBool:self.isThirdPartySharingDisabled forKey:@"isThirdPartySharingDisabled"];
+    [encoder encodeBool:self.isThirdPartySharingDisabledForCoppa forKey:@"isThirdPartySharingDisabledForCoppa"];
     [encoder encodeObject:self.deviceToken forKey:@"deviceToken"];
     [encoder encodeBool:self.updatePackages forKey:@"updatePackages"];
+    [encoder encodeBool:self.updatePackagesAttData forKey:@"updatePackagesAttData"];
     [encoder encodeObject:self.adid forKey:@"adid"];
     [encoder encodeObject:self.attributionDetails forKey:@"attributionDetails"];
     [encoder encodeInt:self.trackingManagerAuthorizationStatus
@@ -229,8 +238,10 @@ static NSString *appToken = nil;
         copy.lastActivity = self.lastActivity;
         copy.askingAttribution = self.askingAttribution;
         copy.isThirdPartySharingDisabled = self.isThirdPartySharingDisabled;
+        copy.isThirdPartySharingDisabledForCoppa = self.isThirdPartySharingDisabledForCoppa;
         copy.deviceToken = [self.deviceToken copyWithZone:zone];
         copy.updatePackages = self.updatePackages;
+        copy.updatePackagesAttData = self.updatePackagesAttData;
         copy.trackingManagerAuthorizationStatus = self.trackingManagerAuthorizationStatus;
     }
     

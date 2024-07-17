@@ -1,10 +1,3 @@
-//
-//  Adtrace.h
-//  Adtrace SDK
-//
-//  Created by Nasser Amini (@namini40) on Jun 2022.
-//  Copyright © 2022 adtrace io. All rights reserved.
-//
 
 #import "ADTEvent.h"
 #import "ADTConfig.h"
@@ -13,21 +6,24 @@
 #import "ADTThirdPartySharing.h"
 #import "ADTAdRevenue.h"
 #import "ADTLinkResolution.h"
+#import "ADTPurchase.h"
+#import "ADTPurchaseVerificationResult.h"
+
+typedef void(^AdtraceResolvedDeeplinkBlock)(NSString * _Nonnull resolvedLink);
 
 @interface AdtraceTestOptions : NSObject
 
-@property (nonatomic, copy, nullable) NSString *baseUrl;
-@property (nonatomic, copy, nullable) NSString *gdprUrl;
-@property (nonatomic, copy, nullable) NSString *subscriptionUrl;
+@property (nonatomic, copy, nullable) NSString *urlOverwrite;
 @property (nonatomic, copy, nullable) NSString *extraPath;
 @property (nonatomic, copy, nullable) NSNumber *timerIntervalInMilliseconds;
 @property (nonatomic, copy, nullable) NSNumber *timerStartInMilliseconds;
 @property (nonatomic, copy, nullable) NSNumber *sessionIntervalInMilliseconds;
 @property (nonatomic, copy, nullable) NSNumber *subsessionIntervalInMilliseconds;
+@property (nonatomic, copy, nullable) NSNumber *attStatusInt;
+@property (nonatomic, copy, nullable) NSString *idfa;
 @property (nonatomic, assign) BOOL teardown;
 @property (nonatomic, assign) BOOL deleteState;
 @property (nonatomic, assign) BOOL noBackoffWait;
-@property (nonatomic, assign) BOOL iAdFrameworkEnabled;
 @property (nonatomic, assign) BOOL adServicesFrameworkEnabled;
 @property (nonatomic, assign) BOOL enableSigning;
 @property (nonatomic, assign) BOOL disableSigning;
@@ -48,15 +44,19 @@ extern NSString * __nonnull const ADTAdRevenueSourceMopub;
 extern NSString * __nonnull const ADTAdRevenueSourceAdMob;
 extern NSString * __nonnull const ADTAdRevenueSourceIronSource;
 extern NSString * __nonnull const ADTAdRevenueSourceAdMost;
+extern NSString * __nonnull const ADTAdRevenueSourceUnity;
+extern NSString * __nonnull const ADTAdRevenueSourceHeliumChartboost;
+extern NSString * __nonnull const ADTAdRevenueSourcePublisher;
+extern NSString * __nonnull const ADTAdRevenueSourceTopOn;
+extern NSString * __nonnull const ADTAdRevenueSourceADX;
+extern NSString * __nonnull const ADTAdRevenueSourceTradplus;
 
 /**
  * Constants for country app's URL strategies.
  */
-extern NSString * __nonnull const ADTUrlStrategyIndia;
-extern NSString * __nonnull const ADTUrlStrategyChina;
-extern NSString * __nonnull const ADTDataResidencyEU;
-extern NSString * __nonnull const ADTDataResidencyTR;
-extern NSString * __nonnull const ADTDataResidencyUS;
+extern NSString * __nonnull const ADTUrlStrategyIR;
+extern NSString * __nonnull const ADTUrlStrategyMobi;
+extern NSString * __nonnull const ADTDataResidencyIR;
 
 /**
  * @brief The main interface to Adtrace.
@@ -75,7 +75,7 @@ extern NSString * __nonnull const ADTDataResidencyUS;
  *
  * @param adtraceConfig The configuration object that includes the environment
  *                     and the App Token of your app. This unique identifier can
- *                     be found it in your dashboard at http://adtrace.com and should always
+ *                     be found it in your dashboard at http://adtrace.io and should always
  *                     be 12 characters long.
  */
 + (void)appDidLaunch:(nullable ADTConfig *)adtraceConfig;
@@ -86,7 +86,7 @@ extern NSString * __nonnull const ADTDataResidencyUS;
  * @note See ADTEvent.h for more event options.
  *
  * @param event The Event object for this kind of event. It needs a event token
- *              that is created in the dashboard at http://adtrace.com and should be six
+ *              that is created in the dashboard at http://adtrace.io and should be six
  *              characters long.
  */
 + (void)trackEvent:(nullable ADTEvent *)event;
@@ -128,6 +128,15 @@ extern NSString * __nonnull const ADTDataResidencyUS;
 + (void)appWillOpenUrl:(nonnull NSURL *)url;
 
 /**
+ * @brief Process the deep link that has opened an app and potentially get a resolved link.
+ *
+ * @param deeplink URL object which contains info about adtrace deep link.
+ * @param completionHandler Completion handler where either resolved or echoed deep link will be sent.
+ */
++ (void)processDeeplink:(nonnull NSURL *)deeplink
+      completionHandler:(void (^_Nonnull)(NSString * _Nonnull resolvedLink))completionHandler;
+
+/**
  * @brief Set the device token used by push notifications.
  *
  * @param deviceToken Apple push notification token for iOS device as NSData.
@@ -158,9 +167,18 @@ extern NSString * __nonnull const ADTDataResidencyUS;
 + (nullable NSString *)idfa;
 
 /**
+ * @brief Retrieve iOS device IDFV value.
+ *
+ * @return Device IDFV value.
+ */
++ (nullable NSString *)idfv;
+
+
+/**
  * @brief Get current adtrace identifier for the user.
  *
- * @note Adtrace identifier is available only after installation has been successfully tracked.
+ * @note Adtrace identifier is available only after installation has been successfully tracked which after
+ * Attribution change listener is triggered in first open!
  *
  * @return Current adtrace identifier value for the user.
  */
@@ -304,16 +322,70 @@ extern NSString * __nonnull const ADTDataResidencyUS;
 /**
  * @brief Getter for app tracking authorization status.
  *
- * return Value of app tracking authorization status.
+ * @return Value of app tracking authorization status.
  */
 + (int)appTrackingAuthorizationStatus;
 
 /**
- * @brief Adtrace wrapper for updateConversionValue: method.
+ * @brief Adtrace wrapper for SKAdNetwork's updateConversionValue: method.
  *
  * @param conversionValue Conversion value you would like SDK to set for given user.
  */
 + (void)updateConversionValue:(NSInteger)conversionValue;
+
+/**
+ * @brief Adtrace wrapper for SKAdNetwork's updatePostbackConversionValue:completionHandler: method.
+ *
+ * @param conversionValue Conversion value you would like SDK to set for given user.
+ * @param completion Completion handler you can provide to catch and handle any errors.
+ */
++ (void)updatePostbackConversionValue:(NSInteger)conversionValue
+                    completionHandler:(void (^_Nullable)(NSError *_Nullable error))completion;
+
+/**
+ * @brief Adtrace wrapper for SKAdNetwork's updatePostbackConversionValue:coarseValue:completionHandler: method.
+ *
+ * @param fineValue Conversion value you would like SDK to set for given user.
+ * @param coarseValue One of the possible SKAdNetworkCoarseConversionValue values.
+ * @param completion Completion handler you can provide to catch and handle any errors.
+ */
++ (void)updatePostbackConversionValue:(NSInteger)fineValue
+                          coarseValue:(nonnull NSString *)coarseValue
+                    completionHandler:(void (^_Nullable)(NSError *_Nullable error))completion;
+
+/**
+ * @brief Adtrace wrapper for SKAdNetwork's updatePostbackConversionValue:coarseValue:lockWindow:completionHandler: method.
+ *
+ * @param fineValue Conversion value you would like SDK to set for given user.
+ * @param coarseValue One of the possible SKAdNetworkCoarseConversionValue values.
+ * @param lockWindow A Boolean value that indicates whether to send the postback before the conversion window ends.
+ * @param completion Completion handler you can provide to catch and handle any errors.
+ */
++ (void)updatePostbackConversionValue:(NSInteger)fineValue
+                          coarseValue:(nonnull NSString *)coarseValue
+                           lockWindow:(BOOL)lockWindow
+                    completionHandler:(void (^_Nullable)(NSError *_Nullable error))completion;
+
+/**
+ * @brief Instruct to Adtrace SDK to check current state of att_status.
+ */
++ (void)checkForNewAttStatus;
+
+/**
+ * @brief Get the last deep link which has opened the app.
+ *
+ * @return Last deep link which has opened the app.
+ */
++ (nullable NSURL *)lastDeeplink;
+
+/**
+ * @brief Verify in-app-purchase.
+ *
+ * @param purchase          Purchase object.
+ * @param completionHandler Callback where verification result will be repoted.
+ */
++ (void)verifyPurchase:(nonnull ADTPurchase *)purchase
+     completionHandler:(void (^_Nonnull)(ADTPurchaseVerificationResult * _Nonnull verificationResult))completionHandler;
 
 /**
  * @brief Method used for internal testing only. Don't use it in production.
@@ -334,6 +406,9 @@ extern NSString * __nonnull const ADTDataResidencyUS;
 - (void)teardown;
 
 - (void)appWillOpenUrl:(nonnull NSURL *)url;
+
+- (void)processDeeplink:(nonnull NSURL *)deeplink
+      completionHandler:(void (^_Nonnull)(NSString * _Nonnull resolvedLink))completionHandler;
 
 - (void)setOfflineMode:(BOOL)enabled;
 
@@ -383,10 +458,29 @@ extern NSString * __nonnull const ADTDataResidencyUS;
 
 - (void)updateConversionValue:(NSInteger)conversionValue;
 
+- (void)updatePostbackConversionValue:(NSInteger)conversionValue
+                    completionHandler:(void (^_Nullable)(NSError *_Nullable error))completion;
+
+- (void)updatePostbackConversionValue:(NSInteger)fineValue
+                          coarseValue:(nonnull NSString *)coarseValue
+                    completionHandler:(void (^_Nullable)(NSError *_Nullable error))completion;
+
+- (void)updatePostbackConversionValue:(NSInteger)fineValue
+                          coarseValue:(nonnull NSString *)coarseValue
+                           lockWindow:(BOOL)lockWindow
+                    completionHandler:(void (^_Nullable)(NSError *_Nullable error))completion;
+
 - (void)trackThirdPartySharing:(nonnull ADTThirdPartySharing *)thirdPartySharing;
 
 - (void)trackMeasurementConsent:(BOOL)enabled;
 
 - (void)trackAdRevenue:(nonnull ADTAdRevenue *)adRevenue;
+
+- (void)checkForNewAttStatus;
+
+- (nullable NSURL *)lastDeeplink;
+
+- (void)verifyPurchase:(nonnull ADTPurchase *)purchase
+     completionHandler:(void (^_Nonnull)(ADTPurchaseVerificationResult * _Nonnull verificationResult))completionHandler;
 
 @end

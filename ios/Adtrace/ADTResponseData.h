@@ -1,10 +1,3 @@
-//
-//  ADTResponseData.h
-//  adtrace
-//
-//  Created by Nasser Amini (@namini40) on Jun 2022.
-//  Copyright © 2022 adtrace io. All rights reserved.
-//
 
 #import <Foundation/Foundation.h>
 
@@ -29,6 +22,8 @@ typedef NS_ENUM(int, ADTTrackingState) {
 
 @property (nonatomic, copy) NSString *adid;
 
+@property (nonatomic, copy) NSNumber *errorCode;
+
 @property (nonatomic, assign) BOOL success;
 
 @property (nonatomic, assign) BOOL willRetry;
@@ -45,6 +40,8 @@ typedef NS_ENUM(int, ADTTrackingState) {
 
 @property (nonatomic, strong) ADTActivityPackage *sdkPackage;
 
+@property (nonatomic, strong) ADTActivityPackage *purchaseVerificationPackage;
+
 + (id)buildResponseData:(ADTActivityPackage *)activityPackage;
 
 @end
@@ -58,6 +55,12 @@ typedef NS_ENUM(int, ADTTrackingState) {
 @end
 
 @interface ADTSdkClickResponseData : ADTResponseData
+
+@property (nonatomic, copy) NSString *resolvedDeeplink;
+
+@end
+
+@interface ADTPurchaseVerificationResponseData : ADTResponseData
 @end
 
 @interface ADTEventResponseData : ADTResponseData

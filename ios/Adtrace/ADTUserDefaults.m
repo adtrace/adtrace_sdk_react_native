@@ -1,10 +1,3 @@
-//
-//  ADTUserDefaults.m
-//  Adtrace
-//
-//  Created by Nasser Amini (@namini40) on Jun 2022.
-//  Copyright © 2022 adtrace io. All rights reserved.
-//
 
 #import "ADTUserDefaults.h"
 
@@ -15,9 +8,11 @@ static NSString * const PREFS_KEY_INSTALL_TRACKED = @"adt_install_tracked";
 static NSString * const PREFS_KEY_DEEPLINK_URL = @"adt_deeplink_url";
 static NSString * const PREFS_KEY_DEEPLINK_CLICK_TIME = @"adt_deeplink_click_time";
 static NSString * const PREFS_KEY_DISABLE_THIRD_PARTY_SHARING = @"adt_disable_third_party_sharing";
-static NSString * const PREFS_KEY_IAD_ERRORS = @"adt_iad_errors";
 static NSString * const PREFS_KEY_ADSERVICES_TRACKED = @"adt_adservices_tracked";
 static NSString * const PREFS_KEY_SKAD_REGISTER_CALL_TIME = @"adt_skad_register_call_time";
+static NSString * const PREFS_KEY_LINK_ME_CHECKED = @"adt_link_me_checked";
+static NSString * const PREFS_KEY_DEEPLINK_URL_CACHED = @"adt_deeplink_url_cached";
+static NSString * const PREFS_KEY_ATT_WAITING_REMAINING_SECONDS = @"adt_att_waiting_remaining_seconds";
 
 @implementation ADTUserDefaults
 
@@ -94,34 +89,6 @@ static NSString * const PREFS_KEY_SKAD_REGISTER_CALL_TIME = @"adt_skad_register_
     [[NSUserDefaults standardUserDefaults] removeObjectForKey:PREFS_KEY_DISABLE_THIRD_PARTY_SHARING];
 }
 
-+ (void)saveiAdErrorKey:(NSString *)key {
-    NSUserDefaults *userDefaults = [NSUserDefaults standardUserDefaults];
-    
-    NSMutableDictionary<NSString *, NSNumber *> *errors = [[userDefaults dictionaryForKey:PREFS_KEY_IAD_ERRORS] mutableCopy];
-    if (errors) {
-        NSNumber *value = errors[key];
-        if (!value) {
-            value = @(1);
-        } else {
-            value = @([value integerValue] + 1);
-        }
-        
-        errors[key] = value;
-    } else {
-        errors[key] = @(1);
-    }
-    
-    [userDefaults setObject:errors forKey:PREFS_KEY_IAD_ERRORS];
-}
-
-+ (NSDictionary<NSString *, NSNumber *> *)getiAdErrors {
-    return [[NSUserDefaults standardUserDefaults] dictionaryForKey:PREFS_KEY_IAD_ERRORS];
-}
-
-+ (void)cleariAdErrors {
-    [[NSUserDefaults standardUserDefaults] removeObjectForKey:PREFS_KEY_IAD_ERRORS];
-}
-
 + (void)setAdServicesTracked {
     [[NSUserDefaults standardUserDefaults] setBool:YES forKey:PREFS_KEY_ADSERVICES_TRACKED];
 }
@@ -138,6 +105,40 @@ static NSString * const PREFS_KEY_SKAD_REGISTER_CALL_TIME = @"adt_skad_register_
     return [[NSUserDefaults standardUserDefaults] objectForKey:PREFS_KEY_SKAD_REGISTER_CALL_TIME];
 }
 
++ (void)setLinkMeChecked {
+    [[NSUserDefaults standardUserDefaults] setBool:YES forKey:PREFS_KEY_LINK_ME_CHECKED];
+}
+
++ (BOOL)getLinkMeChecked {
+    return [[NSUserDefaults standardUserDefaults] boolForKey:PREFS_KEY_LINK_ME_CHECKED];
+}
+
++ (void)cacheDeeplinkUrl:(NSURL *)deeplink {
+    [[NSUserDefaults standardUserDefaults] setURL:deeplink forKey:PREFS_KEY_DEEPLINK_URL_CACHED];
+}
+
++ (NSURL *)getCachedDeeplinkUrl {
+    return [[NSUserDefaults standardUserDefaults] URLForKey:PREFS_KEY_DEEPLINK_URL_CACHED];
+}
+
++ (BOOL)attWaitingRemainingSecondsKeyExists {
+    return (nil != [[NSUserDefaults standardUserDefaults] objectForKey:PREFS_KEY_ATT_WAITING_REMAINING_SECONDS]);
+}
+
++ (void)setAttWaitingRemainingSeconds:(NSUInteger)seconds {
+    [[NSUserDefaults standardUserDefaults] setInteger:seconds forKey:PREFS_KEY_ATT_WAITING_REMAINING_SECONDS];
+}
+
++ (NSUInteger)getAttWaitingRemainingSeconds {
+    NSInteger iSeconds = [[NSUserDefaults standardUserDefaults] integerForKey:PREFS_KEY_ATT_WAITING_REMAINING_SECONDS];
+    NSUInteger uiSeconds = (iSeconds < 0) ? 0 : iSeconds;
+    return uiSeconds;
+}
+
++ (void)removeAttWaitingRemainingSeconds {
+    [[NSUserDefaults standardUserDefaults] removeObjectForKey:PREFS_KEY_ATT_WAITING_REMAINING_SECONDS];
+}
+
 + (void)clearAdtraceStuff {
     [[NSUserDefaults standardUserDefaults] removeObjectForKey:PREFS_KEY_PUSH_TOKEN_DATA];
     [[NSUserDefaults standardUserDefaults] removeObjectForKey:PREFS_KEY_PUSH_TOKEN_STRING];
@@ -146,9 +147,11 @@ static NSString * const PREFS_KEY_SKAD_REGISTER_CALL_TIME = @"adt_skad_register_
     [[NSUserDefaults standardUserDefaults] removeObjectForKey:PREFS_KEY_DEEPLINK_URL];
     [[NSUserDefaults standardUserDefaults] removeObjectForKey:PREFS_KEY_DEEPLINK_CLICK_TIME];
     [[NSUserDefaults standardUserDefaults] removeObjectForKey:PREFS_KEY_DISABLE_THIRD_PARTY_SHARING];
-    [[NSUserDefaults standardUserDefaults] removeObjectForKey:PREFS_KEY_IAD_ERRORS];
     [[NSUserDefaults standardUserDefaults] removeObjectForKey:PREFS_KEY_ADSERVICES_TRACKED];
     [[NSUserDefaults standardUserDefaults] removeObjectForKey:PREFS_KEY_SKAD_REGISTER_CALL_TIME];
+    [[NSUserDefaults standardUserDefaults] removeObjectForKey:PREFS_KEY_LINK_ME_CHECKED];
+    [[NSUserDefaults standardUserDefaults] removeObjectForKey:PREFS_KEY_DEEPLINK_URL_CACHED];
+    [[NSUserDefaults standardUserDefaults] removeObjectForKey:PREFS_KEY_ATT_WAITING_REMAINING_SECONDS];
 }
 
 @end

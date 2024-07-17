@@ -1,10 +1,4 @@
-//
-//  ADTAdtraceFactory.h
-//  Adtrace
-//
-//  Created by Nasser Amini (@namini40) on Jun 2022.
-//  Copyright © 2022 adtrace io. All rights reserved.
-//
+
 #import <Foundation/Foundation.h>
 
 #import "ADTLogger.h"
@@ -18,6 +12,8 @@
 + (double)sessionInterval;
 + (double)subsessionInterval;
 + (double)requestTimeout;
++ (NSNumber *)attStatus;
++ (NSString *)idfa;
 + (NSTimeInterval)timerInterval;
 + (NSTimeInterval)timerStart;
 + (ADTBackoffStrategy *)packageHandlerBackoffStrategy;
@@ -26,27 +22,23 @@
 
 + (BOOL)testing;
 + (NSTimeInterval)maxDelayStart;
-+ (NSString *)baseUrl;
-+ (NSString *)gdprUrl;
-+ (NSString *)subscriptionUrl;
-+ (BOOL)iAdFrameworkEnabled;
++ (NSString *)urlOverwrite;
 + (BOOL)adServicesFrameworkEnabled;
 
 + (void)setLogger:(id<ADTLogger>)logger;
 + (void)setSessionInterval:(double)sessionInterval;
 + (void)setSubsessionInterval:(double)subsessionInterval;
++ (void)setAttStatus:(NSNumber *)attStatus;
++ (void)setIdfa:(NSString *)idfa;
 + (void)setRequestTimeout:(double)requestTimeout;
 + (void)setTimerInterval:(NSTimeInterval)timerInterval;
 + (void)setTimerStart:(NSTimeInterval)timerStart;
 + (void)setPackageHandlerBackoffStrategy:(ADTBackoffStrategy *)backoffStrategy;
 + (void)setSdkClickHandlerBackoffStrategy:(ADTBackoffStrategy *)backoffStrategy;
 + (void)setTesting:(BOOL)testing;
-+ (void)setiAdFrameworkEnabled:(BOOL)iAdFrameworkEnabled;
 + (void)setAdServicesFrameworkEnabled:(BOOL)adServicesFrameworkEnabled;
 + (void)setMaxDelayStart:(NSTimeInterval)maxDelayStart;
-+ (void)setBaseUrl:(NSString *)baseUrl;
-+ (void)setGdprUrl:(NSString *)gdprUrl;
-+ (void)setSubscriptionUrl:(NSString *)subscriptionUrl;
++ (void)setUrlOverwrite:(NSString *)urlOverwrite;
 
 + (void)enableSigning;
 + (void)disableSigning;

@@ -1,10 +1,3 @@
-//
-//  ADTUrlStrategy.h
-//  Adtrace
-//
-//  Created by Nasser Amini (@namini40) on Jun 2022.
-//  Copyright © 2022 adtrace io. All rights reserved.
-//
 
 #import <Foundation/Foundation.h>
 #import "ADTActivityKind.h"
@@ -16,7 +9,9 @@
 - (instancetype)initWithUrlStrategyInfo:(NSString *)urlStrategyInfo
                               extraPath:(NSString *)extraPath;
 
-- (NSString *)getUrlHostStringByPackageKind:(ADTActivityKind)activityKind;
+- (NSString *)urlForActivityKind:(ADTActivityKind)activityKind
+                  isConsentGiven:(BOOL)isConsentGiven
+               withSendingParams:(NSMutableDictionary *)sendingParams;
 
 - (void)resetAfterSuccess;
 - (BOOL)shouldRetryAfterFailure:(ADTActivityKind)activityKind;

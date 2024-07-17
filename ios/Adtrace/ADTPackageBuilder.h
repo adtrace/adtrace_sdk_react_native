@@ -1,10 +1,3 @@
-//
-//  ADTPackageBuilder.h
-//  Adtrace SDK
-//
-//  Created by Nasser Amini (@namini40) on Jun 2022.
-//  Copyright © 2022 adtrace io. All rights reserved.
-//
 
 #import "ADTEvent.h"
 #import "ADTConfig.h"
@@ -20,6 +13,8 @@
 
 @property (nonatomic, copy) NSString * _Nullable deeplink;
 
+@property (nonatomic, copy) NSString * _Nullable reftag;
+
 @property (nonatomic, copy) NSDate * _Nullable clickTime;
 
 @property (nonatomic, copy) NSDate * _Nullable purchaseTime;
@@ -29,6 +24,8 @@
 @property (nonatomic, strong) NSDictionary * _Nullable deeplinkParameters;
 
 @property (nonatomic, copy) ADTAttribution * _Nullable attribution;
+
+@property (nonatomic, weak) ADTInternalState * _Nullable internalState;
 
 - (id _Nullable)initWithPackageParams:(ADTPackageParams * _Nullable)packageParams
                         activityState:(ADTActivityState * _Nullable)activityState
@@ -40,7 +37,7 @@
 - (ADTActivityPackage * _Nullable)buildSessionPackage:(BOOL)isInDelay;
 
 - (ADTActivityPackage * _Nullable)buildEventPackage:(ADTEvent * _Nullable)event
-                                isInDelay:(BOOL)isInDelay;
+                                          isInDelay:(BOOL)isInDelay;
 
 - (ADTActivityPackage * _Nullable)buildInfoPackage:(NSString * _Nullable)infoSource;
 
@@ -52,6 +49,11 @@
 - (ADTActivityPackage * _Nullable)buildClickPackage:(NSString * _Nullable)clickSource
                                               token:(NSString * _Nullable)token
                                     errorCodeNumber:(NSNumber * _Nullable)errorCodeNumber;
+
+- (ADTActivityPackage * _Nullable)buildClickPackage:(NSString * _Nullable)clickSource
+                                          linkMeUrl:(NSString * _Nullable)linkMeUrl;
+
+- (ADTActivityPackage * _Nullable)buildPurchaseVerificationPackage:(ADTPurchase * _Nullable)purchase;
 
 - (ADTActivityPackage * _Nullable)buildAttributionPackage:(NSString * _Nullable)initiatedBy;
 
@@ -82,11 +84,29 @@
             forKey:(NSString * _Nullable)key;
 
 + (void)parameters:(NSMutableDictionary * _Nullable)parameters
+         setDouble:(double)value
+            forKey:(NSString * _Nullable)key;
+
++ (void)parameters:(NSMutableDictionary * _Nullable)parameters
        setDate1970:(double)value
+            forKey:(NSString * _Nullable)key;
+
++ (void)parameters:(NSMutableDictionary * _Nullable)parameters
+setNumberWithoutRounding:(NSNumber * _Nullable)value
             forKey:(NSString * _Nullable)key;
 
 + (BOOL)isAdServicesPackage:(ADTActivityPackage * _Nullable)activityPackage;
 
++ (void)addConsentDataToParameters:(NSMutableDictionary * _Nullable)parameters
+                   forActivityKind:(ADTActivityKind)activityKind
+                     withAttStatus:(NSString * _Nullable)attStatusString
+                     configuration:(ADTConfig * _Nullable)adtConfig
+                     packageParams:(ADTPackageParams * _Nullable)packageParams;
+
++ (void)removeConsentDataFromParameters:(nonnull NSMutableDictionary *)parameters;
+
++ (void)updateAttStatusInParameters:(nonnull NSMutableDictionary *)parameters;
+
 @end
-// TODO change to ADT...
+
 extern NSString * _Nullable const ADTAttributionTokenParameter;

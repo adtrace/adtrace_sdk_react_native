@@ -1,10 +1,3 @@
-//
-//  ADTActivityPackage.m
-//  Adtrace
-//
-//  Created by Nasser Amini (@namini40) on Jun 2022.
-//  Copyright © 2022 adtrace io. All rights reserved.
-//
 
 #import "ADTActivityKind.h"
 #import "ADTActivityPackage.h"
@@ -15,7 +8,13 @@
 
 - (NSString *)extendedString {
     NSMutableString *builder = [NSMutableString string];
-    NSArray *excludedKeys = @[@"secret_id", @"app_secret", @"signature", @"headers_id", @"native_version", @"event_callback_id"];
+    NSArray *excludedKeys = @[
+        @"secret_id",
+        @"app_secret",
+        @"signature",
+        @"headers_id",
+        @"native_version",
+        @"adt_signing_id"];
 
     [builder appendFormat:@"Path:      %@\n", self.path];
     [builder appendFormat:@"ClientSdk: %@\n", self.clientSdk];
@@ -54,6 +53,16 @@
     return [NSString stringWithFormat:@"Failed to track %@%@", [ADTActivityKindUtil activityKindToString:self.activityKind], self.suffix];
 }
 
+- (void)addError:(NSNumber *)errorCode {
+    self.errorCount = self.errorCount + 1;
+
+    if (self.firstErrorCode == nil) {
+        self.firstErrorCode = errorCode;
+    } else {
+        self.lastErrorCode = errorCode;
+    }
+}
+
 #pragma mark - NSCoding protocol methods
 
 - (id)initWithCoder:(NSCoder *)decoder {
@@ -69,9 +78,21 @@
     self.parameters = [decoder decodeObjectForKey:@"parameters"];
     self.partnerParameters = [decoder decodeObjectForKey:@"partnerParameters"];
     self.callbackParameters = [decoder decodeObjectForKey:@"callbackParameters"];
+    self.eventValueParameters = [decoder decodeObjectForKey:@"eventValueParameters"];
 
     NSString *kindString = [decoder decodeObjectForKey:@"kind"];
     self.activityKind = [ADTActivityKindUtil activityKindFromString:kindString];
+
+    id errorCountObject = [decoder decodeObjectForKey:@"errorCount"];
+    if (errorCountObject != nil && [errorCountObject isKindOfClass:[NSNumber class]]) {
+        self.errorCount = ((NSNumber *)errorCountObject).unsignedIntegerValue;
+    }
+    self.firstErrorCode = [decoder decodeObjectForKey:@"firstErrorCode"];
+    self.lastErrorCode = [decoder decodeObjectForKey:@"lastErrorCode"];
+    id waitBeforeSendObject = [decoder decodeObjectForKey:@"waitBeforeSend"];
+    if (waitBeforeSendObject != nil && [waitBeforeSendObject isKindOfClass:[NSNumber class]]) {
+        self.waitBeforeSend = ((NSNumber *)waitBeforeSendObject).doubleValue;
+    }
 
     return self;
 }
@@ -86,6 +107,11 @@
     [encoder encodeObject:self.parameters forKey:@"parameters"];
     [encoder encodeObject:self.callbackParameters forKey:@"callbackParameters"];
     [encoder encodeObject:self.partnerParameters forKey:@"partnerParameters"];
+    [encoder encodeObject:self.eventValueParameters forKey:@"eventValueParameters"];
+    [encoder encodeObject:@(self.errorCount) forKey:@"errorCount"];
+    [encoder encodeObject:self.firstErrorCode forKey:@"firstErrorCode"];
+    [encoder encodeObject:self.lastErrorCode forKey:@"lastErrorCode"];
+    [encoder encodeObject:@(self.waitBeforeSend) forKey:@"waitBeforeSend"];
 }
 
 @end

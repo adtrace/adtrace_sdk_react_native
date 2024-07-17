@@ -20,6 +20,7 @@ BOOL _isSessionTrackingSucceededCallbackImplemented;
 BOOL _isSessionTrackingFailedCallbackImplemented;
 BOOL _isDeferredDeeplinkCallbackImplemented;
 BOOL _isConversionValueUpdatedCallbackImplemented;
+BOOL _isSkad4ConversionValueUpdatedCallbackImplemented;
 
 #pragma mark - Public methods
 
@@ -47,6 +48,10 @@ RCT_EXPORT_METHOD(create:(NSDictionary *)dict) {
     NSNumber *allowAdServicesInfoReading = dict[@"allowAdServicesInfoReading"];
     NSNumber *allowIdfaReading = dict[@"allowIdfaReading"];
     NSNumber *skAdNetworkHandling = dict[@"skAdNetworkHandling"];
+    NSNumber *coppaCompliantEnabled = dict[@"coppaCompliantEnabled"];
+    NSNumber *linkMeEnabled = dict[@"linkMeEnabled"];
+    NSNumber *attConsentWaitingInterval = dict[@"attConsentWaitingInterval"];
+    NSNumber *readDeviceInfoOnceEnabled = dict[@"readDeviceInfoOnceEnabled"];
     BOOL allowSuppressLogLevel = NO;
 
     // Suppress log level.
@@ -88,16 +93,12 @@ RCT_EXPORT_METHOD(create:(NSDictionary *)dict) {
 
     // URL strategy.
     if ([self isFieldValid:urlStrategy]) {
-        if ([urlStrategy isEqualToString:@"china"]) {
-            [adtraceConfig setUrlStrategy:ADTUrlStrategyChina];
-        } else if ([urlStrategy isEqualToString:@"india"]) {
-            [adtraceConfig setUrlStrategy:ADTUrlStrategyIndia];
-        } else if ([urlStrategy isEqualToString:@"data-residency-eu"]) {
-            [adtraceConfig setUrlStrategy:ADTDataResidencyEU];
-        } else if ([urlStrategy isEqualToString:@"data-residency-tr"]) {
-            [adtraceConfig setUrlStrategy:ADTDataResidencyTR];
-        } else if ([urlStrategy isEqualToString:@"data-residency-us"]) {
-            [adtraceConfig setUrlStrategy:ADTDataResidencyUS];
+        if ([urlStrategy isEqualToString:@"ir"]) {
+            [adtraceConfig setUrlStrategy:ADTUrlStrategyIR];
+        } else if ([urlStrategy isEqualToString:@"mobi"]) {
+            [adtraceConfig setUrlStrategy:ADTUrlStrategyMobi];
+        } else if ([urlStrategy isEqualToString:@"data-residency-ir"]) {
+            [adtraceConfig setUrlStrategy:ADTDataResidencyIR];
         }
     }
 
@@ -109,7 +110,8 @@ RCT_EXPORT_METHOD(create:(NSDictionary *)dict) {
         || _isSessionTrackingSucceededCallbackImplemented
         || _isSessionTrackingFailedCallbackImplemented
         || _isDeferredDeeplinkCallbackImplemented
-        || _isConversionValueUpdatedCallbackImplemented) {
+        || _isConversionValueUpdatedCallbackImplemented
+        || _isSkad4ConversionValueUpdatedCallbackImplemented) {
         [adtraceConfig setDelegate:
          [AdtraceSdkDelegate getInstanceWithSwizzleOfAttributionCallback:_isAttributionCallbackImplemented
                                                  eventSucceededCallback:_isEventTrackingSucceededCallbackImplemented
@@ -118,6 +120,7 @@ RCT_EXPORT_METHOD(create:(NSDictionary *)dict) {
                                                   sessionFailedCallback:_isSessionTrackingFailedCallbackImplemented
                                                deferredDeeplinkCallback:_isDeferredDeeplinkCallbackImplemented
                                          conversionValueUpdatedCallback:_isConversionValueUpdatedCallbackImplemented
+                                    skad4ConversionValueUpdatedCallback:_isSkad4ConversionValueUpdatedCallbackImplemented
                                            shouldLaunchDeferredDeeplink:shouldLaunchDeferredDeeplink]];
     }
 
@@ -181,6 +184,26 @@ RCT_EXPORT_METHOD(create:(NSDictionary *)dict) {
         [adtraceConfig setDelayStart:[delayStart doubleValue]];
     }
 
+    // COPPA compliance.
+    if ([self isFieldValid:coppaCompliantEnabled]) {
+        [adtraceConfig setCoppaCompliantEnabled:[coppaCompliantEnabled boolValue]];
+    }
+
+    // LinkMe.
+    if ([self isFieldValid:linkMeEnabled]) {
+        [adtraceConfig setLinkMeEnabled:[linkMeEnabled boolValue]];
+    }
+
+    // ATT consent delay.
+    if ([self isFieldValid:attConsentWaitingInterval]) {
+        [adtraceConfig setAttConsentWaitingInterval:[attConsentWaitingInterval intValue]];
+    }
+
+    // Read device info just once.
+    if ([self isFieldValid:readDeviceInfoOnceEnabled]) {
+        [adtraceConfig setReadDeviceInfoOnceEnabled:[readDeviceInfoOnceEnabled boolValue]];
+    }
+
     // Start SDK.
     [Adtrace appDidLaunch:adtraceConfig];
     [Adtrace trackSubsessionStart];
@@ -190,10 +213,12 @@ RCT_EXPORT_METHOD(trackEvent:(NSDictionary *)dict) {
     NSString *eventToken = dict[@"eventToken"];
     NSString *revenue = dict[@"revenue"];
     NSString *currency = dict[@"currency"];
+    NSString *receipt = dict[@"receipt"];
+    NSString *productId = dict[@"productId"];
     NSString *transactionId = dict[@"transactionId"];
     NSString *callbackId = dict[@"callbackId"];
     NSDictionary *callbackParameters = dict[@"callbackParameters"];
-    NSDictionary *valueParameters = dict[@"valueParameters"];
+    NSDictionary *partnerParameters = dict[@"partnerParameters"];
 
     ADTEvent *adtraceEvent = [ADTEvent eventWithEventToken:eventToken];
     if (![adtraceEvent isValid]) {
@@ -214,11 +239,11 @@ RCT_EXPORT_METHOD(trackEvent:(NSDictionary *)dict) {
         }
     }
 
-    // value parameters.
-    if ([self isFieldValid:valueParameters]) {
-        for (NSString *key in valueParameters) {
-            NSString *value = [valueParameters objectForKey:key];
-            [adtraceEvent addEventValueParameter:key value:value];
+    // Partner parameters.
+    if ([self isFieldValid:partnerParameters]) {
+        for (NSString *key in partnerParameters) {
+            NSString *value = [partnerParameters objectForKey:key];
+            [adtraceEvent addPartnerParameter:key value:value];
         }
     }
 
@@ -230,6 +255,21 @@ RCT_EXPORT_METHOD(trackEvent:(NSDictionary *)dict) {
     // Callback ID.
     if ([self isFieldValid:callbackId]) {
         [adtraceEvent setCallbackId:callbackId];
+    }
+
+    // Receipt.
+    if ([self isFieldValid:receipt]) {
+        [adtraceEvent setReceipt:[receipt dataUsingEncoding:NSUTF8StringEncoding]];
+    }
+
+    // Product ID.
+    if ([self isFieldValid:productId]) {
+        [adtraceEvent setProductId:productId];
+    }
+
+    // Transaction ID.
+    if ([self isFieldValid:transactionId]) {
+        [adtraceEvent setTransactionId:transactionId];
     }
 
     // Track event.
@@ -375,7 +415,7 @@ RCT_EXPORT_METHOD(trackAppStoreSubscription:(NSDictionary *)dict) {
 
     // Transaction date.
     if ([self isFieldValid:transactionDate]) {
-        NSTimeInterval transactionDateInterval = [transactionDate doubleValue];
+        NSTimeInterval transactionDateInterval = [transactionDate doubleValue] / 1000.0;
         NSDate *oTransactionDate = [NSDate dateWithTimeIntervalSince1970:transactionDateInterval];
         [subscription setTransactionDate:oTransactionDate];
     }
@@ -459,6 +499,26 @@ RCT_EXPORT_METHOD(updateConversionValue:(NSNumber * _Nonnull)conversionValue) {
     [Adtrace updateConversionValue:[conversionValue intValue]];
 }
 
+RCT_EXPORT_METHOD(updateConversionValueWithErrorCallback:(NSNumber * _Nonnull)conversionValue
+                                           errorCallback:(RCTResponseSenderBlock)callback) {
+    [Adtrace updatePostbackConversionValue:[conversionValue intValue]
+                        completionHandler:^(NSError * _Nullable error) {
+        callback(@[[error localizedDescription]]);
+    }];
+}
+
+RCT_EXPORT_METHOD(updateConversionValueWithSkad4ErrorCallback:(NSNumber * _Nonnull)conversionValue
+                                                  coarseValue:(NSString * _Nonnull)coarseValue
+                                                   lockWindow:(NSNumber * _Nonnull)lockWindow
+                                                errorCallback:(RCTResponseSenderBlock)callback) {
+    [Adtrace updatePostbackConversionValue:[conversionValue intValue]
+                              coarseValue:coarseValue
+                               lockWindow:[lockWindow boolValue]
+                        completionHandler:^(NSError * _Nullable error) {
+        callback(@[[error localizedDescription]]);
+    }];
+}
+
 RCT_EXPORT_METHOD(getAppTrackingAuthorizationStatus:(RCTResponseSenderBlock)callback) {
     callback(@[@([Adtrace appTrackingAuthorizationStatus])]);
 }
@@ -469,6 +529,15 @@ RCT_EXPORT_METHOD(getIdfa:(RCTResponseSenderBlock)callback) {
         callback(@[@""]);
     } else {
         callback(@[idfa]);
+    }
+}
+
+RCT_EXPORT_METHOD(getIdfv:(RCTResponseSenderBlock)callback) {
+    NSString *idfv = [Adtrace idfv];
+    if (nil == idfv) {
+        callback(@[@""]);
+    } else {
+        callback(@[idfv]);
     }
 }
 
@@ -502,6 +571,11 @@ RCT_EXPORT_METHOD(setReferrer:(NSString *)referrer) {}
 
 RCT_EXPORT_METHOD(trackPlayStoreSubscription:(NSDictionary *)dict) {}
 
+RCT_EXPORT_METHOD(verifyPlayStorePurchase:(NSDictionary *)dict callback:(RCTResponseSenderBlock)callback) {
+    NSMutableDictionary *dictionary = [NSMutableDictionary dictionary];
+    callback(@[dictionary]);
+}
+
 RCT_EXPORT_METHOD(getAttribution:(RCTResponseSenderBlock)callback) {
     ADTAttribution *attribution = [Adtrace attribution];
     NSMutableDictionary *dictionary = [NSMutableDictionary dictionary];
@@ -518,6 +592,9 @@ RCT_EXPORT_METHOD(getAttribution:(RCTResponseSenderBlock)callback) {
     [self addValueOrEmpty:dictionary key:@"adgroup" value:attribution.adgroup];
     [self addValueOrEmpty:dictionary key:@"clickLabel" value:attribution.clickLabel];
     [self addValueOrEmpty:dictionary key:@"adid" value:attribution.adid];
+    [self addValueOrEmpty:dictionary key:@"costType" value:attribution.costType];
+    [self addValueOrEmpty:dictionary key:@"costAmount" value:attribution.costAmount];
+    [self addValueOrEmpty:dictionary key:@"costCurrency" value:attribution.costCurrency];
     callback(@[dictionary]);
 }
 
@@ -535,6 +612,7 @@ RCT_EXPORT_METHOD(convertUniversalLink:(NSString *)urlString scheme:(NSString *)
 RCT_EXPORT_METHOD(trackThirdPartySharing:(NSDictionary *)dict) {
     NSNumber *isEnabled = dict[@"isEnabled"];
     NSArray *granularOptions = dict[@"granularOptions"];
+    NSArray *partnerSharingSettings = dict[@"partnerSharingSettings"];
 
     if (isEnabled != nil && [isEnabled isKindOfClass:[NSNull class]]) {
         isEnabled = nil;
@@ -551,12 +629,93 @@ RCT_EXPORT_METHOD(trackThirdPartySharing:(NSDictionary *)dict) {
         }
     }
 
+    // Partner sharing settings.
+    if ([self isFieldValid:partnerSharingSettings]) {
+        for (int i = 0; i < [partnerSharingSettings count]; i += 3) {
+            NSString *partnerName = [partnerSharingSettings objectAtIndex:i];
+            NSString *key = [partnerSharingSettings objectAtIndex:i+1];
+            NSString *value = [partnerSharingSettings objectAtIndex:i+2];
+            [adtraceThirdPartySharing addPartnerSharingSetting:partnerName key:key value:[value boolValue]];
+        }
+    }
+
     // Track third party sharing.
     [Adtrace trackThirdPartySharing:adtraceThirdPartySharing];
 }
 
 RCT_EXPORT_METHOD(trackMeasurementConsent:(NSNumber * _Nonnull)measurementConsent) {
     [Adtrace trackMeasurementConsent:[measurementConsent boolValue]];
+}
+
+RCT_EXPORT_METHOD(checkForNewAttStatus) {
+    [Adtrace checkForNewAttStatus];
+}
+
+RCT_EXPORT_METHOD(getLastDeeplink:(RCTResponseSenderBlock)callback) {
+    NSURL *lastDeeplink = [Adtrace lastDeeplink];
+    if (nil == lastDeeplink) {
+        callback(@[@""]);
+    } else {
+        callback(@[[lastDeeplink absoluteString]]);
+    }
+}
+
+RCT_EXPORT_METHOD(verifyAppStorePurchase:(NSDictionary *)dict callback:(RCTResponseSenderBlock)callback) {
+    NSString *receipt = dict[@"receipt"];
+    NSString *productId = dict[@"productId"];
+    NSString *transactionId = dict[@"transactionId"];
+
+    // Receipt.
+    NSData *receiptValue;
+    if ([self isFieldValid:receipt]) {
+        receiptValue = [receipt dataUsingEncoding:NSUTF8StringEncoding];
+    }
+
+    // Create purchase instance.
+    ADTPurchase *purchase = [[ADTPurchase alloc] initWithTransactionId:transactionId
+                                                             productId:productId
+                                                            andReceipt:receiptValue];
+
+    // Verify purchase.
+    [Adtrace verifyPurchase:purchase
+         completionHandler:^(ADTPurchaseVerificationResult * _Nonnull verificationResult) {
+        NSMutableDictionary *dictionary = [NSMutableDictionary dictionary];
+        if (verificationResult == nil) {
+            callback(@[dictionary]);
+            return;
+        }
+
+        [self addValueOrEmpty:dictionary key:@"verificationStatus" value:verificationResult.verificationStatus];
+        [self addValueOrEmpty:dictionary key:@"code" value:[NSString stringWithFormat:@"%d", verificationResult.code]];
+        [self addValueOrEmpty:dictionary key:@"message" value:verificationResult.message];
+
+        callback(@[dictionary]);
+    }];
+}
+
+RCT_EXPORT_METHOD(processDeeplink:(NSString *)urlStr callback:(RCTResponseSenderBlock)callback) {
+    if (urlStr == nil) {
+        return;
+    }
+
+    NSURL *url;
+    if ([NSString instancesRespondToSelector:@selector(stringByAddingPercentEncodingWithAllowedCharacters:)]) {
+        url = [NSURL URLWithString:[urlStr stringByAddingPercentEncodingWithAllowedCharacters:[NSCharacterSet URLFragmentAllowedCharacterSet]]];
+    } else {
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+        url = [NSURL URLWithString:[urlStr stringByAddingPercentEscapesUsingEncoding:NSUTF8StringEncoding]];
+    }
+#pragma clang diagnostic pop
+
+    // Process deeplink.
+    [Adtrace processDeeplink:url completionHandler:^(NSString * _Nonnull resolvedLink) {
+        if (resolvedLink == nil) {
+            callback(@[@""]);
+        } else {
+            callback(@[resolvedLink]);
+        }
+    }];
 }
 
 RCT_EXPORT_METHOD(setAttributionCallbackListener) {
@@ -585,6 +744,10 @@ RCT_EXPORT_METHOD(setDeferredDeeplinkCallbackListener) {
 
 RCT_EXPORT_METHOD(setConversionValueUpdatedCallbackListener) {
     _isConversionValueUpdatedCallbackImplemented = YES;
+}
+
+RCT_EXPORT_METHOD(setSkad4ConversionValueUpdatedCallbackListener) {
+    _isSkad4ConversionValueUpdatedCallbackImplemented = YES;
 }
 
 RCT_EXPORT_METHOD(setTestOptions:(NSDictionary *)dict) {

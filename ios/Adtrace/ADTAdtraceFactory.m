@@ -1,10 +1,3 @@
-//
-//  ADTAdtraceFactory.m
-//  Adtrace
-//
-//  Created by Nasser Amini (@namini40) on Jun 2022.
-//  Copyright © 2022 adtrace io. All rights reserved.
-//
 
 #import "ADTAdtraceFactory.h"
 #import "ADTActivityHandler.h"
@@ -15,6 +8,8 @@ static id<ADTLogger> internalLogger = nil;
 static double internalSessionInterval    = -1;
 static double intervalSubsessionInterval = -1;
 static double internalRequestTimeout = -1;
+static NSNumber * internalAttStatus = nil;
+static NSString * internalIdfa = nil;
 static NSTimeInterval internalTimerInterval = -1;
 static NSTimeInterval intervalTimerStart = -1;
 static ADTBackoffStrategy * packageHandlerBackoffStrategy = nil;
@@ -22,12 +17,9 @@ static ADTBackoffStrategy * sdkClickHandlerBackoffStrategy = nil;
 static ADTBackoffStrategy * installSessionBackoffStrategy = nil;
 static BOOL internalTesting = NO;
 static NSTimeInterval internalMaxDelayStart = -1;
-static BOOL internaliAdFrameworkEnabled = YES;
 static BOOL internalAdServicesFrameworkEnabled = YES;
 
-static NSString * internalBaseUrl = nil;
-static NSString * internalGdprUrl = nil;
-static NSString * internalSubscriptionUrl = nil;
+static NSString * internalUrlOverwrite = nil;
 
 @implementation ADTAdtraceFactory
 
@@ -58,6 +50,14 @@ static NSString * internalSubscriptionUrl = nil;
         return 60;                 // 60 second
     }
     return internalRequestTimeout;
+}
+
++ (NSNumber *)attStatus {
+    return internalAttStatus;
+}
+
++ (NSString *)idfa {
+    return internalIdfa;
 }
 
 + (NSTimeInterval)timerInterval {
@@ -99,10 +99,6 @@ static NSString * internalSubscriptionUrl = nil;
     return internalTesting;
 }
 
-+ (BOOL)iAdFrameworkEnabled {
-    return internaliAdFrameworkEnabled;
-}
-
 + (BOOL)adServicesFrameworkEnabled {
     return internalAdServicesFrameworkEnabled;
 }
@@ -114,16 +110,8 @@ static NSString * internalSubscriptionUrl = nil;
     return internalMaxDelayStart;
 }
 
-+ (NSString *)baseUrl {
-    return internalBaseUrl;
-}
-
-+ (NSString *)gdprUrl {
-    return internalGdprUrl;
-}
-
-+ (NSString *)subscriptionUrl {
-    return internalSubscriptionUrl;
++ (NSString *)urlOverwrite {
+    return internalUrlOverwrite;
 }
 
 + (void)setLogger:(id<ADTLogger>)logger {
@@ -136,6 +124,13 @@ static NSString * internalSubscriptionUrl = nil;
 
 + (void)setSubsessionInterval:(double)subsessionInterval {
     intervalSubsessionInterval = subsessionInterval;
+}
++ (void)setAttStatus:(NSNumber *)attStatus {
+    internalAttStatus = attStatus;
+}
+
++ (void)setIdfa:(NSString *)idfa {
+    internalIdfa = idfa;
 }
 
 + (void)setRequestTimeout:(double)requestTimeout {
@@ -162,10 +157,6 @@ static NSString * internalSubscriptionUrl = nil;
     internalTesting = testing;
 }
 
-+ (void)setiAdFrameworkEnabled:(BOOL)iAdFrameworkEnabled {
-    internaliAdFrameworkEnabled = iAdFrameworkEnabled;
-}
-
 + (void)setAdServicesFrameworkEnabled:(BOOL)adServicesFrameworkEnabled {
     internalAdServicesFrameworkEnabled = adServicesFrameworkEnabled;
 }
@@ -174,16 +165,8 @@ static NSString * internalSubscriptionUrl = nil;
     internalMaxDelayStart = maxDelayStart;
 }
 
-+ (void)setBaseUrl:(NSString *)baseUrl {
-    internalBaseUrl = baseUrl;
-}
-
-+ (void)setGdprUrl:(NSString *)gdprUrl {
-    internalGdprUrl = gdprUrl;
-}
-
-+ (void)setSubscriptionUrl:(NSString *)subscriptionUrl {
-    internalSubscriptionUrl = subscriptionUrl;
++ (void)setUrlOverwrite:(NSString *)urlOverwrite {
+    internalUrlOverwrite = urlOverwrite;
 }
 
 + (void)enableSigning {
@@ -240,15 +223,14 @@ static NSString * internalSubscriptionUrl = nil;
     internalTimerInterval = -1;
     intervalTimerStart = -1;
     internalRequestTimeout = -1;
+    internalAttStatus = nil;
+    internalIdfa = nil;
     packageHandlerBackoffStrategy = nil;
     sdkClickHandlerBackoffStrategy = nil;
     installSessionBackoffStrategy = nil;
     internalTesting = NO;
     internalMaxDelayStart = -1;
-    internalBaseUrl = nil;
-    internalGdprUrl = nil;
-    internalSubscriptionUrl = nil;
-    internaliAdFrameworkEnabled = YES;
+    internalUrlOverwrite = nil;
     internalAdServicesFrameworkEnabled = YES;
 }
 @end

@@ -1,10 +1,3 @@
-//
-//  ADTActivityPackage.h
-//  Adtrace
-//
-//  Created by Nasser Amini (@namini40) on Jun 2022.
-//  Copyright © 2022 adtrace io. All rights reserved.
-//
 
 #import "ADTActivityKind.h"
 
@@ -21,6 +14,20 @@
 @property (nonatomic, strong) NSDictionary *partnerParameters;
 
 @property (nonatomic, strong) NSDictionary *callbackParameters;
+
+@property (nonatomic, strong) NSDictionary *eventValueParameters;
+
+@property (nonatomic, copy) void (^purchaseVerificationCallback)(id);
+
+@property (nonatomic, assign) NSUInteger errorCount;
+
+@property (nonatomic, copy) NSNumber *firstErrorCode;
+
+@property (nonatomic, copy) NSNumber *lastErrorCode;
+
+@property (nonatomic, assign) double waitBeforeSend;
+
+- (void)addError:(NSNumber *)errorCode;
 
 // Logs
 

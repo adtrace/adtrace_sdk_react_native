@@ -1,18 +1,10 @@
-//
-//  ADTResponseData.m
-//  adtrace
-//
-//  Created by Nasser Amini (@namini40) on Jun 2022.
-//  Copyright © 2022 adtrace io. All rights reserved.
-//
 
 #import "ADTResponseData.h"
 #import "ADTActivityKind.h"
 
 @implementation ADTResponseData
 
-- (id)init
-{
+- (id)init {
     self = [super init];
     
     if (self == nil) {
@@ -57,6 +49,10 @@
         case ADTActivityKindAttribution:
             responseData = [[ADTAttributionResponseData alloc] init];
             break;
+        case ADTActivityKindPurchaseVerification:
+            responseData = [[ADTPurchaseVerificationResponseData alloc] init];
+            responseData.purchaseVerificationPackage = activityPackage;
+            break;
         default:
             responseData = [[ADTResponseData alloc] init];
             break;
@@ -86,6 +82,7 @@
         copy.trackingState = self.trackingState;
         copy.jsonResponse = [self.jsonResponse copyWithZone:zone];
         copy.attribution = [self.attribution copyWithZone:zone];
+        copy.errorCode = [self.errorCode copyWithZone:zone];
     }
 
     return copy;
@@ -126,6 +123,10 @@
 @end
 
 @implementation ADTSdkClickResponseData
+
+@end
+
+@implementation ADTPurchaseVerificationResponseData
 
 @end
 

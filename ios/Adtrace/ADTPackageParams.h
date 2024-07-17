@@ -1,10 +1,3 @@
-//
-//  ADTPackageParams.h
-//  Adtrace SDK
-//
-//  Created by Nasser Amini (@namini40) on Jun 2022.
-//  Copyright © 2022 adtrace io. All rights reserved.
-//
 
 #import <Foundation/Foundation.h>
 
@@ -22,6 +15,7 @@
 @property (nonatomic, copy) NSString *osVersion;
 @property (nonatomic, copy) NSString *installedAt;
 @property (nonatomic, assign) NSUInteger startedAt;
+@property (nonatomic, copy) NSString *idfaCached;
 
 - (id)initWithSdkPrefix:(NSString *)sdkPrefix;
 

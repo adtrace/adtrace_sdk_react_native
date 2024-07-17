@@ -30,7 +30,8 @@ RCT_EXPORT_MODULE();
              @"adtrace_sessionTrackingSucceeded",
              @"adtrace_sessionTrackingFailed",
              @"adtrace_deferredDeeplink",
-             @"adtrace_conversionValueUpdated"];
+             @"adtrace_conversionValueUpdated",
+             @"adtrace_skad4ConversionValueUpdated"];
 }
 
 - (void)startObserving {

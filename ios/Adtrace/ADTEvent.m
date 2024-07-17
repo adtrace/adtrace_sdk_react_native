@@ -1,10 +1,3 @@
-//
-//  ADTEvent.m
-//  adtrace
-//
-//  Created by Nasser Amini (@namini40) on Jun 2022.
-//  Copyright © 2022 adtrace io. All rights reserved.
-//
 
 #import "ADTEvent.h"
 #import "ADTAdtraceFactory.h"
@@ -14,6 +7,7 @@
 
 @property (nonatomic, weak) id<ADTLogger> logger;
 @property (nonatomic, strong) NSMutableDictionary *callbackMutableParameters;
+@property (nonatomic, strong) NSMutableDictionary *eventMutableParameters;
 @property (nonatomic, strong) NSMutableDictionary *partnerMutableParameters;
 
 @end
@@ -93,6 +87,32 @@
     }
 }
 
+- (void)addEventValueParameter:(NSString *)key value:(NSString *)value {
+    @synchronized (self) {
+        NSString *immutableKey = [key copy];
+        NSString *immutableValue = [value copy];
+
+        if (![ADTUtil isValidParameter:immutableKey
+                         attributeType:@"key"
+                         parameterName:@"Value"]) {
+            return;
+        }
+        if (![ADTUtil isValidParameter:immutableValue
+                         attributeType:@"value"
+                         parameterName:@"Value"]) {
+            return;
+        }
+
+        if (self.eventMutableParameters == nil) {
+            self.eventMutableParameters = [[NSMutableDictionary alloc] init];
+        }
+        if ([self.eventMutableParameters objectForKey:immutableKey]) {
+            [self.logger warn:@"Event value parameter key %@ was overwritten", immutableKey];
+        }
+        [self.eventMutableParameters setObject:immutableValue forKey:immutableKey];
+    }
+}
+
 - (void)setRevenue:(double)amount currency:(NSString *)currency {
     NSNumber *revenue = [NSNumber numberWithDouble:amount];
     if (![self checkRevenue:revenue currency:currency]) {
@@ -126,6 +146,25 @@
 - (NSDictionary *)partnerParameters {
     @synchronized (self) {
         return (NSDictionary *)self.partnerMutableParameters;
+    }
+}
+
+
+- (NSDictionary *)eventValueParameters {
+    @synchronized (self) {
+        return (NSDictionary *)self.eventMutableParameters;
+    }
+}
+
+- (void)setProductId:(NSString *)productId {
+    @synchronized (self) {
+        _productId = [productId copy];
+    }
+}
+
+- (void)setReceipt:(NSData *)receipt {
+    @synchronized (self) {
+        _receipt = [receipt copy];
     }
 }
 
@@ -199,9 +238,11 @@
         copy->_currency = [self.currency copyWithZone:zone];
         copy.callbackMutableParameters = [self.callbackMutableParameters copyWithZone:zone];
         copy.partnerMutableParameters = [self.partnerMutableParameters copyWithZone:zone];
+        copy.eventMutableParameters = [self.eventMutableParameters copyWithZone:zone];
         copy->_transactionId = [self.transactionId copyWithZone:zone];
         copy->_receipt = [self.receipt copyWithZone:zone];
         copy->_emptyReceipt = self.emptyReceipt;
+        copy->_productId = [self.productId copyWithZone:zone];
     }
 
     return copy;

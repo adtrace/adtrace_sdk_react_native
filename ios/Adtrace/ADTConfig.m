@@ -1,10 +1,3 @@
-//
-//  AdtraceConfig.m
-//  adtrace
-//
-//  Created by Nasser Amini (@namini40) on Jun 2022.
-//  Copyright © 2022 adtrace io. All rights reserved.
-//
 
 #import "ADTConfig.h"
 #import "ADTAdtraceFactory.h"
@@ -67,9 +60,10 @@
     // default values
     self.sendInBackground = NO;
     self.eventBufferingEnabled = NO;
+    self.coppaCompliantEnabled = NO;
     self.allowIdfaReading = YES;
-    self.allowiAdInfoReading = YES;
     self.allowAdServicesInfoReading = YES;
+    self.linkMeEnabled = NO;
     _isSKAdNetworkHandlingActive = YES;
 
     return self;
@@ -200,9 +194,10 @@
         copy.eventBufferingEnabled = self.eventBufferingEnabled;
         copy.sendInBackground = self.sendInBackground;
         copy.allowIdfaReading = self.allowIdfaReading;
-        copy.allowiAdInfoReading = self.allowiAdInfoReading;
         copy.allowAdServicesInfoReading = self.allowAdServicesInfoReading;
         copy.delayStart = self.delayStart;
+        copy.attConsentWaitingInterval = self.attConsentWaitingInterval;
+        copy.coppaCompliantEnabled = self.coppaCompliantEnabled;
         copy.userAgent = [self.userAgent copyWithZone:zone];
         copy.externalDeviceId = [self.externalDeviceId copyWithZone:zone];
         copy.isDeviceKnown = self.isDeviceKnown;
@@ -211,6 +206,8 @@
         copy->_appSecret = [self.appSecret copyWithZone:zone];
         copy->_isSKAdNetworkHandlingActive = self.isSKAdNetworkHandlingActive;
         copy->_urlStrategy = [self.urlStrategy copyWithZone:zone];
+        copy.linkMeEnabled = self.linkMeEnabled;
+        copy.readDeviceInfoOnceEnabled = self.readDeviceInfoOnceEnabled;
         // adtrace delegate not copied
     }
 

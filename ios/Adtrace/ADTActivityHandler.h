@@ -1,10 +1,3 @@
-//
-//  ADTActivityHandler.h
-//  Adtrace
-//
-//  Created by Nasser Amini (@namini40) on Jun 2022.
-//  Copyright © 2022 adtrace io. All rights reserved.
-//
 
 #import "Adtrace.h"
 #import "ADTResponseData.h"
@@ -20,8 +13,10 @@
 @property (nonatomic, assign) BOOL background;
 @property (nonatomic, assign) BOOL delayStart;
 @property (nonatomic, assign) BOOL updatePackages;
+@property (nonatomic, assign) BOOL updatePackagesAttData;
 @property (nonatomic, assign) BOOL firstLaunch;
 @property (nonatomic, assign) BOOL sessionResponseProcessed;
+@property (nonatomic, assign) BOOL waitingForAttStatus;
 
 - (BOOL)isEnabled;
 - (BOOL)isDisabled;
@@ -32,8 +27,10 @@
 - (BOOL)isInDelayedStart;
 - (BOOL)isNotInDelayedStart;
 - (BOOL)itHasToUpdatePackages;
+- (BOOL)itHasToUpdatePackagesAttData;
 - (BOOL)isFirstLaunch;
 - (BOOL)hasSessionResponseNotBeenProcessed;
+- (BOOL)isWaitingForAttStatus;
 
 @end
 
@@ -61,7 +58,8 @@
 - (NSString *_Nullable)adid;
 
 - (id _Nullable)initWithConfig:(ADTConfig *_Nullable)adtraceConfig
-                savedPreLaunch:(ADTSavedPreLaunch * _Nullable)savedPreLaunch;
+                savedPreLaunch:(ADTSavedPreLaunch * _Nullable)savedPreLaunch
+    deeplinkResolutionCallback:(AdtraceResolvedDeeplinkBlock _Nullable)deepLinkResolutionCallback;
 
 - (void)applicationDidBecomeActive;
 - (void)applicationWillResignActive;
@@ -79,6 +77,9 @@
 
 - (void)appWillOpenUrl:(NSURL * _Nullable)url
          withClickTime:(NSDate * _Nullable)clickTime;
+- (void)processDeeplink:(NSURL * _Nullable)deeplink
+              clickTime:(NSDate * _Nullable)clickTime
+      completionHandler:(AdtraceResolvedDeeplinkBlock _Nullable)completionHandler;
 - (void)setDeviceToken:(NSData * _Nullable)deviceToken;
 - (void)setPushToken:(NSString * _Nullable)deviceToken;
 - (void)setGdprForgetMe;
@@ -87,8 +88,6 @@
 
 - (BOOL)updateAttributionI:(id<ADTActivityHandler> _Nullable)selfI
                attribution:(ADTAttribution * _Nullable)attribution;
-- (void)setAttributionDetails:(NSDictionary * _Nullable)attributionDetails
-                        error:(NSError * _Nullable)error;
 - (void)setAdServicesAttributionToken:(NSString * _Nullable)token
                                 error:(NSError * _Nullable)error;
 
@@ -111,6 +110,9 @@
 - (void)trackSubscription:(ADTSubscription * _Nullable)subscription;
 - (void)updateAttStatusFromUserCallback:(int)newAttStatusFromUser;
 - (void)trackAdRevenue:(ADTAdRevenue * _Nullable)adRevenue;
+- (void)checkForNewAttStatus;
+- (void)verifyPurchase:(nonnull ADTPurchase *)purchase
+     completionHandler:(void (^_Nonnull)(ADTPurchaseVerificationResult * _Nonnull verificationResult))completionHandler;
 
 - (ADTPackageParams * _Nullable)packageParams;
 - (ADTActivityState * _Nullable)activityState;
@@ -123,8 +125,9 @@
 
 @interface ADTActivityHandler : NSObject <ADTActivityHandler>
 
-- (id _Nullable)initWithConfig:(ADTConfig * _Nullable)adtraceConfig
-                savedPreLaunch:(ADTSavedPreLaunch * _Nullable)savedPreLaunch;
+- (id _Nullable)initWithConfig:(ADTConfig *_Nullable)adtraceConfig
+                savedPreLaunch:(ADTSavedPreLaunch * _Nullable)savedPreLaunch
+    deeplinkResolutionCallback:(AdtraceResolvedDeeplinkBlock _Nullable)deepLinkResolutionCallback;
 
 - (void)addSessionCallbackParameterI:(ADTActivityHandler * _Nullable)selfI
                                  key:(NSString * _Nullable)key
@@ -144,17 +147,16 @@
 
 @interface ADTTrackingStatusManager : NSObject
 
-- (instancetype _Nullable)initWithActivityHandler:(ADTActivityHandler * _Nullable)activityHandler;
-
-- (void)checkForNewAttStatus;
-- (void)updateAttStatusFromUserCallback:(int)newAttStatusFromUser;
-
-- (BOOL)canGetAttStatus;
-
 @property (nonatomic, readonly, assign) BOOL trackingEnabled;
 @property (nonatomic, readonly, assign) int attStatus;
 
+- (instancetype _Nullable)initWithActivityHandler:(ADTActivityHandler * _Nullable)activityHandler;
+- (void)checkForNewAttStatus;
+- (void)updateAttStatusFromUserCallback:(int)newAttStatusFromUser;
+- (BOOL)canGetAttStatus;
+- (void)setAppInActiveState:(BOOL)activeState;
+- (BOOL)shouldWaitForAttStatus;
+
 @end
 
-extern NSString * _Nullable const ADTiAdPackageKey;
 extern NSString * _Nullable const ADTAdServicesPackageKey;

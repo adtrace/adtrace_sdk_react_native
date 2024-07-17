@@ -1,10 +1,3 @@
-//
-//  ADTActivityKind.h
-//  Adtrace
-//
-//  Created by Nasser Amini (@namini40) on Jun 2022.
-//  Copyright © 2022 adtrace io. All rights reserved.
-//
 
 #import <Foundation/Foundation.h>
 
@@ -25,7 +18,8 @@ typedef NS_ENUM(int, ADTActivityKind) {
     ADTActivityKindDisableThirdPartySharing = 9,
     ADTActivityKindSubscription = 10,
     ADTActivityKindThirdPartySharing = 11,
-    ADTActivityKindMeasurementConsent = 12
+    ADTActivityKindMeasurementConsent = 12,
+    ADTActivityKindPurchaseVerification = 13
 };
 
 @interface ADTActivityKindUtil : NSObject

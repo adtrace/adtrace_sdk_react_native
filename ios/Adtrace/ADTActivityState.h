@@ -1,10 +1,3 @@
-//
-//  ADTActivityState.h
-//  Adtrace
-//
-//  Created by Nasser Amini (@namini40) on Jun 2022.
-//  Copyright © 2022 adtrace io. All rights reserved.
-//
 
 #import <Foundation/Foundation.h>
 
@@ -15,10 +8,12 @@
 @property (nonatomic, assign) BOOL isGdprForgotten;
 @property (nonatomic, assign) BOOL askingAttribution;
 @property (nonatomic, assign) BOOL isThirdPartySharingDisabled;
+@property (nonatomic, assign) BOOL isThirdPartySharingDisabledForCoppa;
 
 @property (nonatomic, copy) NSString *dedupeToken;
 @property (nonatomic, copy) NSString *deviceToken;
 @property (nonatomic, assign) BOOL updatePackages;
+@property (nonatomic, assign) BOOL updatePackagesAttData;
 
 @property (nonatomic, copy) NSString *adid;
 @property (nonatomic, strong) NSDictionary *attributionDetails;

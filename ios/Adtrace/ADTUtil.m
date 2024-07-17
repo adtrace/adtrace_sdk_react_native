@@ -1,10 +1,3 @@
-//
-//  ADTUtil.m
-//  Adtrace SDK
-//
-//  Created by Nasser Amini (@namini40) on Jun 2022.
-//  Copyright © 2022 adtrace io. All rights reserved.
-//
 
 #include <math.h>
 #include <dlfcn.h>
@@ -28,10 +21,6 @@
 #import <AdSupport/ASIdentifierManager.h>
 #endif
 
-#if !ADTRACE_NO_IAD && !TARGET_OS_TV
-#import <iAd/iAd.h>
-#endif
-
 static NSString *userAgent = nil;
 static NSRegularExpression *universalLinkRegex = nil;
 static NSNumberFormatter *secondsNumberFormatter = nil;
@@ -39,13 +28,13 @@ static NSRegularExpression *optionalRedirectRegex = nil;
 static NSRegularExpression *shortUniversalLinkRegex = nil;
 static NSRegularExpression *excludedDeeplinkRegex = nil;
 
-static NSString * const kClientSdk                  = @"ios4.29.6";
+static NSString * const kClientSdk                  = @"ios2.3.0";
 static NSString * const kDeeplinkParam              = @"deep_link=";
 static NSString * const kSchemeDelimiter            = @"://";
 static NSString * const kDefaultScheme              = @"AdtraceUniversalScheme";
-static NSString * const kUniversalLinkPattern       = @"https://[^.]*\\.ulink\\.adtrace\\.com/ulink/?(.*)";
+static NSString * const kUniversalLinkPattern       = @"https://[^.]*\\.ulink\\.adtrace\\.io/ulink/?(.*)";
 static NSString * const kOptionalRedirectPattern    = @"adtrace_redirect=[^&#]*";
-static NSString * const kShortUniversalLinkPattern  = @"http[s]?://[a-z0-9]{4}\\.adt\\.st/?(.*)";
+static NSString * const kShortUniversalLinkPattern  = @"http[s]?://[a-z0-9]{4}\\.(?:[a-z]{2}\\.)?adt\\.io/?(.*)";
 static NSString * const kExcludedDeeplinksPattern   = @"^(fb|vk)[0-9]{5,}[^:]*://authorize.*access_token=.*";
 static NSString * const kDateFormat                 = @"yyyy-MM-dd'T'HH:mm:ss.SSS'Z'Z";
 
@@ -332,15 +321,17 @@ static NSString * const kDateFormat                 = @"yyyy-MM-dd'T'HH:mm:ss.SS
             }
 
             if (@available(iOS 11.0, tvOS 11.0, *)) {
-                NSError *errorArchiving = nil;
-                // API introduced in iOS 11.
-                NSData *data = [NSKeyedArchiver archivedDataWithRootObject:object requiringSecureCoding:NO error:&errorArchiving];
-                if (data && errorArchiving == nil) {
-                    NSError *errorWriting = nil;
-                    result = [data writeToFile:filePath options:NSDataWritingAtomic error:&errorWriting];
-                    result = result && (errorWriting == nil);
-                } else {
-                    result = NO;
+                @autoreleasepool {
+                    NSError *errorArchiving = nil;
+                    // API introduced in iOS 11.
+                    NSData *data = [NSKeyedArchiver archivedDataWithRootObject:object requiringSecureCoding:NO error:&errorArchiving];
+                    if (data && errorArchiving == nil) {
+                        NSError *errorWriting = nil;
+                        result = [data writeToFile:filePath options:NSDataWritingAtomic error:&errorWriting];
+                        result = result && (errorWriting == nil);
+                    } else {
+                        result = NO;
+                    }
                 }
             } else {
                 // API_DEPRECATED [2.0-12.0]
@@ -679,15 +670,8 @@ static NSString * const kDateFormat                 = @"yyyy-MM-dd'T'HH:mm:ss.SS
 }
 
 + (double)randomInRange:(double)minRange maxRange:(double)maxRange {
-    static dispatch_once_t onceToken;
-    dispatch_once(&onceToken, ^{
-        srand48(arc4random());
-    });
-    double random = drand48();
     double range = maxRange - minRange;
-    double scaled = random  * range;
-    double shifted = scaled + minRange;
-    return shifted;
+    return minRange + (range * arc4random_uniform(100)*1.0/100);
 }
 
 + (NSTimeInterval)waitingTime:(NSInteger)retries
@@ -955,44 +939,6 @@ static NSString * const kDateFormat                 = @"yyyy-MM-dd'T'HH:mm:ss.SS
     return [hexString copy];
 }
 
-+ (BOOL)checkAttributionDetails:(NSDictionary *)attributionDetails {
-    if ([ADTUtil isNull:attributionDetails]) {
-        return NO;
-    }
-
-    NSDictionary *details = [attributionDetails objectForKey:@"Version3.1"];
-    if ([ADTUtil isNull:details]) {
-        return YES;
-    }
-
-    // Common fields for both iAd3 and Apple Search Ads
-    if (![ADTUtil contains:details key:@"iad-org-name" value:@"OrgName"] ||
-        ![ADTUtil contains:details key:@"iad-campaign-id" value:@"1234567890"] ||
-        ![ADTUtil contains:details key:@"iad-campaign-name" value:@"CampaignName"] ||
-        ![ADTUtil contains:details key:@"iad-lineitem-id" value:@"1234567890"] ||
-        ![ADTUtil contains:details key:@"iad-lineitem-name" value:@"LineName"]) {
-        [ADTAdtraceFactory.logger debug:@"iAd attribution details has dummy common fields for both iAd3 and Apple Search Ads"];
-        return YES;
-    }
-    // Apple Search Ads fields
-    if ([ADTUtil contains:details key:@"iad-adgroup-id" value:@"1234567890"] &&
-        [ADTUtil contains:details key:@"iad-keyword" value:@"Keyword"] && (
-            [ADTUtil contains:details key:@"iad-adgroup-name" value:@"AdgroupName"] ||
-            [ADTUtil contains:details key:@"iad-adgroup-name" value:@"AdGroupName"]
-        )) {
-        [ADTAdtraceFactory.logger debug:@"iAd attribution details has dummy Apple Search Ads fields"];
-        return NO;
-    }
-    // iAd3 fields
-    if ([ADTUtil contains:details key:@"iad-adgroup-id" value:@"1234567890"] &&
-        [ADTUtil contains:details key:@"iad-creative-name" value:@"CreativeName"]) {
-        [ADTAdtraceFactory.logger debug:@"iAd attribution details has dummy iAd3 fields"];
-        return NO;
-    }
-
-    return YES;
-}
-
 + (BOOL)contains:(NSDictionary *)dictionary
         key:(NSString *)key
         value:(NSString *)value {
@@ -1029,31 +975,6 @@ static NSString * const kDateFormat                 = @"yyyy-MM-dd'T'HH:mm:ss.SS
 
 + (NSString *)sdkVersion {
     return kClientSdk;
-}
-
-+ (void)updateSkAdNetworkConversionValue:(NSNumber *)conversionValue {
-    id<ADTLogger> logger = [ADTAdtraceFactory logger];
-    
-    Class skAdNetwork = NSClassFromString(@"SKAdNetwork");
-    if (skAdNetwork == nil) {
-        [logger warn:@"StoreKit framework not found in the app (SKAdNetwork not found)"];
-        return;
-    }
-    
-    SEL updateConversionValueSelector = NSSelectorFromString(@"updateConversionValue:");
-    if ([skAdNetwork respondsToSelector:updateConversionValueSelector]) {
-        NSInteger intValue = [conversionValue integerValue];
-        
-        NSMethodSignature *conversionValueMethodSignature = [skAdNetwork methodSignatureForSelector:updateConversionValueSelector];
-        NSInvocation *conversionInvocation = [NSInvocation invocationWithMethodSignature:conversionValueMethodSignature];
-        [conversionInvocation setSelector:updateConversionValueSelector];
-        [conversionInvocation setTarget:skAdNetwork];
-
-        [conversionInvocation setArgument:&intValue atIndex:2];
-        [conversionInvocation invoke];
-        
-        [logger verbose:@"Call to SKAdNetwork's updateConversionValue: method made with value %d", intValue];
-    }
 }
 
 + (Class)adSupportManager {
@@ -1105,6 +1026,10 @@ static NSString * const kDateFormat                 = @"yyyy-MM-dd'T'HH:mm:ss.SS
 }
 
 + (NSString *)idfa {
+    if (ADTAdtraceFactory.idfa != nil) {
+        return ADTAdtraceFactory.idfa;
+    }
+
 #if ADTRACE_NO_IDFA
     return @"";
 #else
@@ -1255,6 +1180,10 @@ static NSString * const kDateFormat                 = @"yyyy-MM-dd'T'HH:mm:ss.SS
 }
 
 + (int)attStatus {
+    if (ADTAdtraceFactory.attStatus != nil) {
+        return ADTAdtraceFactory.attStatus.intValue;
+    }
+
     Class appTrackingClass = [self appTrackingManager];
     if (appTrackingClass != nil) {
         NSString *keyAuthorization = [NSString adtJoin:@"tracking", @"authorization", @"status", nil];
@@ -1263,7 +1192,7 @@ static NSString * const kDateFormat                 = @"yyyy-MM-dd'T'HH:mm:ss.SS
             NSMethodSignature *msAuthorization = [appTrackingClass methodSignatureForSelector:selAuthorization];
             NSInvocation *invAuthorization = [NSInvocation invocationWithMethodSignature:msAuthorization];
             [invAuthorization setSelector:selAuthorization];
-            [invAuthorization invokeWithTarget:appTrackingClass];
+            [invAuthorization setTarget:appTrackingClass];
             [invAuthorization invoke];
             NSUInteger status;
             [invAuthorization getReturnValue:&status];
@@ -1321,89 +1250,6 @@ static NSString * const kDateFormat                 = @"yyyy-MM-dd'T'HH:mm:ss.SS
     [tokenInvocation getReturnValue:&tmpToken];
     NSString *token = tmpToken;
     return token;
-}
-
-+ (void)checkForiAd:(ADTActivityHandler *)activityHandler queue:(dispatch_queue_t)queue {
-    // if no tries for iAd v3 left, stop trying
-    id<ADTLogger> logger = [ADTAdtraceFactory logger];
-
-#if ADTRACE_NO_IAD || TARGET_OS_TV
-    [logger debug:@"ADTRACE_NO_IAD or TARGET_OS_TV set"];
-    return;
-#else
-    [logger debug:@"ADTRACE_NO_IAD or TARGET_OS_TV not set"];
-
-    // [[ADClient sharedClient] ...]
-    Class ADClientClass = NSClassFromString(@"ADClient");
-    if (ADClientClass == nil) {
-        [logger warn:@"iAd framework not found in the app (ADClientClass not found)"];
-        return;
-    }
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Warc-performSelector-leaks"
-    SEL sharedClientSelector = NSSelectorFromString(@"sharedClient");
-    if (![ADClientClass respondsToSelector:sharedClientSelector]) {
-        [logger warn:@"iAd framework not found in the app (sharedClient method not found)"];
-        return;
-    }
-    id ADClientSharedClientInstance = [ADClientClass performSelector:sharedClientSelector];
-    if (ADClientSharedClientInstance == nil) {
-        [logger warn:@"iAd framework not found in the app (ADClientSharedClientInstance is nil)"];
-        return;
-    }
-    [logger debug:@"iAd framework successfully found in the app"];
-    BOOL iAdInformationAvailable = [ADTUtil setiAdWithDetails:activityHandler
-                                       adClientSharedInstance:ADClientSharedClientInstance
-                                                        queue:queue];
-    if (!iAdInformationAvailable) {
-        [logger warn:@"iAd information not available"];
-        return;
-    }
-#pragma clang diagnostic pop
-#endif
-}
-
-+ (BOOL)setiAdWithDetails:(ADTActivityHandler *)activityHandler
-   adClientSharedInstance:(id)ADClientSharedClientInstance
-                    queue:(dispatch_queue_t)queue {
-    SEL iAdDetailsSelector = NSSelectorFromString(@"requestAttributionDetailsWithBlock:");
-    if (![ADClientSharedClientInstance respondsToSelector:iAdDetailsSelector]) {
-        return NO;
-    }
-
-    __block Class lock = [ADTActivityHandler class];
-    __block BOOL completed = NO;
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Warc-performSelector-leaks"
-    [ADClientSharedClientInstance performSelector:iAdDetailsSelector
-                                       withObject:^(NSDictionary *attributionDetails, NSError *error) {
-        @synchronized (lock) {
-            if (completed) {
-                return;
-            } else {
-                completed = YES;
-            }
-        }
-        [activityHandler setAttributionDetails:attributionDetails
-                                         error:error];
-    }];
-#pragma clang diagnostic pop
-
-    // 5 seconds of timeout
-    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(5.0 * NSEC_PER_SEC)), queue, ^{
-        @synchronized (lock) {
-            if (completed) {
-                return;
-            } else {
-                completed = YES;
-            }
-        }
-        [activityHandler setAttributionDetails:nil
-                                         error:[NSError errorWithDomain:@"io.adtrace.sdk.iAd"
-                                                                   code:100
-                                                               userInfo:@{@"Error reason": @"iAd request timed out"}]];
-    });
-    return YES;
 }
 
 + (void)requestTrackingAuthorizationWithCompletionHandler:(void (^)(NSUInteger status))completion {
@@ -1578,6 +1424,50 @@ static NSString * const kDateFormat                 = @"yyyy-MM-dd'T'HH:mm:ss.SS
         } else {
             return NO;
         }
+    }
+}
+
++ (NSMutableDictionary *)deepCopyOfDictionary:(NSMutableDictionary *)dictionary {
+    if (dictionary == nil) {
+        return nil;
+    }
+
+    NSMutableDictionary *deepCopy =
+    (NSMutableDictionary *)CFBridgingRelease(CFPropertyListCreateDeepCopy(kCFAllocatorDefault,
+                                                                          (CFDictionaryRef)dictionary,
+                                                                          kCFPropertyListMutableContainersAndLeaves));
+    return deepCopy;
+}
+
++ (BOOL)shouldUseConsentParamsForActivityKind:(ADTActivityKind)activityKind {
+    if (@available(iOS 14.0, tvOS 14.0, *)) {
+        if (activityKind == ADTActivityKindGdpr ||
+            activityKind == ADTActivityKindSubscription ||
+            activityKind == ADTActivityKindPurchaseVerification) {
+            return NO;
+        }
+
+        int attStatus = [ADTUtil attStatus];
+        return attStatus == 3;
+    } else {
+        // if iOS lower than 14 can assume consent
+        return YES;
+    }
+}
+
++ (BOOL)shouldUseConsentParamsForActivityKind:(ADTActivityKind)activityKind
+                                 andAttStatus:(nullable NSString *)attStatusString {
+    if (@available(iOS 14.0, tvOS 14.0, *)) {
+        if (activityKind == ADTActivityKindGdpr ||
+            activityKind == ADTActivityKindSubscription ||
+            activityKind == ADTActivityKindPurchaseVerification) {
+            return NO;
+        }
+
+        return [@"3" isEqualToString:attStatusString];
+    } else {
+        // if iOS lower than 14 can assume consent
+        return YES;
     }
 }
 

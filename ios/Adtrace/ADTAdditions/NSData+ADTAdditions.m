@@ -1,10 +1,3 @@
-//
-//  NSData+ADTAdditions.m
-//  Adtrace SDK
-//
-//  Created by Nasser Amini (@namini40) on Jun 2022.
-//  Copyright © 2022 adtrace io. All rights reserved.
-//
 
 #import "NSData+ADTAdditions.h"
 

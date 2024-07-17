@@ -1,10 +1,3 @@
-//
-//  ADTConfig.h
-//  adtrace
-//
-//  Created by Nasser Amini (@namini40) on Jun 2022.
-//  Copyright © 2022 adtrace io. All rights reserved.
-//
 
 #import <Foundation/Foundation.h>
 
@@ -77,11 +70,24 @@
 - (BOOL)adtraceDeeplinkResponse:(nullable NSURL *)deeplink;
 
 /**
- * @brief Optional delegate method that gets called when Adtrace SDK sets conversion value for the user.
+ * @brief Optional SKAdNetwork pre 4.0 style delegate method that gets called when Adtrace SDK sets conversion value for the user.
  *
  * @param conversionValue Conversion value used by Adtrace SDK to invoke updateConversionValue: API.
  */
 - (void)adtraceConversionValueUpdated:(nullable NSNumber *)conversionValue;
+
+/**
+ * @brief Optional SKAdNetwork 4.0 style delegate method that gets called when Adtrace SDK sets conversion value for the user.
+ *        You can use this callback even with using pre 4.0 SKAdNetwork.
+ *        In that case you can expect coarseValue and lockWindow values to be nil.
+ *
+ * @param fineValue Conversion value set by Adtrace SDK.
+ * @param coarseValue Coarse value set by Adtrace SDK.
+ * @param lockWindow Lock window set by Adtrace SDK.
+ */
+- (void)adtraceConversionValueUpdated:(nullable NSNumber *)fineValue
+                         coarseValue:(nullable NSString *)coarseValue
+                          lockWindow:(nullable NSNumber *)lockWindow;
 
 @end
 
@@ -153,7 +159,7 @@
 /**
  * @brief Enables/disables reading of iAd framework data needed for ASA tracking.
  */
-@property (nonatomic, assign) BOOL allowiAdInfoReading;
+@property (nonatomic, assign) BOOL allowiAdInfoReading DEPRECATED_MSG_ATTRIBUTE("Apple Search Ads attribution with usage of iAd.framework has been sunset by Apple as of February 7th 2023");
 
 /**
  * @brief Enables/disables reading of AdServices framework data needed for attribution.
@@ -169,6 +175,11 @@
  * @brief Enables delayed start of the SDK.
  */
 @property (nonatomic, assign) double delayStart;
+
+/**
+ * @brief Define how many seconds to wait for ATT status before sending the first data.
+ */
+@property (nonatomic, assign) NSUInteger attConsentWaitingInterval;
 
 /**
  * @brief User agent for the requests.
@@ -215,10 +226,15 @@
 @property (nonatomic, copy, readwrite, nullable) NSString *urlStrategy;
 
 /**
+ * @brief Enables/disables linkMe
+ */
+@property (nonatomic, assign) BOOL linkMeEnabled;
+
+/**
  * @brief Get configuration object for the initialization of the Adtrace SDK.
  *
  * @param appToken The App Token of your app. This unique identifier can
- *                 be found it in your dashboard at http://adtrace.com and should always
+ *                 be found it in your dashboard at http://adtrace.io and should always
  *                 be 12 characters long.
  * @param environment The current environment your app. We use this environment to
  *                    distinguish between real traffic and artificial traffic from test devices.
@@ -237,7 +253,7 @@
  * @brief Configuration object for the initialization of the Adtrace SDK.
  *
  * @param appToken The App Token of your app. This unique identifier can
- *                 be found it in your dashboard at http://adtrace.com and should always
+ *                 be found it in your dashboard at http://adtrace.io and should always
  *                 be 12 characters long.
  * @param environment The current environment your app. We use this environment to
  *                    distinguish between real traffic and artificial traffic from test devices.
@@ -258,9 +274,19 @@
 
 /**
  * @brief Check if adtrace configuration object is valid.
- * 
+ *
  * @return Boolean indicating whether adtrace config object is valid or not.
  */
 - (BOOL)isValid;
+
+/**
+ * @brief Enable COPPA (Children's Online Privacy Protection Act) compliant for the application.
+ */
+@property (nonatomic, assign) BOOL coppaCompliantEnabled;
+
+/**
+ * @brief Enables caching of device ids to read it only once
+ */
+@property (nonatomic, assign) BOOL readDeviceInfoOnceEnabled;
 
 @end

@@ -1,10 +1,3 @@
-//
-//  ADTActivityHandler.m
-//  Adtrace
-//
-//  Created by Nasser Amini (@namini40) on Jun 2022.
-//  Copyright © 2022 adtrace io. All rights reserved.
-//
 
 #import <UIKit/UIKit.h>
 
@@ -22,29 +15,31 @@
 #import "ADTSdkClickHandler.h"
 #import "ADTUserDefaults.h"
 #import "ADTUrlStrategy.h"
+#import "ADTSKAdNetwork.h"
+#import "ADTPurchaseVerificationHandler.h"
 
-NSString * const ADTiAdPackageKey = @"iad3";
 NSString * const ADTAdServicesPackageKey = @"apple_ads";
 
 typedef void (^activityHandlerBlockI)(ADTActivityHandler * activityHandler);
 
-static NSString   * const kActivityStateFilename = @"AdtraceIoActivityState";
-static NSString   * const kAttributionFilename   = @"AdtraceIoAttribution";
-static NSString   * const kSessionCallbackParametersFilename   = @"AdtraceSessionCallbackParameters";
-static NSString   * const kSessionPartnerParametersFilename    = @"AdtraceSessionPartnerParameters";
-static NSString   * const kAdtracePrefix          = @"adtrace_";
-static const char * const kInternalQueueName     = "io.adtrace.ActivityQueue";
-static NSString   * const kForegroundTimerName   = @"Foreground timer";
-static NSString   * const kBackgroundTimerName   = @"Background timer";
-static NSString   * const kDelayStartTimerName   = @"Delay Start timer";
+static NSString   * const kActivityStateFilename                = @"AdtraceIoActivityState";
+static NSString   * const kAttributionFilename                  = @"AdtraceIoAttribution";
+static NSString   * const kSessionCallbackParametersFilename    = @"AdtraceSessionCallbackParameters";
+static NSString   * const kSessionPartnerParametersFilename     = @"AdtraceSessionPartnerParameters";
+static NSString   * const kAdtracePrefix                         = @"adtrace_";
+static const char * const kInternalQueueName                    = "io.adtrace.ActivityQueue";
+static const char * const kWaitingForAttQueueName               = "io.adtrace.WaitingForAttQueue";
+static NSString   * const kForegroundTimerName                  = @"Foreground timer";
+static NSString   * const kBackgroundTimerName                  = @"Background timer";
+static NSString   * const kDelayStartTimerName                  = @"Delay Start timer";
 
 static NSTimeInterval kForegroundTimerInterval;
 static NSTimeInterval kForegroundTimerStart;
 static NSTimeInterval kBackgroundTimerInterval;
 static double kSessionInterval;
 static double kSubSessionInterval;
-static const int kiAdRetriesCount = 3;
 static const int kAdServicesdRetriesCount = 1;
+const NSUInteger kWaitingForAttStatusLimitSeconds = 120;
 
 @implementation ADTInternalState
 
@@ -57,8 +52,10 @@ static const int kAdServicesdRetriesCount = 1;
 - (BOOL)isInDelayedStart { return self.delayStart; }
 - (BOOL)isNotInDelayedStart { return !self.delayStart; }
 - (BOOL)itHasToUpdatePackages { return self.updatePackages; }
+- (BOOL)itHasToUpdatePackagesAttData { return self.updatePackagesAttData; }
 - (BOOL)isFirstLaunch { return self.firstLaunch; }
 - (BOOL)hasSessionResponseNotBeenProcessed { return !self.sessionResponseProcessed; }
+- (BOOL)isWaitingForAttStatus { return self.waitingForAttStatus;}
 
 @end
 
@@ -82,10 +79,10 @@ static const int kAdServicesdRetriesCount = 1;
 @property (nonatomic, strong) ADTPackageHandler *packageHandler;
 @property (nonatomic, strong) ADTAttributionHandler *attributionHandler;
 @property (nonatomic, strong) ADTSdkClickHandler *sdkClickHandler;
+@property (nonatomic, strong) ADTPurchaseVerificationHandler *purchaseVerificationHandler;
 @property (nonatomic, strong) ADTActivityState *activityState;
 @property (nonatomic, strong) ADTTimerCycle *foregroundTimer;
 @property (nonatomic, strong) ADTTimerOnce *backgroundTimer;
-@property (nonatomic, assign) NSInteger iAdRetriesLeft;
 @property (nonatomic, assign) NSInteger adServicesRetriesLeft;
 @property (nonatomic, strong) ADTInternalState *internalState;
 @property (nonatomic, strong) ADTPackageParams *packageParams;
@@ -101,24 +98,13 @@ static const int kAdServicesdRetriesCount = 1;
 @property (nonatomic, copy) NSString* basePath;
 @property (nonatomic, copy) NSString* gdprPath;
 @property (nonatomic, copy) NSString* subscriptionPath;
+@property (nonatomic, copy) NSString* purchaseVerificationPath;
+@property (nonatomic, copy) AdtraceResolvedDeeplinkBlock cachedDeeplinkResolutionCallback;
 
 - (void)prepareDeeplinkI:(ADTActivityHandler *_Nullable)selfI
             responseData:(ADTAttributionResponseData *_Nullable)attributionResponseData NS_EXTENSION_UNAVAILABLE_IOS("");
 
 @end
-
-// copy from ADClientError
-typedef NS_ENUM(NSInteger, AdtADClientError) {
-    AdtADClientErrorUnknown = 0,
-    AdtADClientErrorTrackingRestrictedOrDenied = 1,
-    AdtADClientErrorMissingData = 2,
-    AdtADClientErrorCorruptResponse = 3,
-    AdtADClientErrorRequestClientError = 4,
-    AdtADClientErrorRequestServerError = 5,
-    AdtADClientErrorRequestNetworkError = 6,
-    AdtADClientErrorUnsupportedPlatform = 7,
-    AdtCustomErrorTimeout = 100,
-};
 
 #pragma mark -
 @implementation ADTActivityHandler
@@ -126,9 +112,9 @@ typedef NS_ENUM(NSInteger, AdtADClientError) {
 @synthesize attribution = _attribution;
 @synthesize trackingStatusManager = _trackingStatusManager;
 
-- (id)initWithConfig:(ADTConfig *)adtraceConfig
-      savedPreLaunch:(ADTSavedPreLaunch *)savedPreLaunch
-{
+- (id)initWithConfig:(ADTConfig *_Nullable)adtraceConfig
+      savedPreLaunch:(ADTSavedPreLaunch * _Nullable)savedPreLaunch
+      deeplinkResolutionCallback:(AdtraceResolvedDeeplinkBlock _Nullable)deepLinkResolutionCallback {
     self = [super init];
     if (self == nil) return nil;
 
@@ -141,21 +127,25 @@ typedef NS_ENUM(NSInteger, AdtADClientError) {
         [ADTAdtraceFactory.logger error:@"AdtraceConfig not initialized correctly"];
         return nil;
     }
-    
+
     // check if ASA and IDFA tracking were switched off and warn just in case
     if (adtraceConfig.allowIdfaReading == NO) {
         [ADTAdtraceFactory.logger warn:@"IDFA reading has been switched off"];
-    }
-    if (adtraceConfig.allowiAdInfoReading == NO) {
-        [ADTAdtraceFactory.logger warn:@"iAd info reading has been switched off"];
     }
     if (adtraceConfig.allowAdServicesInfoReading == NO) {
         [ADTAdtraceFactory.logger warn:@"AdServices info reading has been switched off"];
     }
 
+    // check if ATT consent delay has been configured
+    if (adtraceConfig.attConsentWaitingInterval > 0) {
+        [ADTAdtraceFactory.logger info:@"ATT consent waiting interval has been configured to %d",
+         adtraceConfig.attConsentWaitingInterval];
+    }
+
     self.adtraceConfig = adtraceConfig;
     self.savedPreLaunch = savedPreLaunch;
     self.adtraceDelegate = adtraceConfig.delegate;
+    self.cachedDeeplinkResolutionCallback = deepLinkResolutionCallback;
 
     // init logger to be available everywhere
     self.logger = ADTAdtraceFactory.logger;
@@ -171,12 +161,14 @@ typedef NS_ENUM(NSInteger, AdtADClientError) {
     // read files to have sync values available
     [self readAttribution];
     [self readActivityState];
-    
+
     // register SKAdNetwork attribution if we haven't already
-    if ([ADTUserDefaults getSkadRegisterCallTimestamp] == nil) {
-        [self registerForSKAdNetworkAttribution];
-    } else {
-        [ADTAdtraceFactory.logger debug:@"Call to SKAdNetwork's registerAppForAdNetworkAttribution method already made for this install"];
+    if (self.adtraceConfig.isSKAdNetworkHandlingActive) {
+        [[ADTSKAdNetwork getInstance] adtRegisterWithCompletionHandler:^(NSError * _Nonnull error) {
+            if (error) {
+                // handle error
+            }
+        }];
     }
 
     self.internalState = [[ADTInternalState alloc] init];
@@ -203,8 +195,10 @@ typedef NS_ENUM(NSInteger, AdtADClientError) {
     // does not need to update packages by default
     if (self.activityState == nil) {
         self.internalState.updatePackages = NO;
+        self.internalState.updatePackagesAttData = NO;
     } else {
         self.internalState.updatePackages = self.activityState.updatePackages;
+        self.internalState.updatePackagesAttData = self.activityState.updatePackagesAttData;
     }
     if (self.activityState == nil) {
         self.internalState.firstLaunch = YES;
@@ -214,7 +208,6 @@ typedef NS_ENUM(NSInteger, AdtADClientError) {
     // does not have the session response by default
     self.internalState.sessionResponseProcessed = NO;
 
-    self.iAdRetriesLeft = kiAdRetriesCount;
     self.adServicesRetriesLeft = kAdServicesdRetriesCount;
 
     self.trackingStatusManager = [[ADTTrackingStatusManager alloc] initWithActivityHandler:self];
@@ -245,15 +238,18 @@ typedef NS_ENUM(NSInteger, AdtADClientError) {
     [ADTUtil launchInQueue:self.internalQueue
                 selfInject:self
                      block:^(ADTActivityHandler * selfI) {
-                         [selfI delayStartI:selfI];
 
-                         [selfI stopBackgroundTimerI:selfI];
+                        [selfI delayStartI:selfI];
 
-                         [selfI startForegroundTimerI:selfI];
+                        [selfI activateWaitingForAttStatusI:selfI];
 
-                         [selfI.logger verbose:@"Subsession start"];
+                        [selfI stopBackgroundTimerI:selfI];
 
-                         [selfI startI:selfI];
+                        [selfI startForegroundTimerI:selfI];
+
+                        [selfI.logger verbose:@"Subsession start"];
+
+                        [selfI startI:selfI];
                      }];
 }
 
@@ -263,13 +259,16 @@ typedef NS_ENUM(NSInteger, AdtADClientError) {
     [ADTUtil launchInQueue:self.internalQueue
                 selfInject:self
                      block:^(ADTActivityHandler * selfI) {
-                         [selfI stopForegroundTimerI:selfI];
 
-                         [selfI startBackgroundTimerI:selfI];
+                        [selfI pauseWaitingForAttStatusI:selfI];
 
-                         [selfI.logger verbose:@"Subsession end"];
+                        [selfI stopForegroundTimerI:selfI];
 
-                         [selfI endI:selfI];
+                        [selfI startBackgroundTimerI:selfI];
+
+                        [selfI.logger verbose:@"Subsession end"];
+
+                        [selfI endI:selfI];
                      }];
 }
 
@@ -378,6 +377,17 @@ typedef NS_ENUM(NSInteger, AdtADClientError) {
                      }];
 }
 
+- (void)processDeeplink:(NSURL * _Nullable)deeplink
+              clickTime:(NSDate * _Nullable)clickTime
+      completionHandler:(AdtraceResolvedDeeplinkBlock _Nullable)completionHandler {
+    [ADTUtil launchInQueue:self.internalQueue
+                selfInject:self
+                     block:^(ADTActivityHandler * selfI) {
+        selfI.cachedDeeplinkResolutionCallback = completionHandler;
+        [selfI appWillOpenUrlI:selfI url:deeplink clickTime:clickTime];
+    }];
+}
+
 - (void)setDeviceToken:(NSData *)deviceToken {
     [ADTUtil launchInQueue:self.internalQueue
                 selfInject:self
@@ -435,154 +445,6 @@ typedef NS_ENUM(NSInteger, AdtADClientError) {
     }
 }
 
-- (void)setAttributionDetails:(NSDictionary *)attributionDetails
-                        error:(NSError *)error
-{
-    if (![ADTUtil isNull:error]) {
-        [self.logger warn:@"Unable to read iAd details"];
-
-        if (self.iAdRetriesLeft  < 0) {
-            [self.logger warn:@"Number of retries to get iAd information surpassed"];
-            return;
-        }
-
-        switch (error.code) {
-            // if first request was unsuccessful and ended up with one of the following error codes:
-            // apply following retry logic:
-            //      - 1st retry after 5 seconds
-            //      - 2nd retry after 2 seconds
-            //      - 3rd retry after 2 seconds
-            case AdtADClientErrorUnknown:
-            case AdtADClientErrorMissingData:
-            case AdtADClientErrorCorruptResponse:
-            case AdtADClientErrorRequestClientError:
-            case AdtADClientErrorRequestServerError:
-            case AdtADClientErrorRequestNetworkError:
-            case AdtCustomErrorTimeout: {
-                
-                [self saveiAdErrorCode:error.code];
-                
-                int64_t iAdRetryDelay = 0;
-                switch (self.iAdRetriesLeft) {
-                    case 2:
-                        iAdRetryDelay = 5 * NSEC_PER_SEC;
-                        break;
-                    default:
-                        iAdRetryDelay = 2 * NSEC_PER_SEC;
-                        break;
-                }
-                self.iAdRetriesLeft = self.iAdRetriesLeft - 1;
-                dispatch_time_t retryTime = dispatch_time(DISPATCH_TIME_NOW, iAdRetryDelay);
-                dispatch_after(retryTime, dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
-                    [self checkForiAdI:self];
-                });
-                return;
-            }
-            case AdtADClientErrorTrackingRestrictedOrDenied:
-            case AdtADClientErrorUnsupportedPlatform:
-                return;
-            default:
-                return;
-        }
-    }
-
-    // check if it's a valid attribution details
-    if (![ADTUtil checkAttributionDetails:attributionDetails]) {
-        return;
-    }
-
-    // send immediately if there is no previous attribution details
-    if (self.activityState == nil ||
-        self.activityState.attributionDetails == nil)
-    {
-        // send immediately
-        [self sendIad3ClickPackage:self attributionDetails:attributionDetails];
-        // save in the background queue
-        [ADTUtil launchInQueue:self.internalQueue
-                    selfInject:self
-                         block:^(ADTActivityHandler * selfI) {
-                             [selfI saveAttributionDetailsI:selfI
-                                         attributionDetails:attributionDetails];
-
-                         }];
-        return;
-    }
-
-    // check if new updates previous written one
-    [ADTUtil launchInQueue:self.internalQueue
-                selfInject:self
-                     block:^(ADTActivityHandler * selfI) {
-                         if ([attributionDetails isEqualToDictionary:selfI.activityState.attributionDetails]) {
-                             return;
-                         }
-
-                         [selfI sendIad3ClickPackage:selfI attributionDetails:attributionDetails];
-
-                         // save new iAd details
-                         [selfI saveAttributionDetailsI:selfI
-                                     attributionDetails:attributionDetails];
-                     }];
-}
-
-- (void)saveiAdErrorCode:(NSInteger)code {
-    NSString *codeKey;
-    switch (code) {
-        case AdtADClientErrorUnknown:
-            codeKey = @"AdtADClientErrorUnknown";
-            break;
-        case AdtADClientErrorMissingData:
-            codeKey = @"AdtADClientErrorMissingData";
-            break;
-        case AdtADClientErrorCorruptResponse:
-            codeKey = @"AdtADClientErrorCorruptResponse";
-            break;
-        case AdtCustomErrorTimeout:
-            codeKey = @"AdtCustomErrorTimeout";
-            break;
-        default:
-            codeKey = @"";
-            break;
-    }
-    
-    if (![codeKey isEqualToString:@""]) {
-        [ADTUserDefaults saveiAdErrorKey:codeKey];
-    }
-}
-
-- (void)sendIad3ClickPackage:(ADTActivityHandler *)selfI
-          attributionDetails:(NSDictionary *)attributionDetails
- {
-     if (![selfI isEnabledI:selfI]) {
-         return;
-     }
-
-     if (ADTAdtraceFactory.iAdFrameworkEnabled == NO) {
-         [self.logger verbose:@"Sending iAd details to server suppressed."];
-         return;
-     }
-
-     double now = [NSDate.date timeIntervalSince1970];
-     if (selfI.activityState != nil) {
-         [ADTUtil launchSynchronisedWithObject:[ADTActivityState class]
-                                         block:^{
-             double lastInterval = now - selfI.activityState.lastActivity;
-             selfI.activityState.lastInterval = lastInterval;
-         }];
-     }
-     ADTPackageBuilder *clickBuilder = [[ADTPackageBuilder alloc]
-                                        initWithPackageParams:selfI.packageParams
-                                        activityState:selfI.activityState
-                                        config:selfI.adtraceConfig
-                                        sessionParameters:self.sessionParameters
-                                        trackingStatusManager:self.trackingStatusManager
-                                        createdAt:now];
-
-     clickBuilder.attributionDetails = attributionDetails;
-
-     ADTActivityPackage *clickPackage = [clickBuilder buildClickPackage:ADTiAdPackageKey];
-     [selfI.sdkClickHandler sendSdkClick:clickPackage];
-}
-
 - (void)sendAdServicesClickPackage:(ADTActivityHandler *)selfI
                              token:(NSString *)token
                    errorCodeNumber:(NSNumber *)errorCodeNumber
@@ -611,23 +473,13 @@ typedef NS_ENUM(NSInteger, AdtADClientError) {
                                        sessionParameters:self.sessionParameters
                                        trackingStatusManager:self.trackingStatusManager
                                        createdAt:now];
+     clickBuilder.internalState = selfI.internalState;
 
      ADTActivityPackage *clickPackage =
         [clickBuilder buildClickPackage:ADTAdServicesPackageKey
                                   token:token
                         errorCodeNumber:errorCodeNumber];
      [selfI.sdkClickHandler sendSdkClick:clickPackage];
-}
-
-- (void)saveAttributionDetailsI:(ADTActivityHandler *)selfI
-             attributionDetails:(NSDictionary *)attributionDetails
-{
-    // save new iAd details
-    [ADTUtil launchSynchronisedWithObject:[ADTActivityState class]
-                                    block:^{
-        selfI.activityState.attributionDetails = attributionDetails;
-    }];
-    [selfI writeAttributionI:selfI];
 }
 
 - (void)setAskingAttribution:(BOOL)askingAttribution {
@@ -661,6 +513,14 @@ typedef NS_ENUM(NSInteger, AdtADClientError) {
                      block:^(ADTActivityHandler * selfI) {
                          [selfI sendFirstPackagesI:selfI];
                      }];
+}
+
+- (void)resumeActivityFromWaitingForAttStatus {
+    [ADTUtil launchInQueue:self.internalQueue
+                selfInject:self
+                     block:^(ADTActivityHandler * selfI) {
+        [selfI resumeActivityFromWaitingForAttStatusI:selfI];
+    }];
 }
 
 - (void)addSessionCallbackParameter:(NSString *)key
@@ -776,6 +636,23 @@ typedef NS_ENUM(NSInteger, AdtADClientError) {
     }];
 }
 
+- (void)checkForNewAttStatus {
+    [ADTUtil launchInQueue:self.internalQueue
+                selfInject:self
+                     block:^(ADTActivityHandler * selfI) {
+        [selfI checkForNewAttStatusI:selfI];
+    }];
+}
+
+- (void)verifyPurchase:(nonnull ADTPurchase *)purchase
+     completionHandler:(void (^_Nonnull)(ADTPurchaseVerificationResult * _Nonnull verificationResult))completionHandler {
+    [ADTUtil launchInQueue:self.internalQueue
+                selfInject:self
+                     block:^(ADTActivityHandler * selfI) {
+        [selfI verifyPurchaseI:selfI purchase:purchase completionHandler:completionHandler];
+    }];
+}
+
 - (void)writeActivityState {
     [ADTUtil launchInQueue:self.internalQueue
                 selfInject:self
@@ -801,6 +678,7 @@ typedef NS_ENUM(NSInteger, AdtADClientError) {
                                                 sessionParameters:selfI.sessionParameters
                                                 trackingStatusManager:self.trackingStatusManager
                                                 createdAt:now];
+    infoBuilder.internalState = selfI.internalState;
 
     ADTActivityPackage *infoPackage = [infoBuilder buildInfoPackage:@"att"];
     [selfI.packageHandler addPackage:infoPackage];
@@ -822,6 +700,10 @@ typedef NS_ENUM(NSInteger, AdtADClientError) {
 
 - (NSString *)getSubscriptionPath {
     return _subscriptionPath;
+}
+
+- (NSString *)getPurchaseVerificationPath {
+    return _purchaseVerificationPath;
 }
 
 - (void)teardown
@@ -846,6 +728,9 @@ typedef NS_ENUM(NSInteger, AdtADClientError) {
     if (self.sdkClickHandler != nil) {
         [self.sdkClickHandler teardown];
     }
+    if (self.purchaseVerificationHandler != nil) {
+        [self.purchaseVerificationHandler teardown];
+    }
     [self teardownActivityStateS];
     [self teardownAttributionS];
     [self teardownAllSessionParametersS];
@@ -856,6 +741,7 @@ typedef NS_ENUM(NSInteger, AdtADClientError) {
     self.packageHandler = nil;
     self.attributionHandler = nil;
     self.sdkClickHandler = nil;
+    self.purchaseVerificationHandler = nil;
     self.foregroundTimer = nil;
     self.backgroundTimer = nil;
     self.adtraceDelegate = nil;
@@ -866,13 +752,11 @@ typedef NS_ENUM(NSInteger, AdtADClientError) {
     self.logger = nil;
 }
 
-+ (void)deleteState
-{
++ (void)deleteState {
     [ADTActivityHandler deleteActivityState];
     [ADTActivityHandler deleteAttribution];
     [ADTActivityHandler deleteSessionCallbackParameter];
     [ADTActivityHandler deleteSessionPartnerParameter];
-
     [ADTUserDefaults clearAdtraceStuff];
 }
 
@@ -965,6 +849,9 @@ preLaunchActions:(ADTSavedPreLaunch*)preLaunchActions
                                                         name:kDelayStartTimerName];
     }
 
+    // Update Waiting for ATT status state - should be done before the package handler is created.
+    selfI.internalState.waitingForAttStatus = [selfI.trackingStatusManager shouldWaitForAttStatus];
+
     [ADTUtil updateUrlSessionConfiguration:selfI.adtraceConfig];
 
     ADTUrlStrategy *packageHandlerUrlStrategy =
@@ -982,8 +869,7 @@ preLaunchActions:(ADTSavedPreLaunch*)preLaunchActions
     // update session parameters in package queue
     if ([selfI itHasToUpdatePackagesI:selfI]) {
         [selfI updatePackagesI:selfI];
-     }
-
+    }
 
     ADTUrlStrategy *attributionHandlerUrlStrategy =
         [[ADTUrlStrategy alloc]
@@ -1003,11 +889,35 @@ preLaunchActions:(ADTSavedPreLaunch*)preLaunchActions
              extraPath:preLaunchActions.extraPath];
 
     selfI.sdkClickHandler = [[ADTSdkClickHandler alloc]
-                                initWithActivityHandler:selfI
-                                startsSending:[selfI toSendI:selfI sdkClickHandlerOnly:YES]
-                                userAgent:selfI.adtraceConfig.userAgent
-                                urlStrategy:sdkClickHandlerUrlStrategy];
+                             initWithActivityHandler:selfI
+                             startsSending:[selfI toSendI:selfI sdkClickHandlerOnly:YES]
+                             userAgent:selfI.adtraceConfig.userAgent
+                             urlStrategy:sdkClickHandlerUrlStrategy];
+    selfI.purchaseVerificationHandler = [[ADTPurchaseVerificationHandler alloc]
+                                         initWithActivityHandler:selfI
+                                         startsSending:[selfI toSendI:selfI sdkClickHandlerOnly:YES]
+                                         userAgent:selfI.adtraceConfig.userAgent
+                                         urlStrategy:sdkClickHandlerUrlStrategy];
 
+    // Update ATT status and IDFA, if necessary, in packages and sdk_click/verify packages queues.
+    // This should be done after packageHandler, sdkClickHandler and purchaseVerificationHandler are created.
+    if (selfI.internalState.waitingForAttStatus) {
+        selfI.internalState.updatePackagesAttData = YES;
+        if (selfI.activityState != nil) {
+            [ADTUtil launchSynchronisedWithObject:[ADTActivityState class]
+                                            block:^{
+                selfI.activityState.updatePackagesAttData = YES;
+            }];
+            [selfI writeActivityStateI:selfI];
+        }
+    } else {
+        // update ATT Data in package queue
+        if ([selfI itHasToUpdatePackagesAttDataI:selfI]) {
+            [selfI updatePackagesAttStatusAndIdfaI:selfI];
+        }
+    }
+
+    [selfI checkLinkMeI:selfI];
     [selfI.trackingStatusManager checkForNewAttStatus];
 
     [selfI preLaunchActionsI:selfI
@@ -1034,6 +944,8 @@ preLaunchActions:(ADTSavedPreLaunch*)preLaunchActions
     }
 
     [selfI updateHandlersStatusAndSendI:selfI];
+
+    [selfI processCoppaComplianceI:selfI];
 
     [selfI processSessionI:selfI];
 
@@ -1064,6 +976,8 @@ preLaunchActions:(ADTSavedPreLaunch*)preLaunchActions
             if ([ADTUserDefaults getGdprForgetMe]) {
                 [selfI setGdprForgetMeI:selfI];
             } else {
+                [selfI processCoppaComplianceI:selfI];
+
                 // check if disable third party sharing request came, then send it first
                 if ([ADTUserDefaults getDisableThirdPartySharing]) {
                     [selfI disableThirdPartySharingI:selfI];
@@ -1099,11 +1013,9 @@ preLaunchActions:(ADTSavedPreLaunch*)preLaunchActions
             [selfI.activityState resetSessionAttributes:now];
             selfI.activityState.enabled = [selfI.internalState isEnabled];
             selfI.activityState.updatePackages = [selfI.internalState itHasToUpdatePackages];
+            selfI.activityState.updatePackagesAttData = [selfI.internalState itHasToUpdatePackagesAttData];
         }];
 
-        if (selfI.adtraceConfig.allowiAdInfoReading == YES) {
-            [selfI checkForiAdI:selfI];
-        }
         if (selfI.adtraceConfig.allowAdServicesInfoReading == YES) {
             [selfI checkForAdServicesAttributionI:selfI];
         }
@@ -1113,6 +1025,28 @@ preLaunchActions:(ADTSavedPreLaunch*)preLaunchActions
         [ADTUserDefaults removeDisableThirdPartySharing];
 
         return;
+    } else {
+        // these checks should run after SDK initialization after the first one
+        if ([ADTUserDefaults getDisableThirdPartySharing]) {
+            [selfI disableThirdPartySharingI:selfI];
+        }
+        if (selfI.savedPreLaunch.preLaunchAdtraceThirdPartySharingArray != nil) {
+            for (ADTThirdPartySharing *thirdPartySharing
+                 in selfI.savedPreLaunch.preLaunchAdtraceThirdPartySharingArray)
+            {
+                [selfI trackThirdPartySharingI:selfI
+                             thirdPartySharing:thirdPartySharing];
+            }
+
+            selfI.savedPreLaunch.preLaunchAdtraceThirdPartySharingArray = nil;
+        }
+        if (selfI.savedPreLaunch.lastMeasurementConsentTracked != nil) {
+            [selfI
+                trackMeasurementConsentI:selfI
+                enabled:[selfI.savedPreLaunch.lastMeasurementConsentTracked boolValue]];
+
+            selfI.savedPreLaunch.lastMeasurementConsentTracked = nil;
+        }
     }
 
     double lastInterval = now - selfI.activityState.lastActivity;
@@ -1180,6 +1114,7 @@ preLaunchActions:(ADTSavedPreLaunch*)preLaunchActions
                                          sessionParameters:selfI.sessionParameters
                                          trackingStatusManager:self.trackingStatusManager
                                          createdAt:now];
+    sessionBuilder.internalState = selfI.internalState;
     ADTActivityPackage *sessionPackage = [sessionBuilder buildSessionPackage:[selfI.internalState isInDelayedStart]];
     [selfI.packageHandler addPackage:sessionPackage];
     [selfI.packageHandler sendFirstPackage];
@@ -1255,6 +1190,7 @@ preLaunchActions:(ADTSavedPreLaunch*)preLaunchActions
                                        sessionParameters:selfI.sessionParameters
                                        trackingStatusManager:self.trackingStatusManager
                                        createdAt:now];
+    eventBuilder.internalState = selfI.internalState;
     ADTActivityPackage *eventPackage = [eventBuilder buildEventPackage:event
                                                              isInDelay:[selfI.internalState isInDelayedStart]];
     [selfI.packageHandler addPackage:eventPackage];
@@ -1296,7 +1232,7 @@ preLaunchActions:(ADTSavedPreLaunch*)preLaunchActions
                                                    sessionParameters:selfI.sessionParameters
                                                    trackingStatusManager:self.trackingStatusManager
                                                    createdAt:now];
-
+    adRevenueBuilder.internalState = selfI.internalState;
     ADTActivityPackage *adRevenuePackage = [adRevenueBuilder buildAdRevenuePackage:source payload:payload];
     [selfI.packageHandler addPackage:adRevenuePackage];
     if (selfI.adtraceConfig.eventBufferingEnabled) {
@@ -1328,7 +1264,7 @@ preLaunchActions:(ADTSavedPreLaunch*)preLaunchActions
                                                     sessionParameters:selfI.sessionParameters
                                                     trackingStatusManager:self.trackingStatusManager
                                                     createdAt:now];
-
+    subscriptionBuilder.internalState = selfI.internalState;
     ADTActivityPackage *subscriptionPackage = [subscriptionBuilder buildSubscriptionPackage:subscription
                                                                                   isInDelay:[selfI.internalState isInDelayedStart]];
     [selfI.packageHandler addPackage:subscriptionPackage];
@@ -1356,6 +1292,10 @@ preLaunchActions:(ADTSavedPreLaunch*)preLaunchActions
     if (selfI.activityState.isThirdPartySharingDisabled) {
         return;
     }
+    if (selfI.adtraceConfig.coppaCompliantEnabled) {
+        [selfI.logger warn:@"Call to disable third party sharing API ignored, already done when COPPA enabled"];
+        return;
+    }
 
     [ADTUtil launchSynchronisedWithObject:[ADTActivityState class]
                                     block:^{
@@ -1373,7 +1313,7 @@ preLaunchActions:(ADTSavedPreLaunch*)preLaunchActions
                                             sessionParameters:selfI.sessionParameters
                                             trackingStatusManager:self.trackingStatusManager
                                             createdAt:now];
-
+    dtpsBuilder.internalState = selfI.internalState;
     ADTActivityPackage *dtpsPackage = [dtpsBuilder buildDisableThirdPartySharingPackage];
 
     [selfI.packageHandler addPackage:dtpsPackage];
@@ -1399,6 +1339,10 @@ preLaunchActions:(ADTSavedPreLaunch*)preLaunchActions
     if (selfI.activityState.isGdprForgotten) {
         return NO;
     }
+    if (selfI.adtraceConfig.coppaCompliantEnabled) {
+        [selfI.logger warn:@"Calling third party sharing API not allowed when COPPA enabled"];
+        return NO;
+    }
 
     double now = [NSDate.date timeIntervalSince1970];
 
@@ -1410,7 +1354,7 @@ preLaunchActions:(ADTSavedPreLaunch*)preLaunchActions
                                             sessionParameters:selfI.sessionParameters
                                             trackingStatusManager:self.trackingStatusManager
                                             createdAt:now];
-
+    tpsBuilder.internalState = selfI.internalState;
     ADTActivityPackage *dtpsPackage = [tpsBuilder buildThirdPartySharingPackage:thirdPartySharing];
 
     [selfI.packageHandler addPackage:dtpsPackage];
@@ -1447,7 +1391,7 @@ preLaunchActions:(ADTSavedPreLaunch*)preLaunchActions
                                             sessionParameters:selfI.sessionParameters
                                             trackingStatusManager:self.trackingStatusManager
                                             createdAt:now];
-
+    tpsBuilder.internalState = selfI.internalState;
     ADTActivityPackage *mcPackage = [tpsBuilder buildMeasurementConsentPackage:enabled];
 
     [selfI.packageHandler addPackage:mcPackage];
@@ -1486,7 +1430,7 @@ preLaunchActions:(ADTSavedPreLaunch*)preLaunchActions
                                                                       sessionParameters:selfI.sessionParameters
                                                                   trackingStatusManager:self.trackingStatusManager
                                                                               createdAt:now];
-
+    adRevenueBuilder.internalState = selfI.internalState;
     ADTActivityPackage *adRevenuePackage = [adRevenueBuilder buildAdRevenuePackage:adRevenue
                                                                          isInDelay:[selfI.internalState isInDelayedStart]];
     [selfI.packageHandler addPackage:adRevenuePackage];
@@ -1495,6 +1439,66 @@ preLaunchActions:(ADTSavedPreLaunch*)preLaunchActions
     } else {
         [selfI.packageHandler sendFirstPackage];
     }
+}
+
+- (void)checkForNewAttStatusI:(ADTActivityHandler *)selfI {
+    if (!selfI.activityState) {
+        return;
+    }
+    if (![selfI isEnabledI:selfI]) {
+        return;
+    }
+    if (selfI.activityState.isGdprForgotten) {
+        return;
+    }
+    if (!selfI.trackingStatusManager) {
+        return;
+    }
+
+    [selfI.trackingStatusManager checkForNewAttStatus];
+}
+
+- (void)verifyPurchaseI:(ADTActivityHandler *)selfI
+               purchase:(nonnull ADTPurchase *)purchase
+      completionHandler:(void (^_Nonnull)(ADTPurchaseVerificationResult * _Nonnull verificationResult))completionHandler {
+    if ([selfI.adtraceConfig.urlStrategy isEqualToString:ADTDataResidencyIR]) {
+        [selfI.logger warn:@"Purchase verification not available for data residency users right now"];
+        return;
+    }
+    if (![selfI isEnabledI:selfI]) {
+        [selfI.logger warn:@"Purchase verification aborted because SDK is disabled"];
+        return;
+    }
+    if ([ADTUtil isNull:completionHandler]) {
+        [selfI.logger warn:@"Purchase verification aborted because completion handler is null"];
+        return;
+    }
+    if ([ADTUtil isNull:purchase]) {
+        [selfI.logger warn:@"Purchase verification aborted because purchase instance is null"];
+        ADTPurchaseVerificationResult *verificationResult = [[ADTPurchaseVerificationResult alloc] init];
+        verificationResult.verificationStatus = @"not_verified";
+        verificationResult.code = 101;
+        verificationResult.message = @"Purchase verification aborted because purchase instance is null";
+        completionHandler(verificationResult);
+        return;
+    }
+
+    double now = [NSDate.date timeIntervalSince1970];
+    [ADTUtil launchSynchronisedWithObject:[ADTActivityState class]
+                                    block:^{
+        double lastInterval = now - selfI.activityState.lastActivity;
+        selfI.activityState.lastInterval = lastInterval;
+    }];
+    ADTPackageBuilder *purchaseVerificationBuilder = [[ADTPackageBuilder alloc] initWithPackageParams:selfI.packageParams
+                                                                                        activityState:selfI.activityState
+                                                                                               config:selfI.adtraceConfig
+                                                                                    sessionParameters:selfI.sessionParameters
+                                                                                trackingStatusManager:self.trackingStatusManager
+                                                                                            createdAt:now];
+    purchaseVerificationBuilder.internalState = selfI.internalState;
+    ADTActivityPackage *purchaseVerificationPackage = [purchaseVerificationBuilder buildPurchaseVerificationPackage:purchase];
+    purchaseVerificationPackage.purchaseVerificationCallback = completionHandler;
+    [selfI.purchaseVerificationHandler sendPurchaseVerificationPackage:purchaseVerificationPackage];
 }
 
 - (void)launchEventResponseTasksI:(ADTActivityHandler *)selfI
@@ -1581,6 +1585,18 @@ preLaunchActions:(ADTSavedPreLaunch*)preLaunchActions
         [ADTUtil launchInMainThread:selfI.adtraceDelegate
                            selector:@selector(adtraceAttributionChanged:)
                          withObject:sdkClickResponseData.attribution];
+    }
+
+    // check if we got resolved deep link in the response
+    if (sdkClickResponseData.resolvedDeeplink != nil) {
+        if (selfI.cachedDeeplinkResolutionCallback != nil) {
+            NSString *resolvedDeepLink = sdkClickResponseData.resolvedDeeplink;
+            AdtraceResolvedDeeplinkBlock callback = selfI.cachedDeeplinkResolutionCallback;
+            [ADTUtil launchInMainThread:^{
+                callback(resolvedDeepLink);
+            }];
+            selfI.cachedDeeplinkResolutionCallback = nil;
+        }
     }
 }
 
@@ -1709,21 +1725,10 @@ preLaunchActions:(ADTSavedPreLaunch*)preLaunchActions
 
     // Check if upon enabling install has been tracked.
     if (enabled) {
-        if (![ADTUserDefaults getInstallTracked]) {
-            double now = [NSDate.date timeIntervalSince1970];
-            [self trackNewSessionI:now withActivityHandler:selfI];
-        }
-        NSData *deviceToken = [ADTUserDefaults getPushTokenData];
-        if (deviceToken != nil && ![selfI.activityState.deviceToken isEqualToString:[ADTUtil convertDeviceToken:deviceToken]]) {
-            [self setDeviceToken:deviceToken];
-        }
-        NSString *pushToken = [ADTUserDefaults getPushTokenString];
-        if (pushToken != nil && ![selfI.activityState.deviceToken isEqualToString:pushToken]) {
-            [self setPushToken:pushToken];
-        }
         if ([ADTUserDefaults getGdprForgetMe]) {
             [selfI setGdprForgetMe];
         } else {
+            [selfI processCoppaComplianceI:selfI];
             if ([ADTUserDefaults getDisableThirdPartySharing]) {
                 [selfI disableThirdPartySharing];
             }
@@ -1731,7 +1736,7 @@ preLaunchActions:(ADTSavedPreLaunch*)preLaunchActions
                 for (ADTThirdPartySharing *thirdPartySharing
                      in selfI.savedPreLaunch.preLaunchAdtraceThirdPartySharingArray)
                 {
-                    [selfI trackThirdPartySharing:thirdPartySharing];
+                    [selfI trackThirdPartySharingI:selfI thirdPartySharing:thirdPartySharing];
                 }
 
                 selfI.savedPreLaunch.preLaunchAdtraceThirdPartySharingArray = nil;
@@ -1744,9 +1749,20 @@ preLaunchActions:(ADTSavedPreLaunch*)preLaunchActions
                 selfI.savedPreLaunch.lastMeasurementConsentTracked = nil;
             }
 
+            [selfI checkLinkMeI:selfI];
         }
-        if (selfI.adtraceConfig.allowiAdInfoReading == YES) {
-            [selfI checkForiAdI:selfI];
+
+        if (![ADTUserDefaults getInstallTracked]) {
+            double now = [NSDate.date timeIntervalSince1970];
+            [self trackNewSessionI:now withActivityHandler:selfI];
+        }
+        NSData *deviceToken = [ADTUserDefaults getPushTokenData];
+        if (deviceToken != nil && ![selfI.activityState.deviceToken isEqualToString:[ADTUtil convertDeviceToken:deviceToken]]) {
+            [self setDeviceToken:deviceToken];
+        }
+        NSString *pushToken = [ADTUserDefaults getPushTokenString];
+        if (pushToken != nil && ![selfI.activityState.deviceToken isEqualToString:pushToken]) {
+            [self setPushToken:pushToken];
         }
         if (selfI.adtraceConfig.allowAdServicesInfoReading == YES) {
             [selfI checkForAdServicesAttributionI:selfI];
@@ -1758,10 +1774,6 @@ preLaunchActions:(ADTSavedPreLaunch*)preLaunchActions
           pausingMessage:@"Pausing handlers due to SDK being disabled"
     remainsPausedMessage:@"Handlers remain paused"
         unPausingMessage:@"Resuming handlers due to SDK being enabled"];
-}
-
-- (void)checkForiAdI:(ADTActivityHandler *)selfI {
-    [ADTUtil checkForiAd:selfI queue:selfI.internalQueue];
 }
 
 - (BOOL)shouldFetchAdServicesI:(ADTActivityHandler *)selfI {
@@ -1902,7 +1914,7 @@ remainsPausedMessage:(NSString *)remainsPausedMessage
                                                 sessionParameters:selfI.sessionParameters
                                                 trackingStatusManager:self.trackingStatusManager
                                                 createdAt:now];
-
+    clickBuilder.internalState = selfI.internalState;
     clickBuilder.deeplinkParameters = [adtraceDeepLinks copy];
     clickBuilder.attribution = deeplinkAttribution;
     clickBuilder.clickTime = clickTime;
@@ -2006,7 +2018,7 @@ remainsPausedMessage:(NSString *)remainsPausedMessage
                                                 sessionParameters:selfI.sessionParameters
                                                 trackingStatusManager:self.trackingStatusManager
                                                 createdAt:now];
-
+    infoBuilder.internalState = selfI.internalState;
     ADTActivityPackage *infoPackage = [infoBuilder buildInfoPackage:@"push"];
 
     [selfI.packageHandler addPackage:infoPackage];
@@ -2055,7 +2067,7 @@ remainsPausedMessage:(NSString *)remainsPausedMessage
                                                 sessionParameters:selfI.sessionParameters
                                                 trackingStatusManager:self.trackingStatusManager
                                                 createdAt:now];
-
+    infoBuilder.internalState = selfI.internalState;
     ADTActivityPackage *infoPackage = [infoBuilder buildInfoPackage:@"push"];
     [selfI.packageHandler addPackage:infoPackage];
 
@@ -2096,7 +2108,7 @@ remainsPausedMessage:(NSString *)remainsPausedMessage
                                             sessionParameters:selfI.sessionParameters
                                             trackingStatusManager:self.trackingStatusManager
                                             createdAt:now];
-
+    gdprBuilder.internalState = selfI.internalState;
     ADTActivityPackage *gdprPackage = [gdprBuilder buildGdprPackage];
     [selfI.packageHandler addPackage:gdprPackage];
 
@@ -2122,6 +2134,64 @@ remainsPausedMessage:(NSString *)remainsPausedMessage
     [selfI.packageHandler flush];
 }
 
+- (void)checkLinkMeI:(ADTActivityHandler *)selfI {
+#if TARGET_OS_IOS
+    if (@available(iOS 15.0, *)) {
+        if (selfI.adtraceConfig.linkMeEnabled == NO) {
+            [self.logger debug:@"LinkMe not allowed by client"];
+            return;
+        }
+        if ([ADTUserDefaults getLinkMeChecked] == YES) {
+            [self.logger debug:@"LinkMe already checked"];
+            return;
+        }
+        if (selfI.internalState.isFirstLaunch == NO) {
+            [self.logger debug:@"LinkMe only valid for install"];
+            return;
+        }
+        if ([ADTUserDefaults getGdprForgetMe]) {
+            [self.logger debug:@"LinkMe not happening for GDPR forgotten user"];
+            return;
+        }
+
+        UIPasteboard *pasteboard = [UIPasteboard generalPasteboard];
+        if ([pasteboard hasURLs] == NO) {
+            [self.logger debug:@"LinkMe general board not found"];
+            return;
+        }
+
+        NSURL *pasteboardUrl = [pasteboard URL];
+        if (pasteboardUrl == nil) {
+            [self.logger debug:@"LinkMe content not found"];
+            return;
+        }
+
+        NSString *pasteboardUrlString = [pasteboardUrl absoluteString];
+        if (pasteboardUrlString == nil) {
+            [self.logger debug:@"LinkMe content could not be converted to string"];
+            return;
+        }
+
+        // send sdk_click
+        double now = [NSDate.date timeIntervalSince1970];
+        ADTPackageBuilder *clickBuilder = [[ADTPackageBuilder alloc] initWithPackageParams:selfI.packageParams
+                                                                             activityState:selfI.activityState
+                                                                                    config:selfI.adtraceConfig
+                                                                         sessionParameters:selfI.sessionParameters
+                                                                     trackingStatusManager:self.trackingStatusManager
+                                                                                 createdAt:now];
+        clickBuilder.internalState = selfI.internalState;
+        clickBuilder.clickTime = [NSDate dateWithTimeIntervalSince1970:now];
+        ADTActivityPackage *clickPackage = [clickBuilder buildClickPackage:@"linkme" linkMeUrl:pasteboardUrlString];
+        [selfI.sdkClickHandler sendSdkClick:clickPackage];
+
+        [ADTUserDefaults setLinkMeChecked];
+    } else {
+        [self.logger warn:@"LinkMe feature is supported on iOS 15.0 and above"];
+    }
+#endif
+}
+
 #pragma mark - private
 
 - (BOOL)isEnabledI:(ADTActivityHandler *)selfI {
@@ -2145,6 +2215,14 @@ remainsPausedMessage:(NSString *)remainsPausedMessage
         return selfI.activityState.updatePackages;
     } else {
         return [selfI.internalState itHasToUpdatePackages];
+    }
+}
+
+- (BOOL)itHasToUpdatePackagesAttDataI:(ADTActivityHandler *)selfI {
+    if (selfI.activityState != nil) {
+        return selfI.activityState.updatePackagesAttData;
+    } else {
+        return [selfI.internalState itHasToUpdatePackagesAttData];
     }
 }
 
@@ -2321,8 +2399,10 @@ remainsPausedMessage:(NSString *)remainsPausedMessage
     // it's possible for the sdk click handler to be active while others are paused
     if (![selfI toSendI:selfI sdkClickHandlerOnly:YES]) {
         [selfI.sdkClickHandler pauseSending];
+        [selfI.purchaseVerificationHandler pauseSending];
     } else {
         [selfI.sdkClickHandler resumeSending];
+        [selfI.purchaseVerificationHandler resumeSending];
     }
 }
 
@@ -2330,24 +2410,21 @@ remainsPausedMessage:(NSString *)remainsPausedMessage
     [selfI.attributionHandler resumeSending];
     [selfI.packageHandler resumeSending];
     [selfI.sdkClickHandler resumeSending];
+    [selfI.purchaseVerificationHandler resumeSending];
 }
 
-- (BOOL)pausedI:(ADTActivityHandler *)selfI {
-    return [selfI pausedI:selfI sdkClickHandlerOnly:NO];
-}
-
-- (BOOL)pausedI:(ADTActivityHandler *)selfI
-sdkClickHandlerOnly:(BOOL)sdkClickHandlerOnly
-{
+- (BOOL)pausedI:(ADTActivityHandler *)selfI sdkClickHandlerOnly:(BOOL)sdkClickHandlerOnly {
     if (sdkClickHandlerOnly) {
         // sdk click handler is paused if either:
-        return [selfI.internalState isOffline] ||    // it's offline
-         ![selfI isEnabledI:selfI];                  // is disabled
+        return [selfI.internalState isOffline]              // it's offline
+        || ![selfI isEnabledI:selfI]                        // is disabled
+        || [selfI.internalState isWaitingForAttStatus];     // Waiting for ATT status
     }
     // other handlers are paused if either:
-    return [selfI.internalState isOffline] ||        // it's offline
-            ![selfI isEnabledI:selfI] ||             // is disabled
-            [selfI.internalState isInDelayedStart];      // is in delayed start
+    return [selfI.internalState isOffline]                  // it's offline
+    || ![selfI isEnabledI:selfI]                            // is disabled
+    || [selfI.internalState isInDelayedStart]               // is in delayed start
+    || [selfI.internalState isWaitingForAttStatus];         // Waiting for ATT status
 }
 
 - (BOOL)toSendI:(ADTActivityHandler *)selfI {
@@ -2505,13 +2582,57 @@ sdkClickHandlerOnly:(BOOL)sdkClickHandlerOnly
 
 - (void)updatePackagesI:(ADTActivityHandler *)selfI {
     // update activity packages
-    [selfI.packageHandler updatePackages:selfI.sessionParameters];
+    [selfI.packageHandler updatePackagesWithSessionParams:selfI.sessionParameters];
     // no longer needs to update packages
     selfI.internalState.updatePackages = NO;
     if (selfI.activityState != nil) {
         [ADTUtil launchSynchronisedWithObject:[ADTActivityState class]
                                         block:^{
             selfI.activityState.updatePackages = NO;
+        }];
+        [selfI writeActivityStateI:selfI];
+    }
+}
+
+#pragma mark - waiting for ATT status
+
+- (void)activateWaitingForAttStatusI:(ADTActivityHandler *)selfI {
+    if (![selfI.internalState isWaitingForAttStatus]) {
+        return;
+    }
+    [selfI.trackingStatusManager setAppInActiveState:YES];
+}
+
+- (void)pauseWaitingForAttStatusI:(ADTActivityHandler *)selfI {
+    if (![selfI.internalState isWaitingForAttStatus]) {
+        return;
+    }
+    [selfI.trackingStatusManager setAppInActiveState:NO];
+}
+
+- (void)resumeActivityFromWaitingForAttStatusI:(ADTActivityHandler *)selfI  {
+    // update packages in queue
+    [selfI updatePackagesAttStatusAndIdfaI:selfI];
+    // update waiting for ATT status flag
+    selfI.internalState.waitingForAttStatus = NO;
+    // update the status and try to send first package
+    [selfI updateHandlersStatusAndSendI:selfI];
+}
+
+- (void)updatePackagesAttStatusAndIdfaI:(ADTActivityHandler *)selfI {
+    // update activity packages
+    int attStatus = [ADTUtil attStatus];
+    if (attStatus != 0) {
+        [selfI.packageHandler updatePackagesWithAttStatus:attStatus];
+        [selfI.sdkClickHandler updatePackagesWithAttStatus:attStatus];
+        [selfI.purchaseVerificationHandler updatePackagesWithAttStatus:attStatus];
+    }
+
+    selfI.internalState.updatePackagesAttData = NO;
+    if (selfI.activityState != nil) {
+        [ADTUtil launchSynchronisedWithObject:[ADTActivityState class]
+                                        block:^{
+            selfI.activityState.updatePackagesAttData = NO;
         }];
         [selfI writeActivityStateI:selfI];
     }
@@ -2737,32 +2858,6 @@ sdkClickHandlerOnly:(BOOL)sdkClickHandlerOnly
     return YES;
 }
 
-- (void)registerForSKAdNetworkAttribution {
-    if (!self.adtraceConfig.isSKAdNetworkHandlingActive) {
-        return;
-    }
-    id<ADTLogger> logger = [ADTAdtraceFactory logger];
-    
-    Class skAdNetwork = NSClassFromString(@"SKAdNetwork");
-    if (skAdNetwork == nil) {
-        [logger warn:@"StoreKit framework not found in the app (SKAdNetwork not found)"];
-        return;
-    }
-    
-    SEL registerAttributionSelector = NSSelectorFromString(@"registerAppForAdNetworkAttribution");
-    if ([skAdNetwork respondsToSelector:registerAttributionSelector]) {
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Warc-performSelector-leaks"
-        [skAdNetwork performSelector:registerAttributionSelector];
-#pragma clang diagnostic pop
-        [logger verbose:@"Call to SKAdNetwork's registerAppForAdNetworkAttribution method made"];
-        
-        // store timestamp of when register call was successfully made
-        NSDate *callTime = [NSDate date];
-        [ADTUserDefaults saveSkadRegisterCallTimestamp:callTime];
-    }
-}
-
 - (void)checkConversionValue:(ADTResponseData *)responseData {
     if (!self.adtraceConfig.isSKAdNetworkHandlingActive) {
         return;
@@ -2772,31 +2867,123 @@ sdkClickHandlerOnly:(BOOL)sdkClickHandlerOnly
     }
 
     NSNumber *conversionValue = [responseData.jsonResponse objectForKey:@"skadn_conv_value"];
-
     if (!conversionValue) {
         return;
     }
-    
-    [ADTUtil updateSkAdNetworkConversionValue:conversionValue];
 
-    if ([self.adtraceDelegate respondsToSelector:@selector(adtraceConversionValueUpdated:)]) {
-        [self.logger debug:@"Launching conversion value updated delegate"];
-        [ADTUtil launchInMainThread:self.adtraceDelegate
-                           selector:@selector(adtraceConversionValueUpdated:)
-                         withObject:conversionValue];
-    }
+    NSString *coarseValue = [responseData.jsonResponse objectForKey:@"skadn_coarse_value"];
+    NSNumber *lockWindow = [responseData.jsonResponse objectForKey:@"skadn_lock_window"];
+
+    [[ADTSKAdNetwork getInstance] adtUpdateConversionValue:[conversionValue intValue]
+                                               coarseValue:coarseValue
+                                                lockWindow:lockWindow
+                                         completionHandler:^(NSError *error) {
+        if (error) {
+            // handle error
+        } else {
+            // ping old callback if implemented
+            if ([self.adtraceDelegate respondsToSelector:@selector(adtraceConversionValueUpdated:)]) {
+                [self.logger debug:@"Launching adtraceConversionValueUpdated: delegate"];
+                [ADTUtil launchInMainThread:self.adtraceDelegate
+                                   selector:@selector(adtraceConversionValueUpdated:)
+                                 withObject:conversionValue];
+            }
+            // ping new callback if implemented
+            if ([self.adtraceDelegate respondsToSelector:@selector(adtraceConversionValueUpdated:coarseValue:lockWindow:)]) {
+                [self.logger debug:@"Launching adtraceConversionValueUpdated:coarseValue:lockWindow: delegate"];
+                [ADTUtil launchInMainThread:^{
+                    [self.adtraceDelegate adtraceConversionValueUpdated:conversionValue
+                                                          coarseValue:coarseValue
+                                                           lockWindow:lockWindow];
+                }];
+            }
+        }
+    }];
 }
 
 - (void)updateAttStatusFromUserCallback:(int)newAttStatusFromUser {
     [self.trackingStatusManager updateAttStatusFromUserCallback:newAttStatusFromUser];
 }
 
+
+- (void)processCoppaComplianceI:(ADTActivityHandler *)selfI {
+    if (!selfI.adtraceConfig.coppaCompliantEnabled) {
+        [self resetThirdPartySharingCoppaActivityStateI:selfI];
+        return;
+    }
+
+    [self disableThirdPartySharingForCoppaEnabledI:selfI];
+}
+
+- (void)disableThirdPartySharingForCoppaEnabledI:(ADTActivityHandler *)selfI {
+    if (![selfI shouldDisableThirdPartySharingWhenCoppaEnabled:selfI]) {
+        return;
+    }
+
+    [ADTUtil launchSynchronisedWithObject:[ADTActivityState class]
+                                    block:^{
+        selfI.activityState.isThirdPartySharingDisabledForCoppa = YES;
+    }];
+    [selfI writeActivityStateI:selfI];
+
+    ADTThirdPartySharing *thirdPartySharing = [[ADTThirdPartySharing alloc] initWithIsEnabledNumberBool:[NSNumber numberWithBool:NO]];
+
+    double now = [NSDate.date timeIntervalSince1970];
+
+    // build package
+    ADTPackageBuilder *tpsBuilder = [[ADTPackageBuilder alloc]
+                                     initWithPackageParams:selfI.packageParams
+                                     activityState:selfI.activityState
+                                     config:selfI.adtraceConfig
+                                     sessionParameters:selfI.sessionParameters
+                                     trackingStatusManager:self.trackingStatusManager
+                                     createdAt:now];
+    tpsBuilder.internalState = selfI.internalState;
+    ADTActivityPackage *dtpsPackage = [tpsBuilder buildThirdPartySharingPackage:thirdPartySharing];
+
+    [selfI.packageHandler addPackage:dtpsPackage];
+
+    if (selfI.adtraceConfig.eventBufferingEnabled) {
+        [selfI.logger info:@"Buffered event %@", dtpsPackage.suffix];
+    } else {
+        [selfI.packageHandler sendFirstPackage];
+    }
+}
+
+- (void)resetThirdPartySharingCoppaActivityStateI:(ADTActivityHandler *)selfI {
+    if (selfI.activityState == nil) {
+        return;
+    }
+
+    if(selfI.activityState.isThirdPartySharingDisabledForCoppa) {
+        [ADTUtil launchSynchronisedWithObject:[ADTActivityState class]
+                                        block:^{
+            selfI.activityState.isThirdPartySharingDisabledForCoppa = NO;
+        }];
+        [selfI writeActivityStateI:selfI];
+    }
+}
+
+- (BOOL)shouldDisableThirdPartySharingWhenCoppaEnabled:(ADTActivityHandler *)selfI {
+    if (selfI.activityState == nil) {
+        return NO;
+    }
+    if (![selfI isEnabledI:selfI]) {
+        return NO;
+    }
+    if (selfI.activityState.isGdprForgotten) {
+        return NO;
+    }
+
+    return !selfI.activityState.isThirdPartySharingDisabledForCoppa;
+}
+
 @end
 
 @interface ADTTrackingStatusManager ()
-
 @property (nonatomic, readonly, weak) ADTActivityHandler *activityHandler;
-
+@property (nonatomic, assign) BOOL activeState;
+@property (nonatomic, strong) dispatch_queue_t waitingForAttQueue;
 @end
 
 @implementation ADTTrackingStatusManager
@@ -2805,6 +2992,7 @@ sdkClickHandlerOnly:(BOOL)sdkClickHandlerOnly
     self = [super init];
 
     _activityHandler = activityHandler;
+    _waitingForAttQueue = dispatch_queue_create(kWaitingForAttQueueName, DISPATCH_QUEUE_SERIAL);
 
     return self;
 }
@@ -2828,18 +3016,18 @@ sdkClickHandlerOnly:(BOOL)sdkClickHandlerOnly
 
 - (void)checkForNewAttStatus {
     int readAttStatus = [ADTUtil attStatus];
-    BOOL didUpdateAttStatus = [self updateAttStatus:readAttStatus];
-    if (!didUpdateAttStatus) {
-        return;
-    }
-    [self.activityHandler trackAttStatusUpdate];
+    [self updateAttStatusWithStatus:readAttStatus];
 }
+
 - (void)updateAttStatusFromUserCallback:(int)newAttStatusFromUser {
-    BOOL didUpdateAttStatus = [self updateAttStatus:newAttStatusFromUser];
-    if (!didUpdateAttStatus) {
-        return;
+    [self updateAttStatusWithStatus:newAttStatusFromUser];
+}
+
+- (void)updateAttStatusWithStatus:(int)status {
+    BOOL statusHasBeenUpdated = [self updateAttStatus:status];
+    if (statusHasBeenUpdated) {
+        [self.activityHandler trackAttStatusUpdate];
     }
-    [self.activityHandler trackAttStatusUpdate];
 }
 
 // internal methods
@@ -2864,4 +3052,98 @@ sdkClickHandlerOnly:(BOOL)sdkClickHandlerOnly
 
     return YES;
 }
+
+
+- (void)setAppInActiveState:(BOOL)activeState {
+    dispatch_async(self.waitingForAttQueue, ^{
+        // skip in case active state didn't change
+        if (self.activeState == activeState) {
+            return;
+        }
+        self.activeState = activeState;
+        if (self.activeState) {
+            [self startWaitingForAttStatus];
+        }
+    });
+}
+
+- (BOOL)shouldWaitForAttStatus {
+    if (![self canGetAttStatus]) {
+        return NO;
+    }
+
+    // check current ATT status
+    int attStatus = [ADTUtil attStatus];
+
+    // return if the status is not ATTrackingManagerAuthorizationStatusNotDetermined
+    if (attStatus != 0) {
+        // Delete att_waiting_seconds key from UserDefaults.
+        [ADTUserDefaults removeAttWaitingRemainingSeconds];
+        return NO;
+    }
+
+    BOOL keyExists = [ADTUserDefaults attWaitingRemainingSecondsKeyExists];
+    // check ATT timeout configuration
+    if (self.activityHandler.adtraceConfig.attConsentWaitingInterval == 0) {
+        // ATT timmeout is not configured in ADTConfig for current SDK running session.
+        // Already existing NSUserDefaults key means ATT timeout was configured in the previous SDK initialization.
+        // Setting `0` to the NSUserDefaults key for skipping ATT waiting configuration in next SDK initializations,
+        // no matter it is confgured in Adtrace configuration or not.
+        if (keyExists) {
+            [ADTUserDefaults setAttWaitingRemainingSeconds:0];
+        }
+        return NO;
+    }
+
+    // Setting timeout value limited to 120 seconds.
+    NSUInteger timeoutSec = (self.activityHandler.adtraceConfig.attConsentWaitingInterval <= kWaitingForAttStatusLimitSeconds) ?
+    self.activityHandler.adtraceConfig.attConsentWaitingInterval : kWaitingForAttStatusLimitSeconds;
+    if (keyExists && [ADTUserDefaults getAttWaitingRemainingSeconds] == 0) {
+        // Existing NSUserDefaults key with `0` value means:
+        // OR timeout has elapsed and user didn't succeed to invoke ATT dialog during this time
+        // OR SDK already has been initialized without AttTimeout.
+        // We are skipping this ATT status waiting logic.
+        return NO;
+    }
+
+    // NSUserDefaults key doesn't exist means => first SDK init with timeout configured).
+    // OR
+    // NSUserDefaults key exists with value > 0 means => application was killed before the timeout has been elapsed.
+
+    // We have to set the configured waiting timeout and start ATT status monitoring logic.
+    [ADTUserDefaults setAttWaitingRemainingSeconds:timeoutSec];
+
+    return YES;
+}
+
+- (void)startWaitingForAttStatus {
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(1.0 * NSEC_PER_SEC)), self.waitingForAttQueue, ^{
+        [self checkAttStatusPeriodic];
+    });
+}
+
+- (void)checkAttStatusPeriodic {
+    if (!self.activeState) {
+        return;
+    }
+    // check current ATT status
+    int attStatus = [ADTUtil attStatus];
+    if (attStatus != 0) {
+        [self.activityHandler.logger info:@"ATT consent status udated to: %d", attStatus];
+        [ADTUserDefaults removeAttWaitingRemainingSeconds];
+        [self.activityHandler resumeActivityFromWaitingForAttStatus];
+        return;
+    }
+
+    NSUInteger seconds = [ADTUserDefaults getAttWaitingRemainingSeconds];
+    if (seconds == 0) {
+        [self.activityHandler.logger warn:@"ATT status waiting timeout elapsed without receiving any consent status update"];
+        [self.activityHandler resumeActivityFromWaitingForAttStatus];
+        return;
+    }
+
+    [ADTUserDefaults setAttWaitingRemainingSeconds:(seconds-1)];
+    [self startWaitingForAttStatus];
+}
+
 @end

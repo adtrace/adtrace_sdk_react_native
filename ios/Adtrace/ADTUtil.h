@@ -1,10 +1,3 @@
-//
-//  ADTUtil.h
-//  Adtrace SDK
-//
-//  Created by Nasser Amini (@namini40) on Jun 2022.
-//  Copyright © 2022 adtrace io. All rights reserved.
-//
 
 #import <Foundation/Foundation.h>
 
@@ -80,8 +73,6 @@ typedef void (^isInactiveInjected)(BOOL);
 
 + (BOOL)deleteFileWithName:(NSString *)filename;
 
-+ (BOOL)checkAttributionDetails:(NSDictionary *)attributionDetails;
-
 + (BOOL)isValidParameter:(NSString *)attribute
            attributeType:(NSString *)attributeType
            parameterName:(NSString *)parameterName;
@@ -100,8 +91,6 @@ typedef void (^isInactiveInjected)(BOOL);
 + (BOOL)isDeeplinkValid:(NSURL *)url;
 
 + (NSString *)sdkVersion;
-
-+ (void)updateSkAdNetworkConversionValue:(NSNumber *)conversionValue;
 
 + (Class)adSupportManager;
 
@@ -125,12 +114,6 @@ typedef void (^isInactiveInjected)(BOOL);
 
 + (NSString *)fetchAdServicesAttribution:(NSError **)errorPtr;
 
-+ (void)checkForiAd:(ADTActivityHandler *)activityHandler queue:(dispatch_queue_t)queue;
-
-+ (BOOL)setiAdWithDetails:(ADTActivityHandler *)activityHandler
-   adClientSharedInstance:(id)ADClientSharedClientInstance
-                    queue:(dispatch_queue_t)queue;
-
 + (void)requestTrackingAuthorizationWithCompletionHandler:(void (^)(NSUInteger status))completion;
 
 + (NSString *)bundleIdentifier;
@@ -148,5 +131,12 @@ typedef void (^isInactiveInjected)(BOOL);
 + (NSString *)getPersistedRandomToken;
 
 + (BOOL)setPersistedRandomToken:(NSString *)randomToken;
+
++ (NSMutableDictionary *)deepCopyOfDictionary:(NSDictionary *)dictionary;
+
++ (BOOL)shouldUseConsentParamsForActivityKind:(ADTActivityKind)activityKind;
+
++ (BOOL)shouldUseConsentParamsForActivityKind:(ADTActivityKind)activityKind
+                                 andAttStatus:(NSString *)attStatusString;
 
 @end
