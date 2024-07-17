@@ -340,12 +340,10 @@ AdTraceConfig.DeferredDeeplinkSubscription = null;
 AdTraceConfig.ConversionValueUpdatedSubscription = null;
 AdTraceConfig.Skad4ConversionValueUpdatedSubscription = null;
 
-AdTraceConfig.UrlStrategyChina = "china";
-AdTraceConfig.UrlStrategyIndia = "india";
+AdTraceConfig.UrlStrategyIR = "ir";
+AdTraceConfig.UrlStrategyMobi = "mobi";
 
-AdTraceConfig.DataResidencyEU = "data-residency-eu";
-AdTraceConfig.DataResidencyTR = "data-residency-tr";
-AdTraceConfig.DataResidencyUS = "data-residency-us";
+AdTraceConfig.DataResidencyIR = "data-residency-ir";
 
 AdTraceConfig.AdRevenueSourceAppLovinMAX = "applovin_max_sdk";
 AdTraceConfig.AdRevenueSourceMopub = "mopub";
@@ -353,6 +351,8 @@ AdTraceConfig.AdRevenueSourceAdmob = "admob_sdk";
 AdTraceConfig.AdRevenueSourceIronSource = "ironsource_sdk";
 AdTraceConfig.AdRevenueSourceAdmost = "admost_sdk";
 AdTraceConfig.AdRevenueSourcePublisher = "publisher_sdk";
+AdTraceConfig.AdRevenueSourceTopOn = "topon_sdk";
+AdTraceConfig.AdRevenueSourceAdx = "adx_sdk";
 
 AdTraceConfig.prototype.setEventBufferingEnabled = function(isEnabled) {
     this.eventBufferingEnabled = isEnabled;

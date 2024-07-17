@@ -148,11 +148,17 @@ declare module 'react-native-adtrace' {
     static LogLevelSuppress: LogLevel
     static EnvironmentSandbox: Environment
     static EnvironmentProduction: Environment
-    static UrlStrategyChina: UrlStrategy
-    static UrlStrategyIndia: UrlStrategy
-    static DataResidencyEU: UrlStrategy
-    static DataResidencyTR: UrlStrategy
-    static DataResidencyUS: UrlStrategy
+    static UrlStrategyIR: UrlStrategy
+    static UrlStrategyMobi: UrlStrategy
+    static DataResidencyIR: UrlStrategy
+    static AdRevenueSourceAppLovinMAX: string
+    static AdRevenueSourceMopub: string
+    static AdRevenueSourceAdmob: string
+    static AdRevenueSourceIronSource: string
+    static AdRevenueSourceAdmost: string
+    static AdRevenueSourcePublisher: string
+    static AdRevenueSourceTopOn: string
+    static AdRevenueSourceAdx: string
   }
 
   export class AdTraceEvent {
