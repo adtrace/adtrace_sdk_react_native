@@ -30,6 +30,7 @@ final class AdTraceUtil {
     private static final String ATTRIBUTION_COST_TYPE = "costType";
     private static final String ATTRIBUTION_COST_AMOUNT = "costAmount";
     private static final String ATTRIBUTION_COST_CURRENCY = "costCurrency";
+    private static final String ATTRIBUTION_FB_INSTALL_REFERRER = "fbInstallReferrer";
 
     private static final String EVENT_SUCCESS_MESSAGE = "message";
     private static final String EVENT_SUCCESS_TIMESTAMP = "timestamp";
@@ -57,6 +58,10 @@ final class AdTraceUtil {
     private static final String SESSION_FAILED_WILL_RETRY = "willRetry";
     private static final String SESSION_FAILED_JSON_RESPONSE = "jsonResponse";
 
+    private static final String PURCHAE_VERIFICATION_STATUS = "verificationStatus";
+    private static final String PURCHAE_VERIFICATION_CODE = "code";
+    private static final String PURCHAE_VERIFICATION_MESSAGE = "message";
+
     public static WritableMap attributionToMap(AdTraceAttribution attribution) {
         WritableMap map = Arguments.createMap();
         if (null == attribution) {
@@ -74,6 +79,7 @@ final class AdTraceUtil {
         map.putString(ATTRIBUTION_COST_TYPE, null != attribution.costType ? attribution.costType : "");
         map.putDouble(ATTRIBUTION_COST_AMOUNT, null != attribution.costAmount && !attribution.costAmount.isNaN() ? attribution.costAmount : 0);
         map.putString(ATTRIBUTION_COST_CURRENCY, null != attribution.costCurrency ? attribution.costCurrency : "");
+        map.putString(ATTRIBUTION_FB_INSTALL_REFERRER, null != attribution.fbInstallReferrer ? attribution.fbInstallReferrer : "");
         return map;
     }
 
